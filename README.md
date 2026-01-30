@@ -38,11 +38,11 @@ Notify the team you have created a pull request for review.
 
 ### To add a new migration:
 ```bash
-Add-Migration -Context ApplicationDbContext -OutputDir Data\MMigrations Initial
+Add-Migration -Context PontelloDbContext -OutputDir Data\MMigrations Initial
 ```
 ### To update database:
 ```bash
-Update-Database -Context ApplicationDbContext
+Update-Database -Context PontelloDbContext
 ```
 
 
