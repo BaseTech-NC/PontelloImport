@@ -1,4 +1,4 @@
-﻿@model PontelloImport.Models.Product
+﻿@* @model PontelloImport.Models.Product
 
 @{
     ViewData["Title"] = "Delete";
@@ -66,4 +66,54 @@
         <input type="submit" value="Delete" class="btn btn-danger" /> |
         <a asp-action="Index">Back to List</a>
     </form>
+</div> *@
+@model PontelloImport.Models.Product
+
+@{
+    ViewData["Title"] = "Archive Product";
+    }
+
+<h1>Archive Product</h1>
+
+<div class="alert alert-warning">
+    <strong>Warning:</strong> Are you sure you want to archive this product?
+    It will be hidden from the product list but can be restored later.
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>@Model.Title</h4>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">SKU</dt>
+                    <dd class="col-sm-8">@Model.SKU</dd>
+
+                    <dt class="col-sm-4">Handle</dt>
+                    <dd class="col-sm-8">@Model.Handle</dd>
+
+                    <dt class="col-sm-4">Vendor</dt>
+                    <dd class="col-sm-8">@Model.Vendor?.VendorName</dd>
+
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@Model.ProductCategory?.CategoryName</dd>
+
+                    <dt class="col-sm-4">Price</dt>
+                    <dd class="col-sm-8">@Model.Price.ToString("C")</dd>
+
+                    <dt class="col-sm-4">Quantity</dt>
+                    <dd class="col-sm-8">@Model.InventoryQuantity</dd>
+                </dl>
+            </div>
+            <div class="card-footer">
+                <form asp-action="Delete">
+                    <input type="hidden" asp-for="ProductID" />
+                    <button type="submit" class="btn btn-danger">Yes, Archive Product</button>
+                    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
