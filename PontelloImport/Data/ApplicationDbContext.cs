@@ -9,8 +9,7 @@ namespace PontelloImport.Data
             : base(options)
         {
         }
-        public DbSet<PontelloImport.Models.Product> Product { get; set; }
-
+       
 
     }
 }
