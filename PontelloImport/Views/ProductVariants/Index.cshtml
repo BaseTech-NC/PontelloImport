@@ -1,0 +1,209 @@
+﻿@model IEnumerable<PontelloImport.Models.ProductVariant>
+
+@{
+    ViewData["Title"] = "Product Variants";
+    var currentFilter = ViewBag.CurrentFilter as string ?? "all";
+    }
+
+<div class="container-fluid mt-4">
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>Product Variants</h2>
+            <p class="text-muted">Manage standalone products and product variants</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Create" class="btn btn-success btn-lg">
+                Create New Product
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a asp-action="Index" asp-route-filter="all"
+                   class="btn btn-sm @(currentFilter == "all" ? "btn-primary" : "btn-outline-primary")">
+                    All (@Model.Count())
+                </a>
+                <a asp-action="Index" asp-route-filter="standalone"
+                   class="btn btn-sm @(currentFilter == "standalone" ? "btn-primary" : "btn-outline-primary")">
+                    Standalone (@Model.Count(v => v.ProductID == null))
+                </a>
+                <a asp-action="Index" asp-route-filter="variants"
+                   class="btn btn-sm @(currentFilter == "variants" ? "btn-primary" : "btn-outline-primary")">
+                    With Parents (@Model.Count(v => v.ProductID != null))
+                </a>
+                <a asp-action="Index" asp-route-filter="published"
+                   class="btn btn-sm @(currentFilter == "published" ? "btn-success" : "btn-outline-success")">
+                    Published (@Model.Count(v => v.Status == PontelloImport.Models.ProductStatus.Published))
+                </a>
+                <a asp-action="Index" asp-route-filter="draft"
+                   class="btn btn-sm @(currentFilter == "draft" ? "btn-warning text-dark" : "btn-outline-warning")">
+                    Draft (@Model.Count(v => v.Status == PontelloImport.Models.ProductStatus.Draft))
+                </a>
+                <a asp-action="Index" asp-route-filter="archived"
+                   class="btn btn-sm @(currentFilter == "archived" ? "btn-secondary" : "btn-outline-secondary")">
+                    Archived (@Model.Count(v => v.Status == PontelloImport.Models.ProductStatus.Archived))
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Variants Table -->
+    <div class="row">
+        <div class="col-12">
+            @if (!Model.Any())
+                {
+                <div class="alert alert-info">
+                    No variants found.
+                    <a asp-action="Create" class="alert-link">Create your first product</a>
+                </div>
+                }
+            else
+                {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product Title</th>
+                                <th>SKU</th>
+                                <th>Price</th>
+                                <th>Inventory</th>
+                                <th>Parent Product</th>
+                                <th>Status</th>
+                                <th>Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var variant in Model)
+                                {
+                                <tr>
+                                    <!-- Title -->
+                                    <td>
+                                        <strong>@variant.Title</strong>
+                                        @if (variant.Attributes.Any(a => a.IsVariantAttribute))
+                                            {
+                                <br />
+                                <small class="text-muted">
+                                    @string.Join(", ", variant.Attributes
+                                                                        .Where(a => a.IsVariantAttribute)
+                                                                        .Select(a => $"{a.AttributeName}: {a.AttributeValue}"))
+                                </small>
+                                                                }
+                                    </td>
+
+                                    <!-- SKU -->
+                                    <td>
+                                        <code class="text-primary">@variant.SKU</code>
+                                    </td>
+
+                                    <!-- Price -->
+                                    <td>
+                                        <strong class="text-success">@variant.Price.ToString("C")</strong>
+                                        @if (variant.CompareAtPrice.HasValue)
+                                            {
+                                            <br />
+                                            <small class="text-muted">
+                                                <del>@variant.CompareAtPrice.Value.ToString("C")</del>
+                                            </small>
+                                            }
+                                    </td>
+
+                                    <!-- Inventory -->
+                                    <td>
+                                        <span class="@(variant.InventoryQuantity > 0 ? "text-success" : "text-danger")">
+                                            @variant.InventoryQuantity units
+                                        </span>
+                                        @if (variant.InventoryQuantity == 0)
+                                            {
+                                            <br />
+                                
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                            }
+                                    </td>
+
+                                    <!-- Parent Product -->
+                                    <td>
+                                        @if (variant.ProductID == null)
+                                            {
+                                            <span class="badge bg-info">Standalone</span>
+                                            }
+                                        else
+                                            {
+                                            <span class="text-muted">@variant.Product?.Title</span>
+                                            }
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td>
+                                        @switch (variant.Status)
+                                            {
+                                            case ProductStatus.Draft:
+                                            <span class="badge bg-warning text-dark">Draft</span>
+                                            break;
+                                            case ProductStatus.Published:
+                                            <span class="badge bg-success">Published</span>
+                                            break;
+                                            case ProductStatus.Archived:
+                                            <span class="badge bg-secondary">Archived</span>
+                                            break;
+                                            }
+                                    </td>
+
+                                    <!-- Active -->
+                                    <td class="text-center">
+                                        @if (variant.IsActive)
+                                            {
+                                            <span class="badge bg-success">Yes</span>
+                                            }
+                                        else
+                                            {
+                                            <span class="badge bg-danger">No</span>
+                                            }
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <!-- Actions -->
+                                    <td style="white-space: nowrap;">
+                                        <a asp-action="Details" asp-route-id="@variant.VariantID"
+                                           class="btn btn-sm btn-primary me-1">
+                                            Details
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@variant.VariantID"
+                                           class="btn btn-sm btn-warning me-1">
+                                            Edit
+                                        </a>
+
+                                        @if (variant.Status == ProductStatus.Archived)
+                                            {
+                                            <!-- Restore Button (for archived variants) -->
+                                            <form asp-action="Restore" asp-route-id="@variant.VariantID" method="post" style="display: inline;">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    Restore
+                                                </button>
+                                            </form>
+                                            }
+                                        else
+                                            {
+                                            <!-- Delete Button (for active/draft variants) -->
+                                            <a asp-action="Delete" asp-route-id="@variant.VariantID"
+                                               class="btn btn-sm btn-danger">
+                                                Delete
+                                            </a>
+                                            }
+                                    </td>
+                                </tr>
+                                }
+                        </tbody>
+                    </table>
+                </div>
+                }
+        </div>
+    </div>
+
+</div>

@@ -1,19 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PontelloImport.Models;
 
-//namespace PontelloImport.Data
-//{
-//    public class PontelloDbContext : DbContext
-//    {
-//        public PontelloDbContext(DbContextOptions<PontelloDbContext> options)
-//            : base(options)
-//        {
-//        }
-//        public DbSet<Product> Product { get; set; }
-//    }
-
-//}
-
 namespace PontelloImport.Data
 	{
 	public class PontelloDbContext : DbContext
@@ -56,6 +43,8 @@ namespace PontelloImport.Data
 		// ===== DBSETS =====
 
 		public DbSet<Product> Products { get; set; }
+		public DbSet<ProductVariant> ProductVariants { get; set; }
+		public DbSet<ProductAttribute> ProductAttributes { get; set; }
 		public DbSet<Vendor> Vendors { get; set; }
 		public DbSet<ProductCategory> ProductCategories { get; set; }
 
@@ -65,39 +54,88 @@ namespace PontelloImport.Data
 			{
 			base.OnModelCreating(modelBuilder);
 
-			// ----- PRODUCT CONFIGURATION -----
+			// ============================================================
+			// PRODUCT INDEXES
+			// ============================================================
 
-			// Unique indexes
+			// Unique handle for URL routing
 			modelBuilder.Entity<Product>()
 				.HasIndex(p => p.Handle)
 				.IsUnique();
 
+			// Status for filtering (Draft/Published/Archived)
 			modelBuilder.Entity<Product>()
-				.HasIndex(p => p.SKU)
-				.IsUnique();
+				.HasIndex(p => p.Status);
 
-			// Index for ParentProductHandle (variant grouping)
-			modelBuilder.Entity<Product>()
-				.HasIndex(p => p.ParentProductHandle);
-
-			// Index for active products
+			// IsActive for visibility filtering
 			modelBuilder.Entity<Product>()
 				.HasIndex(p => p.IsActive);
 
-			// Relationships - Prevent cascade delete
+			// Composite index for status + active queries
 			modelBuilder.Entity<Product>()
-				.HasOne(p => p.Vendor)
-				.WithMany(v => v.Products)
-				.HasForeignKey(p => p.VendorID)
-				.OnDelete(DeleteBehavior.Restrict);
+				.HasIndex(p => new { p.Status, p.IsActive });
 
-			modelBuilder.Entity<Product>()
-				.HasOne(p => p.ProductCategory)
-				.WithMany(c => c.Products)
-				.HasForeignKey(p => p.ProductCategoryID)
-				.OnDelete(DeleteBehavior.Restrict);
+			// ============================================================
+			// PRODUCT VARIANT INDEXES
+			// ============================================================
 
-			// ----- VENDOR CONFIGURATION -----
+			// Unique handle for URL routing
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => v.Handle)
+				.IsUnique();
+
+			// Unique SKU for product identification
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => v.SKU)
+				.IsUnique();
+
+			// ProductID for parent lookups
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => v.ProductID);
+
+			// Status for filtering (Draft/Published/Archived)
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => v.Status);
+
+			// IsActive for visibility filtering
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => v.IsActive);
+
+			// Price for sorting/filtering
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => v.Price);
+
+			// Weight for sorting/filtering
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => v.Weight);
+
+			// Composite index for parent + active queries
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => new { v.ProductID, v.IsActive });
+
+			// Composite index for status + active queries
+			modelBuilder.Entity<ProductVariant>()
+				.HasIndex(v => new { v.Status, v.IsActive });
+
+			// ============================================================
+			// PRODUCT ATTRIBUTE INDEXES
+			// ============================================================
+
+			modelBuilder.Entity<ProductAttribute>()
+				.HasIndex(a => a.VariantID);
+
+			modelBuilder.Entity<ProductAttribute>()
+				.HasIndex(a => a.AttributeName);
+
+			modelBuilder.Entity<ProductAttribute>()
+				.HasIndex(a => new { a.VariantID, a.IsVariantAttribute });
+
+			modelBuilder.Entity<ProductAttribute>()
+				.HasIndex(a => new { a.AttributeName, a.AttributeValue });
+
+			// ============================================================
+			// VENDOR INDEXES
+			// ============================================================
 
 			modelBuilder.Entity<Vendor>()
 				.HasIndex(v => v.VendorName)
@@ -107,7 +145,9 @@ namespace PontelloImport.Data
 				.HasIndex(v => v.VendorSlug)
 				.IsUnique();
 
-			// ----- PRODUCTCATEGORY CONFIGURATION -----
+			// ============================================================
+			// PRODUCT CATEGORY INDEXES
+			// ============================================================
 
 			modelBuilder.Entity<ProductCategory>()
 				.HasIndex(c => c.CategoryName)
@@ -117,7 +157,39 @@ namespace PontelloImport.Data
 				.HasIndex(c => c.CategorySlug)
 				.IsUnique();
 
-			// Self-referencing relationship (Parent/Child categories)
+			// ============================================================
+			// RELATIONSHIPS
+			// ============================================================
+
+			// Product -> Vendor (Restrict delete if products exist)
+			modelBuilder.Entity<Product>()
+				.HasOne(p => p.Vendor)
+				.WithMany(v => v.Products)
+				.HasForeignKey(p => p.VendorID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			// Product -> Category (Restrict delete if products exist)
+			modelBuilder.Entity<Product>()
+				.HasOne(p => p.ProductCategory)
+				.WithMany(c => c.Products)
+				.HasForeignKey(p => p.ProductCategoryID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			// ProductVariant -> Product (Restrict delete if variants exist)
+			modelBuilder.Entity<ProductVariant>()
+				.HasOne(v => v.Product)
+				.WithMany(p => p.Variants)
+				.HasForeignKey(v => v.ProductID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			// ProductAttribute -> ProductVariant (Cascade delete when variant deleted)
+			modelBuilder.Entity<ProductAttribute>()
+				.HasOne(a => a.Variant)
+				.WithMany(v => v.Attributes)
+				.HasForeignKey(a => a.VariantID)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			// ProductCategory self-referencing (Parent/Child categories)
 			modelBuilder.Entity<ProductCategory>()
 				.HasOne(c => c.ParentCategory)
 				.WithMany(c => c.ChildCategories)
