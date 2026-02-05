@@ -7,6 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+// Register HttpContextAccessor for audit tracking
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddDbContext<PontelloDbContext>(options =>
     options.UseSqlite(connectionString));
 
@@ -46,5 +49,9 @@ app.MapControllerRoute(
 
 app.MapRazorPages()
    .WithStaticAssets();
+
+
+// Seed the database
+PontelloDbInitializer.Seed(app);
 
 app.Run();

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PontelloImport.Data;
 
@@ -10,9 +11,11 @@ using PontelloImport.Data;
 namespace PontelloImport.Data.PIMigrations
 {
     [DbContext(typeof(PontelloDbContext))]
-    partial class PontelloDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260201022542_ProductVariantArchitecture")]
+    partial class ProductVariantArchitecture
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.12");
@@ -23,13 +26,13 @@ namespace PontelloImport.Data.PIMigrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("BodyHTML")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("CreatedBy")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("CreatedDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Handle")
@@ -46,13 +49,11 @@ namespace PontelloImport.Data.PIMigrations
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("ProductCategoryID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Status")
+                    b.Property<int>("ProductCategoryID")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Tags")
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
@@ -64,7 +65,7 @@ namespace PontelloImport.Data.PIMigrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("VendorID")
+                    b.Property<int>("VendorID")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("ProductID");
@@ -76,11 +77,7 @@ namespace PontelloImport.Data.PIMigrations
 
                     b.HasIndex("ProductCategoryID");
 
-                    b.HasIndex("Status");
-
                     b.HasIndex("VendorID");
-
-                    b.HasIndex("Status", "IsActive");
 
                     b.ToTable("Products");
                 });
@@ -207,9 +204,6 @@ namespace PontelloImport.Data.PIMigrations
                     b.Property<DateTime?>("CreatedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Handle")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -217,7 +211,7 @@ namespace PontelloImport.Data.PIMigrations
 
                     b.Property<string>("InventoryPolicy")
                         .IsRequired()
-                        .HasMaxLength(50)
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("InventoryQuantity")
@@ -249,23 +243,13 @@ namespace PontelloImport.Data.PIMigrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Tags")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Type")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("Weight")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal?>("Weight")
+                        .HasColumnType("decimal(10,2)");
 
                     b.HasKey("VariantID");
 
@@ -281,13 +265,9 @@ namespace PontelloImport.Data.PIMigrations
                     b.HasIndex("SKU")
                         .IsUnique();
 
-                    b.HasIndex("Status");
-
                     b.HasIndex("Weight");
 
                     b.HasIndex("ProductID", "IsActive");
-
-                    b.HasIndex("Status", "IsActive");
 
                     b.ToTable("ProductVariants");
                 });
@@ -362,12 +342,14 @@ namespace PontelloImport.Data.PIMigrations
                     b.HasOne("PontelloImport.Models.ProductCategory", "ProductCategory")
                         .WithMany("Products")
                         .HasForeignKey("ProductCategoryID")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("PontelloImport.Models.Vendor", "Vendor")
                         .WithMany("Products")
                         .HasForeignKey("VendorID")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("ProductCategory");
 
@@ -376,13 +358,13 @@ namespace PontelloImport.Data.PIMigrations
 
             modelBuilder.Entity("PontelloImport.Models.ProductAttribute", b =>
                 {
-                    b.HasOne("PontelloImport.Models.ProductVariant", "Variant")
+                    b.HasOne("PontelloImport.Models.ProductVariant", "ProductVariant")
                         .WithMany("Attributes")
                         .HasForeignKey("VariantID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Variant");
+                    b.Navigation("ProductVariant");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.ProductCategory", b =>
