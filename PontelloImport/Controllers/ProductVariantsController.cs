@@ -15,7 +15,6 @@ namespace PontelloImport.Controllers
         }
 
 
-
         // GET: ProductVariants - NOW WITH PAGINATION
         public async Task<IActionResult> Index(string filter = "all", int pageNumber = 1, int pageSize = 10)
         {
@@ -52,10 +51,24 @@ namespace PontelloImport.Controllers
                     // "all" = no additional filter
             }
 
-			var variants = await query.ToListAsync();
+            // REMOVE THIS LINE:
+            // var variants = await query.ToListAsync();
 
-			// Pass filter to view for highlighting active filter
-			ViewBag.CurrentFilter = filter;
+            // Store filter counts for the filter buttons (calculate before pagination)
+            var allVariants = await _context.ProductVariants.ToListAsync();
+            ViewBag.AllCount = allVariants.Count;
+            ViewBag.StandaloneCount = allVariants.Count(v => v.ProductID == null);
+            ViewBag.VariantsCount = allVariants.Count(v => v.ProductID != null);
+            ViewBag.PublishedCount = allVariants.Count(v => v.Status == ProductStatus.Published);
+            ViewBag.DraftCount = allVariants.Count(v => v.Status == ProductStatus.Draft);
+            ViewBag.ArchivedCount = allVariants.Count(v => v.Status == ProductStatus.Archived);
+
+            // Pass filter and page size to view
+            ViewBag.CurrentFilter = filter;
+            ViewBag.CurrentPageSize = pageSize;
+
+            // CREATE PAGINATED LIST - ADD THIS LINE:
+            var paginatedVariants = await PaginatedList<ProductVariant>.CreateAsync(query, pageNumber, pageSize);
 
             return View(paginatedVariants);
         }
