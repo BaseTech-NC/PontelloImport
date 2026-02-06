@@ -1,0 +1,47 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    string controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+}
+<div class="h-100 ">
+    <div class="sidebar-logo p-3">
+        <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports" class="object-fit-contain h-100" />
+    </div>
+
+    <div class="d-flex flex-column p-3">
+
+
+        <ul class="nav nav-pills flex-column gap-1">
+
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Dashboard" ? "active" : "text-dark")"
+                   asp-area=""
+                   asp-controller="Dashboard"
+                   asp-action="Index">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link @(controller == "ProductVariants" ? "active" : "text-dark")"
+                   asp-area=""
+                   asp-controller="ProductVariants"
+                   asp-action="Index">
+                    <i class="bi bi-box me-2"></i> Products
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Orders" ? "active" : "text-dark")"
+                   asp-area="Admin"
+                   asp-controller="Orders"
+                   asp-action="Index">
+                    <i class="bi bi-cart me-2"></i> Orders
+                </a>
+            </li>
+
+        </ul>
+
+    </div>
+</div>
