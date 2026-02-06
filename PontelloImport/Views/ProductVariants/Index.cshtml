@@ -1,6 +1,7 @@
 ﻿@model PontelloImport.Models.PaginatedList<PontelloImport.Models.ProductVariant>
 
 @{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Product Variants";
     var currentFilter = ViewBag.CurrentFilter as string ?? "all";
     var currentPageSize = ViewBag.CurrentPageSize ?? 10;
@@ -15,7 +16,7 @@
             <p class="text-muted">Manage standalone products and product variants</p>
         </div>
         <div class="col-md-6 text-end">
-            <a asp-action="Create" class="btn btn-success btn-lg">
+            <a asp-action="Create" class="btn btn-dark btn-lg">
                 Create New Product
             </a>
 
@@ -27,27 +28,27 @@
         <div class="col-12">
             <div class="btn-group" role="group">
                 <a asp-action="Index" asp-route-filter="all" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "all" ? "btn-primary" : "btn-outline-primary")">
+                   class="btn btn-sm @(currentFilter == "all" ? "btn-secondary" : "btn-outline-secondary text-dark")">
                     All (@ViewBag.AllCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="standalone" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "standalone" ? "btn-primary" : "btn-outline-primary")">
+                   class="btn btn-sm @(currentFilter == "standalone" ? "btn-secondary" : "btn-outline-secondary text-dark")">
                     Standalone (@ViewBag.StandaloneCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="variants" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "variants" ? "btn-primary" : "btn-outline-primary")">
+                   class="btn btn-sm @(currentFilter == "variants" ? "btn-secondary" : "btn-outline-secondary text-dark")">
                     With Parents (@ViewBag.VariantsCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="published" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "published" ? "btn-success" : "btn-outline-success")">
+                   class="btn btn-sm @(currentFilter == "published" ? "btn-secondary" : "btn-outline-secondary text-dark")">
                     Published (@ViewBag.PublishedCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="draft" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "draft" ? "btn-warning text-dark" : "btn-outline-warning")">
+                   class="btn btn-sm @(currentFilter == "draft" ? "btn-secondary" : "btn-outline-secondary text-dark")">
                     Draft (@ViewBag.DraftCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="archived" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "archived" ? "btn-secondary" : "btn-outline-secondary")">
+                   class="btn btn-sm @(currentFilter == "archived" ? "btn-secondary" : "btn-outline-secondary text-dark")">
                     Archived (@ViewBag.ArchivedCount)
                 </a>
             </div>
@@ -113,7 +114,7 @@
                                 <tr>
                                     <!-- Title -->
                                     <td>
-                                        <strong>@variant.Title</strong>
+                                        @variant.Title
                                         @if (variant.Attributes.Any(a => a.IsVariantAttribute))
                                         {
                                 <br />
