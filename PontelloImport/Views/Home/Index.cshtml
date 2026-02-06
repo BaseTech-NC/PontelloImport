@@ -1,7 +1,7 @@
 ﻿@{
     Layout = null;
     ViewData["Title"] = "Pontello Imports - Home";
-    }
+}
 
 <!doctype html>
 <html lang="en">
@@ -127,60 +127,47 @@
             margin: 0 auto;
         }
 
-        /* Quick Access Grid */
-        .quick-access {
+        /* Coming Soon Section */
+        .coming-soon {
             max-width: 1200px;
             margin: 0 auto;
             padding: 3rem 2rem;
+            text-align: center;
         }
 
         .section-title {
             font-size: 1.5rem;
             font-weight: 600;
             color: #1a1a1a;
-            margin-bottom: 2rem;
-            text-align: center;
+            margin-bottom: 1rem;
         }
 
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .card {
+        .coming-soon-message {
             background-color: #ffffff;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 2rem 1.5rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: default;
+            padding: 3rem 2rem;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-            .card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-                border-color: #a8b5c6;
-            }
-
-        .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            display: block;
+        .coming-soon-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
         }
 
-        .card h3 {
-            font-size: 1.2rem;
+        .coming-soon-message h3 {
+            font-size: 1.3rem;
             font-weight: 600;
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
             color: #1a1a1a;
         }
 
-        .card p {
-            font-size: 0.95rem;
+        .coming-soon-message p {
+            font-size: 1rem;
             color: #666;
-            line-height: 1.5;
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
         }
 
         /* Footer */
@@ -227,39 +214,41 @@
 
         /* Responsive Design */
         @@media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
+            .header-content
 
-            nav ul {
-                gap: 1.5rem;
-            }
+        {
+            flex-direction: column;
+            gap: 1rem;
+        }
 
-            .welcome-section h1 {
-                font-size: 1.8rem;
-            }
+        nav ul {
+            gap: 1.5rem;
+        }
 
-            .welcome-section p {
-                font-size: 1rem;
-            }
+        .welcome-section h1 {
+            font-size: 1.8rem;
+        }
 
-            .cards-grid {
-                grid-template-columns: 1fr;
-            }
+        .welcome-section p {
+            font-size: 1rem;
+        }
 
-            .footer-links a {
-                display: block;
-                margin: 0.5rem 0;
-            }
+        .footer-links a {
+            display: block;
+            margin: 0.5rem 0;
+        }
+
         }
 
         @@media (max-width: 480px) {
-            nav ul {
-                flex-wrap: wrap;
-                gap: 1rem;
-                justify-content: center;
-            }
+            nav ul
+
+        {
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
         }
     </style>
 </head>
@@ -268,15 +257,11 @@
     <header class="header">
         <div class="header-content">
             <div class="logo">
-                <!-- OPTION 1: If you have logo image, use this: -->
                 <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports Logo" />
-                
-                @* <div class="logo-text">PONTELLO IMPORTS</div> *@
             </div>
             <nav>
                 <ul>
                     <li><a href="/" class="active">Home</a></li>
-                    <li><a href="#dealer">Dealer Portal</a></li>
                     <li><a href="@Url.Action("Index", "ProductVariants")" class="admin-link">Admin Panel</a></li>
                 </ul>
             </nav>
@@ -286,45 +271,26 @@
     <!-- Welcome Section -->
     <section class="welcome-section">
         <div class="welcome-content">
-            <h1>Welcome to Your Dealer Portal</h1>
+            <h1>Welcome to Pontello Imports</h1>
             <p>
-                Access premium karting and motorsports components from leading
-                international manufacturers. Browse our complete catalog, place
-                orders, and manage your account—all in one streamlined platform.
+                Your premier destination for high-quality karting and motorsports components.
+                We specialize in supplying hard-to-find parts from leading international manufacturers
+                across Canada and the United States.
             </p>
         </div>
     </section>
 
-    <!-- Quick Access Cards -->
-    <section class="quick-access" id="dealer">
-        <h2 class="section-title">Quick Access</h2>
-        <div class="cards-grid">
-            <div class="card">
-                <span class="card-icon">📦</span>
-                <h3>Browse Products</h3>
-                <p>
-                    View our complete catalog of chassis, tires, engines, and
-                    accessories from top manufacturers.
-                </p>
-            </div>
-
-            <div class="card">
-                <span class="card-icon">📋</span>
-                <h3>Order History</h3>
-                <p>
-                    Review past orders, track shipments, and access purchase order
-                    documents anytime.
-                </p>
-            </div>
-
-            <div class="card">
-                <span class="card-icon">⚙️</span>
-                <h3>Account Settings</h3>
-                <p>
-                    Update your dealer profile, manage addresses, and configure payment
-                    terms.
-                </p>
-            </div>
+    <!-- Coming Soon Section -->
+    <section class="coming-soon">
+        <h2 class="section-title">Dealer Portal</h2>
+        <div class="coming-soon-message">
+            <div class="coming-soon-icon">🚀</div>
+            <h3>Coming Soon!</h3>
+            <p>We're working hard to bring you an enhanced dealer experience.</p>
+            <p>Our new portal will feature:</p>
+            <p>✓ Complete product catalog browsing</p>
+            <p>✓ Order history and tracking</p>
+            <p>✓ Account management tools</p>
         </div>
     </section>
 
