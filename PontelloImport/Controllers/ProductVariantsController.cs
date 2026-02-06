@@ -52,21 +52,10 @@ namespace PontelloImport.Controllers
                     // "all" = no additional filter
             }
 
-            // Store filter counts for the filter buttons (calculate before pagination)
-            var allVariants = await _context.ProductVariants.ToListAsync();
-            ViewBag.AllCount = allVariants.Count;
-            ViewBag.StandaloneCount = allVariants.Count(v => v.ProductID == null);
-            ViewBag.VariantsCount = allVariants.Count(v => v.ProductID != null);
-            ViewBag.PublishedCount = allVariants.Count(v => v.Status == ProductStatus.Published);
-            ViewBag.DraftCount = allVariants.Count(v => v.Status == ProductStatus.Draft);
-            ViewBag.ArchivedCount = allVariants.Count(v => v.Status == ProductStatus.Archived);
+			var variants = await query.ToListAsync();
 
-            // Pass filter and page size to view for maintaining state
-            ViewBag.CurrentFilter = filter;
-            ViewBag.CurrentPageSize = pageSize;
-
-            // Create paginated list with custom page size
-            var paginatedVariants = await PaginatedList<ProductVariant>.CreateAsync(query, pageNumber, pageSize);
+			// Pass filter to view for highlighting active filter
+			ViewBag.CurrentFilter = filter;
 
             return View(paginatedVariants);
         }
