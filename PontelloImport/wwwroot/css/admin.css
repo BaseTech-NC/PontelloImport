@@ -1,0 +1,62 @@
+﻿html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+.admin-grid {
+    display: grid;
+    grid-template-areas:
+        "header"
+        "content";
+    grid-template-rows: 56px 1fr;
+    grid-template-columns: 1fr;
+    height: 100vh;
+}
+.admin-header {
+    grid-area: header;
+    background: #ffffff;
+    border-bottom: 1px solid #dee2e6;
+    z-index: 10;
+    display: grid;
+}
+.admin-sidebar {
+    display: none;
+    background: #ffffff;
+    border-right: 1px solid #dee2e6;
+}
+
+.admin-content {
+    grid-area: content;
+    overflow-y: auto;
+    padding: 1rem;
+    background: #f8f9fa;
+}
+.sidebar-logo {
+    height: 72px;
+    border-bottom: 1px solid #dee2e6;
+}
+.nav-pills .nav-link.active {
+    background-color: #000;
+    color: #fff;
+}
+
+
+@media (min-width: 992px) {
+    .admin-grid {
+        grid-template-areas:
+            "sidebar header"
+            "sidebar content";
+        grid-template-columns: 220px 1fr;
+        grid-template-rows: 72px 1fr;
+    }
+
+    .admin-sidebar {
+        display: block;
+        grid-area: sidebar;
+        overflow: hidden;
+    }
+
+    .admin-content {
+        padding: 1.5rem;
+    }
+}
