@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
 using PontelloImport.Models;
@@ -173,277 +174,377 @@ namespace PontelloImport.Controllers
         public IActionResult Create()
         {
             var viewModel = new CreateProductViewModel();
-            return View(viewModel);
-        }
 
-        // POST: ProductVariants/Create
-        // POST: ProductVariants/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CreateProductViewModel viewModel)
-        {
-            var variant = viewModel.Variant;
+			// NEW: Add dropdown data for Vendor and Category
+			ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName");
+			ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName");
 
-            // Generate Handle from Title FIRST
-            if (!string.IsNullOrWhiteSpace(variant.Title))
-            {
-                variant.Handle = GenerateHandle(variant.Title);
-            }
-            else
-            {
-                variant.Handle = string.Empty;
-            }
-
-            // Remove Handle from validation (it's auto-generated)
-            ModelState.Remove("Variant.Handle");
-
-            // DEBUG: Show validation errors if any
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-
-                TempData["Error"] = "Validation failed: " + string.Join(", ", errors);
-                return View(viewModel);
-            }
-
-            try
-            {
-                // Set as standalone product (no parent)
-                variant.ProductID = null;
-
-                // Set initial status
-                variant.Status = ProductStatus.Draft;
-                variant.IsActive = false;
-
-                // Save variant first
-                _context.Add(variant);
-                await _context.SaveChangesAsync();
-
-                // Now save attributes with the VariantID
-                if (viewModel.Attributes != null && viewModel.Attributes.Any())
-                {
-                    foreach (var attrInput in viewModel.Attributes)
-                    {
-                        // Only save if both name and value are provided
-                        if (!string.IsNullOrWhiteSpace(attrInput.AttributeName) &&
-                            !string.IsNullOrWhiteSpace(attrInput.AttributeValue))
-                        {
-                            var attribute = new ProductAttribute
-                            {
-                                VariantID = variant.VariantID,
-                                AttributeName = attrInput.AttributeName.Trim(),
-                                AttributeValue = attrInput.AttributeValue.Trim(),
-                                IsVariantAttribute = attrInput.IsVariantAttribute,
-                                DisplayOrder = attrInput.DisplayOrder
-                            };
-
-                            _context.ProductAttributes.Add(attribute);
-                        }
-                    }
-
-                    await _context.SaveChangesAsync();
-                }
-
-                TempData["Success"] = $"Product '{variant.Title}' created successfully with {viewModel.Attributes?.Count(a => !string.IsNullOrWhiteSpace(a.AttributeName))} attribute(s)!";
-                return RedirectToAction(nameof(Details), new { id = variant.VariantID });
-            }
-            catch (DbUpdateException ex)
-            {
-                // Get the actual error message
-                var innerException = ex.InnerException?.Message ?? ex.Message;
-
-                // List to collect all errors
-                var errorMessages = new List<string>();
-
-                // Check for SKU duplicate
-                if (innerException.Contains("UNIQUE constraint failed: ProductVariants.SKU"))
-                {
-                    errorMessages.Add($"SKU '{variant.SKU}' already exists.");
-                    ModelState.AddModelError("Variant.SKU", "This SKU is already in use.");
-                }
-
-                // Check for Handle duplicate
-                if (innerException.Contains("UNIQUE constraint failed: ProductVariants.Handle"))
-                {
-                    errorMessages.Add($"A product with a similar title already exists (Handle: '{variant.Handle}').");
-                    ModelState.AddModelError("Variant.Title", "A product with this title already exists.");
-                }
-
-                // If we found specific errors, show them
-                if (errorMessages.Any())
-                {
-                    TempData["Error"] = "❌ " + string.Join(" ", errorMessages);
-                }
-                else
-                {
-                    // Generic database error
-                    TempData["Error"] = $"❌ Database error: {innerException}";
-                }
-
-                return View(viewModel);
-            }
+			return View(viewModel);
         }
 
 
-        // GET: ProductVariants/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
+		// POST: ProductVariants/Create
+		[HttpPost]
+		[ValidateAntiForgeryToken]
+		public async Task<IActionResult> Create(CreateProductViewModel viewModel)
+			{
+			var product = viewModel.Product;
+			var variant = viewModel.Variant;
 
-            var variant = await _context.ProductVariants
-                .Include(v => v.Attributes.OrderBy(a => a.DisplayOrder))
-                .FirstOrDefaultAsync(v => v.VariantID == id);
+			// Generate Handles from Titles
+			// For simple products, copy Variant.Title to Product.Title
+			if (string.IsNullOrWhiteSpace(product.Title) && !string.IsNullOrWhiteSpace(variant.Title))
+				{
+				product.Title = variant.Title;
+				}
 
-            if (variant == null)
-            {
-                return NotFound();
-            }
+			// Generate Handles from Titles
+			if (!string.IsNullOrWhiteSpace(product.Title))
+				{
+				product.Handle = GenerateHandle(product.Title);
+				}
 
-            // Create view model and populate with existing data
-            var viewModel = new CreateProductViewModel
-            {
-                Variant = variant,
-                Attributes = variant.Attributes.Select(a => new AttributeInputModel
-                {
-                    AttributeName = a.AttributeName,
-                    AttributeValue = a.AttributeValue,
-                    IsVariantAttribute = a.IsVariantAttribute,
-                    DisplayOrder = a.DisplayOrder
-                }).ToList()
-            };
+			if (!string.IsNullOrWhiteSpace(variant.Title))
+				{
+				variant.Handle = GenerateHandle(variant.Title);
+				}
 
-            return View(viewModel);
-        }
+			// For simple products, copy Variant.Title to Product.Title
+			if (string.IsNullOrWhiteSpace(product.Title) && !string.IsNullOrWhiteSpace(variant.Title))
+				{
+				product.Title = variant.Title;
+				}
 
-        // POST: ProductVariants/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, CreateProductViewModel viewModel)
-        {
-            var variant = viewModel.Variant;
+			// Generate Handles from Titles
+			if (!string.IsNullOrWhiteSpace(product.Title))
+				{
+				product.Handle = GenerateHandle(product.Title);
+				}
 
-            if (id != variant.VariantID)
-            {
-                return NotFound();
-            }
+			if (!string.IsNullOrWhiteSpace(variant.Title))
+				{
+				variant.Handle = GenerateHandle(variant.Title);
+				}
 
-            // Generate Handle from Title
-            if (!string.IsNullOrWhiteSpace(variant.Title))
-            {
-                variant.Handle = GenerateHandle(variant.Title);
-            }
+			// Remove Product.Title from validation (auto-copied from Variant.Title)
+			ModelState.Remove("Product.Title");
 
-            // Remove Handle from validation
-            ModelState.Remove("Variant.Handle");
+			// Remove Handles from validation (auto-generated)
+			ModelState.Remove("Product.Handle");
+			ModelState.Remove("Variant.Handle");
 
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
+			if (!ModelState.IsValid)
+				{
+				// Re-populate dropdowns on error
+				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
+				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
 
-                TempData["Error"] = "Validation failed: " + string.Join(", ", errors);
-                return View(viewModel);
-            }
+				return View(viewModel);
+				}
 
-            try
-            {
-                // Get existing variant from database
-                var existingVariant = await _context.ProductVariants
-                    .Include(v => v.Attributes)
-                    .FirstOrDefaultAsync(v => v.VariantID == id);
+			try
+				{
+				// STEP 1: Create Product parent FIRST
+				product.Status = ProductStatus.Draft;
+				product.IsActive = true;
 
-                if (existingVariant == null)
-                {
-                    return NotFound();
-                }
+				_context.Products.Add(product);
+				await _context.SaveChangesAsync();  // Save to get ProductID
 
-                // Update variant properties
-                existingVariant.Title = variant.Title;
-                existingVariant.Handle = variant.Handle;
-                existingVariant.SKU = variant.SKU;
-                existingVariant.Price = variant.Price;
-                existingVariant.CompareAtPrice = variant.CompareAtPrice;
-                existingVariant.InventoryQuantity = variant.InventoryQuantity;
-                existingVariant.InventoryPolicy = variant.InventoryPolicy;
-                existingVariant.Weight = variant.Weight;
-                existingVariant.Barcode = variant.Barcode;
-                existingVariant.RequiresShipping = variant.RequiresShipping;
-                existingVariant.IsTaxable = variant.IsTaxable;
-                existingVariant.Description = variant.Description;
-                existingVariant.Type = variant.Type;
-                existingVariant.Tags = variant.Tags;
-                existingVariant.Status = variant.Status;
-                existingVariant.IsActive = variant.IsActive;
+				// STEP 2: Create ProductVariant child (linked to parent)
+				variant.ProductID = product.ProductID;  // Link to parent
+				variant.Status = ProductStatus.Draft;
+				variant.IsActive = false;
 
-                // Handle attributes: Remove all existing, add new ones
-                _context.ProductAttributes.RemoveRange(existingVariant.Attributes);
+				_context.ProductVariants.Add(variant);
+				await _context.SaveChangesAsync();
 
-                if (viewModel.Attributes != null && viewModel.Attributes.Any())
-                {
-                    foreach (var attrInput in viewModel.Attributes)
-                    {
-                        if (!string.IsNullOrWhiteSpace(attrInput.AttributeName) &&
-                            !string.IsNullOrWhiteSpace(attrInput.AttributeValue))
-                        {
-                            var attribute = new ProductAttribute
-                            {
-                                VariantID = existingVariant.VariantID,
-                                AttributeName = attrInput.AttributeName.Trim(),
-                                AttributeValue = attrInput.AttributeValue.Trim(),
-                                IsVariantAttribute = attrInput.IsVariantAttribute,
-                                DisplayOrder = attrInput.DisplayOrder
-                            };
+				// STEP 3: Save attributes
+				if (viewModel.Attributes != null && viewModel.Attributes.Any())
+					{
+					foreach (var attrInput in viewModel.Attributes)
+						{
+						if (!string.IsNullOrWhiteSpace(attrInput.AttributeName) &&
+							!string.IsNullOrWhiteSpace(attrInput.AttributeValue))
+							{
+							var attribute = new ProductAttribute
+								{
+								VariantID = variant.VariantID,
+								AttributeName = attrInput.AttributeName.Trim(),
+								AttributeValue = attrInput.AttributeValue.Trim(),
+								IsVariantAttribute = attrInput.IsVariantAttribute,
+								DisplayOrder = attrInput.DisplayOrder
+								};
 
-                            _context.ProductAttributes.Add(attribute);
-                        }
-                    }
-                }
+							_context.ProductAttributes.Add(attribute);
+							}
+						}
 
-                await _context.SaveChangesAsync();
+					await _context.SaveChangesAsync();
+					}
 
-                TempData["Success"] = $"Product '{existingVariant.Title}' updated successfully!";
-                return RedirectToAction(nameof(Details), new { id = existingVariant.VariantID });
-            }
-            catch (DbUpdateException ex)
-            {
-                var innerException = ex.InnerException?.Message ?? ex.Message;
-                var errorMessages = new List<string>();
+				TempData["Success"] = $"Product '{variant.Title}' created successfully with {viewModel.Attributes?.Count(a => !string.IsNullOrWhiteSpace(a.AttributeName))} attribute(s)!";
+				return RedirectToAction(nameof(Details), new { id = variant.VariantID });
+				}
+			catch (DbUpdateException ex)
+				{
+				var innerException = ex.InnerException?.Message ?? ex.Message;
+				var errorMessages = new List<string>();
 
-                if (innerException.Contains("UNIQUE constraint failed: ProductVariants.SKU"))
-                {
-                    errorMessages.Add($"SKU '{variant.SKU}' already exists.");
-                    ModelState.AddModelError("Variant.SKU", "This SKU is already in use.");
-                }
+				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.SKU"))
+					{
+					errorMessages.Add($"SKU '{variant.SKU}' already exists.");
+					ModelState.AddModelError("Variant.SKU", "This SKU is already in use.");
+					}
 
-                if (innerException.Contains("UNIQUE constraint failed: ProductVariants.Handle"))
-                {
-                    errorMessages.Add($"A product with a similar title already exists (Handle: '{variant.Handle}').");
-                    ModelState.AddModelError("Variant.Title", "A product with this title already exists.");
-                }
+				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.Handle"))
+					{
+					errorMessages.Add($"A product with a similar title already exists (Handle: '{variant.Handle}').");
+					ModelState.AddModelError("Variant.Title", "A product with this title already exists.");
+					}
 
-                if (errorMessages.Any())
-                {
-                    TempData["Error"] = "❌ " + string.Join(" ", errorMessages);
-                }
-                else
-                {
-                    TempData["Error"] = $"❌ Database error: {innerException}";
-                }
+				if (innerException.Contains("UNIQUE constraint failed: Products.Handle"))
+					{
+					errorMessages.Add($"A product with a similar title already exists (Handle: '{product.Handle}').");
+					ModelState.AddModelError("Product.Title", "A product with this title already exists.");
+					}
 
-                return View(viewModel);
-            }
-        }
+				if (errorMessages.Any())
+					{
+					TempData["Error"] = "❌ " + string.Join(" ", errorMessages);
+					}
+				else
+					{
+					TempData["Error"] = $"❌ Database error: {innerException}";
+					}
 
-        // POST: ProductVariants/Publish/5
-        [HttpPost]
+				// Re-populate dropdowns on error
+				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
+				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+
+				return View(viewModel);
+				}
+			}
+
+
+		// GET: ProductVariants/Edit/5
+		public async Task<IActionResult> Edit(int? id)
+			{
+			if (id == null)
+				{
+				return NotFound();
+				}
+
+			var variant = await _context.ProductVariants
+				.Include(v => v.Product)
+				.Include(v => v.Attributes.OrderBy(a => a.DisplayOrder))
+				.FirstOrDefaultAsync(v => v.VariantID == id);
+
+			if (variant == null)
+				{
+				return NotFound("Variant not found.");
+				}
+
+			// Load the Product parent
+			var product = variant.Product;
+
+			if (product == null)
+				{
+				return NotFound("Product parent not found.");
+				}
+
+			// Create view model and populate with existing data
+			var viewModel = new CreateProductViewModel
+				{
+				Product = product,
+				Variant = variant,
+				Attributes = variant.Attributes.Select(a => new AttributeInputModel
+					{
+					AttributeName = a.AttributeName,
+					AttributeValue = a.AttributeValue,
+					IsVariantAttribute = a.IsVariantAttribute,
+					DisplayOrder = a.DisplayOrder
+					}).ToList()
+				};
+
+			// Add dropdown data
+			ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
+			ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+
+			return View(viewModel);
+			}
+
+		// POST: ProductVariants/Edit/5
+		[HttpPost]
+		[ValidateAntiForgeryToken]
+		public async Task<IActionResult> Edit(int id, CreateProductViewModel viewModel)
+			{
+			var product = viewModel.Product;
+			var variant = viewModel.Variant;
+
+			if (id != variant.VariantID)
+				{
+				return NotFound();
+				}
+
+			// For simple products, sync titles if Product.Title is empty
+			if (string.IsNullOrWhiteSpace(product.Title) && !string.IsNullOrWhiteSpace(variant.Title))
+				{
+				product.Title = variant.Title;
+				}
+
+			// Generate Handles from Titles
+			if (!string.IsNullOrWhiteSpace(product.Title))
+				{
+				product.Handle = GenerateHandle(product.Title);
+				}
+
+			if (!string.IsNullOrWhiteSpace(variant.Title))
+				{
+				variant.Handle = GenerateHandle(variant.Title);
+				}
+
+			// Remove from validation
+			ModelState.Remove("Product.Title");
+			ModelState.Remove("Product.Handle");
+			ModelState.Remove("Variant.Handle");
+
+			if (!ModelState.IsValid)
+				{
+				var errors = ModelState.Values
+					.SelectMany(v => v.Errors)
+					.Select(e => e.ErrorMessage)
+					.ToList();
+
+				TempData["Error"] = "Validation failed: " + string.Join(", ", errors);
+
+				// Re-populate dropdowns on error
+				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
+				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+
+				return View(viewModel);
+				}
+
+			try
+				{
+				// STEP 1: Update Product parent
+				var existingProduct = await _context.Products.FindAsync(variant.ProductID);
+
+				if (existingProduct == null)
+					{
+					return NotFound("Product parent not found.");
+					}
+
+				existingProduct.Title = product.Title;
+				existingProduct.Handle = product.Handle;
+				existingProduct.VendorID = product.VendorID;
+				existingProduct.ProductCategoryID = product.ProductCategoryID;
+				existingProduct.Description = product.Description;
+				existingProduct.Type = product.Type;
+				existingProduct.Tags = product.Tags;
+				existingProduct.Status = product.Status;
+				existingProduct.IsActive = product.IsActive;
+
+				_context.Update(existingProduct);
+
+				// STEP 2: Update ProductVariant child
+				var existingVariant = await _context.ProductVariants
+					.Include(v => v.Attributes)
+					.FirstOrDefaultAsync(v => v.VariantID == id);
+
+				if (existingVariant == null)
+					{
+					return NotFound();
+					}
+
+				existingVariant.Title = variant.Title;
+				existingVariant.Handle = variant.Handle;
+				existingVariant.SKU = variant.SKU;
+				existingVariant.Price = variant.Price;
+				existingVariant.CompareAtPrice = variant.CompareAtPrice;
+				existingVariant.InventoryQuantity = variant.InventoryQuantity;
+				existingVariant.InventoryPolicy = variant.InventoryPolicy;
+				existingVariant.Weight = variant.Weight;
+				existingVariant.Barcode = variant.Barcode;
+				existingVariant.RequiresShipping = variant.RequiresShipping;
+				existingVariant.IsTaxable = variant.IsTaxable;
+				existingVariant.Description = variant.Description;
+				existingVariant.Type = variant.Type;
+				existingVariant.Tags = variant.Tags;
+				existingVariant.Status = variant.Status;
+				existingVariant.IsActive = variant.IsActive;
+
+				// STEP 3: Handle attributes
+				_context.ProductAttributes.RemoveRange(existingVariant.Attributes);
+
+				if (viewModel.Attributes != null && viewModel.Attributes.Any())
+					{
+					foreach (var attrInput in viewModel.Attributes)
+						{
+						if (!string.IsNullOrWhiteSpace(attrInput.AttributeName) &&
+							!string.IsNullOrWhiteSpace(attrInput.AttributeValue))
+							{
+							var attribute = new ProductAttribute
+								{
+								VariantID = existingVariant.VariantID,
+								AttributeName = attrInput.AttributeName.Trim(),
+								AttributeValue = attrInput.AttributeValue.Trim(),
+								IsVariantAttribute = attrInput.IsVariantAttribute,
+								DisplayOrder = attrInput.DisplayOrder
+								};
+
+							_context.ProductAttributes.Add(attribute);
+							}
+						}
+					}
+
+				await _context.SaveChangesAsync();
+
+				TempData["Success"] = $"Product '{existingVariant.Title}' updated successfully!";
+				return RedirectToAction(nameof(Details), new { id = existingVariant.VariantID });
+				}
+			catch (DbUpdateException ex)
+				{
+				var innerException = ex.InnerException?.Message ?? ex.Message;
+				var errorMessages = new List<string>();
+
+				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.SKU"))
+					{
+					errorMessages.Add($"SKU '{variant.SKU}' already exists.");
+					ModelState.AddModelError("Variant.SKU", "This SKU is already in use.");
+					}
+
+				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.Handle"))
+					{
+					errorMessages.Add($"A product with a similar title already exists.");
+					ModelState.AddModelError("Variant.Title", "A product with this title already exists.");
+					}
+
+				if (innerException.Contains("UNIQUE constraint failed: Products.Handle"))
+					{
+					errorMessages.Add($"A product with a similar title already exists.");
+					ModelState.AddModelError("Product.Title", "A product with this title already exists.");
+					}
+
+				if (errorMessages.Any())
+					{
+					TempData["Error"] = string.Join(" ", errorMessages);
+					}
+				else
+					{
+					TempData["Error"] = $"Database error: {innerException}";
+					}
+
+				// Re-populate dropdowns on error
+				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
+				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+
+				return View(viewModel);
+				}
+			}
+
+		// POST: ProductVariants/Publish/5
+		[HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Publish(int id)
         {

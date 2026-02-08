@@ -23,6 +23,10 @@
             <div id="standaloneForm">
                 <form asp-action="Edit" method="post">
 
+                    <!-- ADD THESE HIDDEN FIELDS -->
+                    <input type="hidden" asp-for="Variant.ProductID" />
+                    <input type="hidden" asp-for="Variant.VariantID" />
+
                     <!-- Hidden field for VariantID -->
                     <input type="hidden" asp-for="Variant.VariantID" />
 
@@ -34,6 +38,33 @@
                             <h5 class="mb-0">Basic Information</h5>
                         </div>
                         <div class="card-body">
+
+                            <!-- Vendor Dropdown -->
+                            <div class="mb-3">
+                                <label asp-for="Product.VendorID" class="form-label"></label>
+                                <span class="text-danger">*</span>
+                                <select asp-for="Product.VendorID" class="form-control" asp-items="ViewBag.VendorID">
+                                    <option value="">-- Select Vendor --</option>
+                                </select>
+                                <span asp-validation-for="Product.VendorID" class="text-danger"></span>
+                            </div>
+
+                            <!-- Category Dropdown -->
+                            <div class="mb-3">
+                                <label asp-for="Product.ProductCategoryID" class="form-label"></label>
+                                <span class="text-danger">*</span>
+                                <select asp-for="Product.ProductCategoryID" class="form-control" asp-items="ViewBag.ProductCategoryID">
+                                    <option value="">-- Select Category --</option>
+                                </select>
+                                <span asp-validation-for="Product.ProductCategoryID" class="text-danger"></span>
+                            </div>
+
+                            <!-- Type Field -->
+                            <div class="mb-3">
+                                <label asp-for="Product.Type" class="form-label"></label>
+                                <input asp-for="Product.Type" class="form-control" placeholder="e.g., Hardware, Cleaning Supplies" />
+                                <span asp-validation-for="Product.Type" class="text-danger"></span>
+                            </div>
 
                             <!-- Title -->
                             <div class="mb-3">
