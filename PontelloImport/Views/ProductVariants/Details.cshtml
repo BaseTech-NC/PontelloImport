@@ -1,0 +1,324 @@
+﻿@model PontelloImport.Models.ProductVariant
+
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Product Details";
+    }
+
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>@Model.Title</h2>
+            <p class="text-muted">
+                @if (Model.ProductID == null)
+                    {
+                    <span class="badge bg-info me-2">Standalone Product</span>
+                    }
+                else
+                    {
+                    <span class="badge bg-secondary me-2">Variant of: @Model.Product?.Title</span>
+                    }
+
+                @switch (Model.Status)
+                    {
+                    case ProductStatus.Draft:
+                    <span class="badge bg-warning text-dark">Draft</span>
+                    break;
+                    case ProductStatus.Published:
+                    <span class="badge bg-success">Published</span>
+                    break;
+                    case ProductStatus.Archived:
+                    <span class="badge bg-secondary">Archived</span>
+                    break;
+                    }
+
+                @if (Model.IsActive)
+                    {
+                    <span class="badge bg-success">Active</span>
+                    }
+                else
+                    {
+                    <span class="badge bg-danger">Inactive</span>
+                    }
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a asp-action="Edit" asp-route-id="@Model.VariantID" class="btn btn-warning me-2">Edit</a>
+
+            @if (Model.Status == ProductStatus.Archived)
+                {
+                <!-- Archived: Show Restore button -->
+                <form asp-action="Restore" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-success me-2">
+                        Restore
+                    </button>
+                </form>
+                }
+            else if (Model.Status == ProductStatus.Published)
+                {
+                <!-- Published: Show Unpublish button -->
+                <form asp-action="Unpublish" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-warning me-2">
+                        Unpublish
+                    </button>
+                </form>
+                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-danger me-2">Archive</a>
+                }
+            else
+                {
+                <!-- Draft: Show Publish and Delete buttons -->
+                <form asp-action="Publish" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-success me-2">
+                        Publish
+                    </button>
+                </form>
+                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-danger me-2">Archive</a>
+                }
+
+            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+
+    <div class="row">
+
+        <!-- Left Column: Product Information -->
+        <div class="col-md-6">
+
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Product Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">SKU:</dt>
+                        <dd class="col-sm-8"><code class="text-primary">@Model.SKU</code></dd>
+
+                        <dt class="col-sm-4">Title:</dt>
+                        <dd class="col-sm-8">@Model.Title</dd>
+
+                        <dt class="col-sm-4">Handle:</dt>
+                        <dd class="col-sm-8"><code>@Model.Handle</code></dd>
+
+                        @if (!string.IsNullOrEmpty(Model.Description))
+                            {
+                            <dt class="col-sm-4">Description:</dt>
+                            <dd class="col-sm-8">@Html.Raw(Model.Description)</dd>
+                            }
+
+                        @if (!string.IsNullOrEmpty(Model.Type))
+                            {
+                            <dt class="col-sm-4">Type:</dt>
+                            <dd class="col-sm-8">@Model.Type</dd>
+                            }
+
+                        @if (!string.IsNullOrEmpty(Model.Tags))
+                            {
+                            <dt class="col-sm-4">Tags:</dt>
+                            <dd class="col-sm-8">
+                                @foreach (var tag in Model.Tags.Split(','))
+                                    {
+                                    <span class="badge bg-light text-dark me-1">@tag.Trim()</span>
+                                    }
+                            </dd>
+                            }
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Pricing & Inventory</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Price:</dt>
+                        <dd class="col-sm-8"><strong class="text-success">@Model.Price.ToString("C")</strong></dd>
+
+                        @if (Model.CompareAtPrice.HasValue)
+                            {
+                            <dt class="col-sm-4">Compare At:</dt>
+                            <dd class="col-sm-8">
+                                <del class="text-muted">@Model.CompareAtPrice.Value.ToString("C")</del>
+                                <span class="badge bg-danger ms-2">
+                                    @(((1 - (Model.Price / Model.CompareAtPrice.Value)) * 100).ToString("F0"))% OFF
+                                </span>
+                            </dd>
+                            }
+
+                        <dt class="col-sm-4">Inventory:</dt>
+                        <dd class="col-sm-8">
+                            <span class="@(Model.InventoryQuantity > 0 ? "text-success" : "text-danger")">
+                                <strong>@Model.InventoryQuantity</strong> units
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Inventory Policy:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.InventoryPolicy == "deny")
+                                {
+                                <span class="badge bg-warning text-dark">Stop orders when out of stock</span>
+                                }
+                            else
+                                {
+                                <span class="badge bg-info">Continue orders when out of stock</span>
+                                }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Additional Details -->
+        <div class="col-md-6">
+
+            @if (Model.ProductID != null && Model.Product != null)
+                {
+                <div class="card mb-3">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">Parent Product</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Product:</dt>
+                            <dd class="col-sm-8">@Model.Product.Title</dd>
+
+                            @if (Model.Product.Vendor != null)
+                                {
+                                <dt class="col-sm-4">Vendor:</dt>
+                                <dd class="col-sm-8">@Model.Product.Vendor.VendorName</dd>
+                                }
+
+                            @if (Model.Product.ProductCategory != null)
+                                {
+                                <dt class="col-sm-4">Category:</dt>
+                                <dd class="col-sm-8">@Model.Product.ProductCategory.CategoryName</dd>
+                                }
+                        </dl>
+                    </div>
+                </div>
+                }
+
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Shipping & Physical</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        @if (Model.Weight.HasValue)
+                            {
+                            <dt class="col-sm-4">Weight:</dt>
+                            <dd class="col-sm-8">@Model.Weight.Value grams (@(Model.Weight.Value / 1000.0) kg)</dd>
+                            }
+
+                        @if (!string.IsNullOrEmpty(Model.Barcode))
+                            {
+                            <dt class="col-sm-4">Barcode:</dt>
+                            <dd class="col-sm-8"><code>@Model.Barcode</code></dd>
+                            }
+
+                        <dt class="col-sm-4">Requires Shipping:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.RequiresShipping)
+                                {
+                                <span class="badge bg-success">Yes</span>
+                                }
+                            else
+                                {
+                                <span class="badge bg-secondary">No (Digital Product)</span>
+                                }
+                        </dd>
+
+                        <dt class="col-sm-4">Taxable:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.IsTaxable)
+                                {
+                                <span class="badge bg-success">Yes</span>
+                                }
+                            else
+                                {
+                                <span class="badge bg-secondary">No</span>
+                                }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (Model.Attributes.Any())
+                {
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">Attributes & Specifications</h5>
+                    </div>
+                    <div class="card-body">
+
+                            @{
+                            var variantAttrs = Model.Attributes.Where(a => a.IsVariantAttribute).ToList();
+                            var specAttrs = Model.Attributes.Where(a => !a.IsVariantAttribute).ToList();
+                            }
+
+                        @if (variantAttrs.Any())
+                            {
+                            <h6 class="text-primary">Variant Attributes</h6>
+                            <dl class="row">
+                                @foreach (var attr in variantAttrs)
+                                    {
+                                    <dt class="col-sm-5">@attr.AttributeName:</dt>
+                                    <dd class="col-sm-7"><strong>@attr.AttributeValue</strong></dd>
+                                    }
+                            </dl>
+                            }
+
+                        @if (specAttrs.Any())
+                            {
+                            <h6 class="text-secondary mt-3">Specifications</h6>
+                            <dl class="row mb-0">
+                                @foreach (var attr in specAttrs)
+                                    {
+                                    <dt class="col-sm-5">@attr.AttributeName:</dt>
+                                    <dd class="col-sm-7">@attr.AttributeValue</dd>
+                                    }
+                            </dl>
+                            }
+
+                    </div>
+                </div>
+                }
+
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Audit Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Created:</dt>
+                        <dd class="col-sm-8">
+                            @Model.CreatedDate
+                            @if (Model.CreatedBy.HasValue)
+                                {
+                                <small class="text-muted">(User ID: @Model.CreatedBy)</small>
+                                }
+                        </dd>
+
+                        <dt class="col-sm-4">Modified:</dt>
+                        <dd class="col-sm-8">
+                            @Model.ModifiedDate
+                            @if (Model.ModifiedBy.HasValue)
+                                {
+                                <small class="text-muted">(User ID: @Model.ModifiedBy)</small>
+                                }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

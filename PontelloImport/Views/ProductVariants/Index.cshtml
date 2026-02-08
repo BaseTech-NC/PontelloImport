@@ -1,0 +1,381 @@
+﻿@model PontelloImport.Models.PaginatedList<PontelloImport.Models.ProductVariant>
+
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Product Variants";
+    var currentFilter = ViewBag.CurrentFilter as string ?? "all";
+    var currentPageSize = ViewBag.CurrentPageSize ?? 10;
+}
+
+<div class="container-fluid mt-4">
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>Product Variants</h2>
+            <p class="text-muted">Manage standalone products and product variants</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Create" class="btn btn-dark btn-lg">
+                Create New Product
+            </a>
+
+        </div>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a asp-action="Index" asp-route-filter="all" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                   class="btn btn-sm @(currentFilter == "all" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                    All (@ViewBag.AllCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="standalone" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                   class="btn btn-sm @(currentFilter == "standalone" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                    Standalone (@ViewBag.StandaloneCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="variants" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                   class="btn btn-sm @(currentFilter == "variants" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                    With Parents (@ViewBag.VariantsCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="published" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                   class="btn btn-sm @(currentFilter == "published" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                    Published (@ViewBag.PublishedCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="draft" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                   class="btn btn-sm @(currentFilter == "draft" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                    Draft (@ViewBag.DraftCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="archived" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                   class="btn btn-sm @(currentFilter == "archived" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                    Archived (@ViewBag.ArchivedCount)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Summary + Page Size Selector (NEW - COMBINED ROW) -->
+    @if (Model.Any())
+    {
+        <div class="row mb-3 align-items-center">
+            <div class="col-md-6">
+                <p class="text-muted mb-0">
+                    Showing @((Model.PageIndex - 1) * currentPageSize + 1) - @(Math.Min(Model.PageIndex * currentPageSize, Model.TotalCount)) of @Model.TotalCount results
+                </p>
+            </div>
+            <div class="col-md-6 text-end">
+                <form asp-action="Index" method="get" class="d-inline-flex align-items-center">
+                    <input type="hidden" name="filter" value="@currentFilter" />
+                    <input type="hidden" name="pageNumber" value="1" />
+
+                    <label for="pageSize" class="me-2 mb-0 text-muted">Show:</label>
+                    <select name="pageSize" id="pageSize" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                        <option value="10" selected="@(currentPageSize == 10)">10</option>
+                        <option value="25" selected="@(currentPageSize == 25)">25</option>
+                        <option value="50" selected="@(currentPageSize == 50)">50</option>
+                        <option value="100" selected="@(currentPageSize == 100)">100</option>
+                    </select>
+                    <span class="ms-2 text-muted">per page</span>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- Variants Table -->
+    <div class="row">
+        <div class="col-12">
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info">
+                    No variants found.
+                    <a asp-action="Create" class="alert-link">Create your first product</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product Title</th>
+                                <th>SKU</th>
+                                <th>Price</th>
+                                <th>Inventory</th>
+                                <th>Parent Product</th>
+                                <th>Status</th>
+                                <th>Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var variant in Model)
+                            {
+                                <tr>
+                                    <!-- Title -->
+                                    <td>
+                                        @variant.Title
+                                        @if (variant.Attributes.Any(a => a.IsVariantAttribute))
+                                        {
+                                <br />
+                                <small class="text-muted">
+                                    @string.Join(", ", variant.Attributes
+                                                                        .Where(a => a.IsVariantAttribute)
+                                                                        .Select(a => $"{a.AttributeName}: {a.AttributeValue}"))
+                                </small>
+                                                                }
+                                    </td>
+
+                                    <!-- SKU -->
+                                    <td>
+                                        <code class="text-primary">@variant.SKU</code>
+                                    </td>
+
+                                    <!-- Price -->
+                                    <td>
+                                        <strong class="text-success">@variant.Price.ToString("C")</strong>
+                                        @if (variant.CompareAtPrice.HasValue)
+                                        {
+                                            <br />
+                                            <small class="text-muted">
+                                                <del>@variant.CompareAtPrice.Value.ToString("C")</del>
+                                            </small>
+                                        }
+                                    </td>
+
+                                    <!-- Inventory -->
+                                    <td>
+                                        <span class="@(variant.InventoryQuantity > 0 ? "text-success" : "text-danger")">
+                                            @variant.InventoryQuantity units
+                                        </span>
+                                        @if (variant.InventoryQuantity == 0)
+                                        {
+                                            <br />
+
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                        }
+                                    </td>
+
+                                    <!-- Parent Product -->
+                                    <td>
+                                        @if (variant.ProductID == null)
+                                        {
+                                            <span class="badge bg-info">Standalone</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">@variant.Product?.Title</span>
+                                        }
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td>
+                                        @switch (variant.Status)
+                                        {
+                                            case ProductStatus.Draft:
+                                                <span class="badge bg-warning text-dark">Draft</span>
+                                                break;
+                                            case ProductStatus.Published:
+                                                <span class="badge bg-success">Published</span>
+                                                break;
+                                            case ProductStatus.Archived:
+                                                <span class="badge bg-secondary">Archived</span>
+                                                break;
+                                        }
+                                    </td>
+
+                                    <!-- Active -->
+                                    <td class="text-center">
+                                        @if (variant.IsActive)
+                                        {
+                                            <span class="badge bg-success">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">No</span>
+                                        }
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td style="white-space: nowrap;">
+                                        <a asp-action="Details" asp-route-id="@variant.VariantID"
+                                           class="btn btn-sm btn-primary me-1">
+                                            Details
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@variant.VariantID"
+                                           class="btn btn-sm btn-warning me-1">
+                                            Edit
+                                        </a>
+
+                                        @if (variant.Status == ProductStatus.Archived)
+                                        {
+                                            <!-- Restore Button (for archived variants) -->
+                                            <form asp-action="Restore" asp-route-id="@variant.VariantID" method="post" style="display: inline;">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    Restore
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <!-- Delete Button (for active/draft variants) -->
+                                            <a asp-action="Delete" asp-route-id="@variant.VariantID"
+                                               class="btn btn-sm btn-danger">
+                                                Archive
+                                            </a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PAGINATION CONTROLS -->
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <!-- Previous Button -->
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-pageNumber="@(Model.PageIndex - 1)"
+                               asp-route-filter="@currentFilter"
+                               asp-route-pageSize="@currentPageSize"
+                               aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span> Previous
+                            </a>
+                        </li>
+
+                        @{
+                            var startPage = Math.Max(1, Model.PageIndex - 2);
+                            var endPage = Math.Min(Model.TotalPages, Model.PageIndex + 2);
+                        }
+
+                        <!-- First Page + Ellipsis -->
+                        @if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-pageNumber="1"
+                                   asp-route-filter="@currentFilter"
+                                   asp-route-pageSize="@currentPageSize">
+                                    1
+                                </a>
+                            </li>
+                            @if (startPage > 2)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                        }
+
+                        <!-- Page Numbers -->
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-pageNumber="@i"
+                                   asp-route-filter="@currentFilter"
+                                   asp-route-pageSize="@currentPageSize">
+                                    @i
+                                </a>
+                            </li>
+                        }
+
+                        <!-- Ellipsis + Last Page -->
+                        @if (endPage < Model.TotalPages)
+                        {
+                            @if (endPage < Model.TotalPages - 1)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                            <li class="page-item">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-pageNumber="@Model.TotalPages"
+                                   asp-route-filter="@currentFilter"
+                                   asp-route-pageSize="@currentPageSize">
+                                    @Model.TotalPages
+                                </a>
+                            </li>
+                        }
+
+                        <!-- Next Button -->
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-pageNumber="@(Model.PageIndex + 1)"
+                               asp-route-filter="@currentFilter"
+                               asp-route-pageSize="@currentPageSize"
+                               aria-label="Next">
+                                Next <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <!-- Page Info -->
+                <div class="text-center text-muted mb-4">
+                    <small>Page @Model.PageIndex of @Model.TotalPages</small>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+<!-- PAGINATION STYLES -->
+@section Scripts {
+    <style>
+        /* Custom Pagination Styles */
+        .pagination {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+            .pagination .page-link {
+                color: #28a745;
+                border: 1px solid #dee2e6;
+                padding: 0.5rem 0.75rem;
+                margin: 0 2px;
+                border-radius: 4px;
+            }
+
+                .pagination .page-link:hover {
+                    color: #fff;
+                    background-color: #28a745;
+                    border-color: #28a745;
+                }
+
+            .pagination .page-item.active .page-link {
+                background-color: #28a745;
+                border-color: #28a745;
+                color: white;
+                z-index: 3;
+            }
+
+            .pagination .page-item.disabled .page-link {
+                color: #6c757d;
+                pointer-events: none;
+                background-color: #fff;
+                border-color: #dee2e6;
+            }
+
+        /* Responsive pagination */
+        @@media (max-width: 576px) {
+            .pagination {
+                font-size: 0.875rem;
+            }
+
+                .pagination .page-link {
+                    padding: 0.375rem 0.5rem;
+                }
+        }
+    </style>
+}

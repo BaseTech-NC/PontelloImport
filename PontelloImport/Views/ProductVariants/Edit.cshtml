@@ -1,0 +1,433 @@
+﻿@model PontelloImport.Models.CreateProductViewModel
+
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Edit Product";
+    }
+
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Edit Product</h2>
+            <p class="text-muted">Update product details and attributes. Fields marked with <span class="text-danger">*</span> are required.</p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="row">
+        <div class="col-md-8">
+
+            <!-- STANDALONE PRODUCT FORM -->
+            <div id="standaloneForm">
+                <form asp-action="Edit" method="post">
+
+                    <!-- ADD THESE HIDDEN FIELDS -->
+                    <input type="hidden" asp-for="Variant.ProductID" />
+                    <input type="hidden" asp-for="Variant.VariantID" />
+
+                    <!-- Hidden field for VariantID -->
+                    <input type="hidden" asp-for="Variant.VariantID" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- CARD 1: BASIC INFORMATION -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Basic Information</h5>
+                        </div>
+                        <div class="card-body">
+
+                            <!-- Vendor Dropdown -->
+                            <div class="mb-3">
+                                <label asp-for="Product.VendorID" class="form-label"></label>
+                                <span class="text-danger">*</span>
+                                <select asp-for="Product.VendorID" class="form-control" asp-items="ViewBag.VendorID">
+                                    <option value="">-- Select Vendor --</option>
+                                </select>
+                                <span asp-validation-for="Product.VendorID" class="text-danger"></span>
+                            </div>
+
+                            <!-- Category Dropdown -->
+                            <div class="mb-3">
+                                <label asp-for="Product.ProductCategoryID" class="form-label"></label>
+                                <span class="text-danger">*</span>
+                                <select asp-for="Product.ProductCategoryID" class="form-control" asp-items="ViewBag.ProductCategoryID">
+                                    <option value="">-- Select Category --</option>
+                                </select>
+                                <span asp-validation-for="Product.ProductCategoryID" class="text-danger"></span>
+                            </div>
+
+                            <!-- Type Field -->
+                            <div class="mb-3">
+                                <label asp-for="Product.Type" class="form-label"></label>
+                                <input asp-for="Product.Type" class="form-control" placeholder="e.g., Hardware, Cleaning Supplies" />
+                                <span asp-validation-for="Product.Type" class="text-danger"></span>
+                            </div>
+
+                            <!-- Title -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.Title" class="form-label"></label>
+                                <span class="text-danger">*</span>
+                                <input asp-for="Variant.Title" class="form-control" placeholder="e.g., Nerf Bar - Powder Coated Left" />
+                                <span asp-validation-for="Variant.Title" class="text-danger"></span>
+                            </div>
+
+                            <!-- SKU -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.SKU" class="form-label"></label>
+                                <span class="text-danger">*</span>
+                                <input asp-for="Variant.SKU" class="form-control" placeholder="e.g., PROD-1001" />
+                                <span asp-validation-for="Variant.SKU" class="text-danger"></span>
+                                <small class="form-text text-muted">Must be unique</small>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.Description" class="form-label"></label>
+                                <textarea asp-for="Variant.Description" class="form-control" rows="4" placeholder="Product description..."></textarea>
+                                <span asp-validation-for="Variant.Description" class="text-danger"></span>
+                            </div>
+
+                            <!-- Type -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.Type" class="form-label"></label>
+                                <input asp-for="Variant.Type" class="form-control" placeholder="e.g., Chassis Component" />
+                                <span asp-validation-for="Variant.Type" class="text-danger"></span>
+                            </div>
+
+                            <!-- Tags -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.Tags" class="form-label"></label>
+                                <input asp-for="Variant.Tags" class="form-control" placeholder="e.g., new, featured, sale" />
+                                <span asp-validation-for="Variant.Tags" class="text-danger"></span>
+                                <small class="form-text text-muted">Comma-separated values</small>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- CARD 2: PRICING & INVENTORY -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Pricing & Inventory</h5>
+                        </div>
+                        <div class="card-body">
+
+                            <!-- Price -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Variant.Price" class="form-label"></label>
+                                    <span class="text-danger">*</span>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input asp-for="Variant.Price" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                                    </div>
+                                    <span asp-validation-for="Variant.Price" class="text-danger"></span>
+                                </div>
+
+                                <!-- Compare At Price -->
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Variant.CompareAtPrice" class="form-label"></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input asp-for="Variant.CompareAtPrice" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                                    </div>
+                                    <span asp-validation-for="Variant.CompareAtPrice" class="text-danger"></span>
+                                    <small class="form-text text-muted">Original price for showing discounts</small>
+                                </div>
+                            </div>
+
+                            <!-- Inventory Quantity -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.InventoryQuantity" class="form-label"></label>
+                                <span class="text-danger">*</span>
+                                <input asp-for="Variant.InventoryQuantity" type="number" class="form-control" placeholder="0" />
+                                <span asp-validation-for="Variant.InventoryQuantity" class="text-danger"></span>
+                            </div>
+
+                            <!-- Inventory Policy -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.InventoryPolicy" class="form-label"></label>
+                                <span class="text-danger">*</span>
+                                <select asp-for="Variant.InventoryPolicy" class="form-select">
+                                    <option value="">-- Select Policy --</option>
+                                    <option value="deny">Deny - Stop orders when out of stock</option>
+                                    <option value="continue">Continue - Allow orders when out of stock</option>
+                                </select>
+                                <span asp-validation-for="Variant.InventoryPolicy" class="text-danger"></span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- CARD 3: SHIPPING & PHYSICAL -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Shipping & Physical Properties</h5>
+                        </div>
+                        <div class="card-body">
+
+                            <!-- Weight -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.Weight" class="form-label"></label>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <input asp-for="Variant.Weight" type="number" class="form-control" placeholder="0" id="weightInput" />
+                                        <span asp-validation-for="Variant.Weight" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <select class="form-select" id="weightUnit">
+                                            <option value="grams" selected>grams</option>
+                                            <option value="kg">kg</option>
+                                            <option value="lb">lb</option>
+                                            <option value="oz">oz</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Weight is stored in grams. Current value is in grams.</small>
+                            </div>
+
+                            <!-- Barcode -->
+                            <div class="mb-3">
+                                <label asp-for="Variant.Barcode" class="form-label"></label>
+                                <input asp-for="Variant.Barcode" class="form-control" placeholder="e.g., 123456789012" />
+                                <span asp-validation-for="Variant.Barcode" class="text-danger"></span>
+                            </div>
+
+                            <!-- Checkboxes -->
+                            <div class="form-check mb-2">
+                                <input asp-for="Variant.RequiresShipping" class="form-check-input" type="checkbox" />
+                                <label asp-for="Variant.RequiresShipping" class="form-check-label"></label>
+                            </div>
+
+                            <div class="form-check">
+                                <input asp-for="Variant.IsTaxable" class="form-check-input" type="checkbox" />
+                                <label asp-for="Variant.IsTaxable" class="form-check-label"></label>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- CARD 4: ATTRIBUTES -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">Attributes & Specifications</h5>
+                        </div>
+                        <div class="card-body">
+
+                            <p class="text-muted mb-3">
+                                Add custom attributes to describe this product. Variant attributes create different SKUs (e.g., Color, Size),
+                                while specifications provide additional details (e.g., Material, Weight Capacity).
+                            </p>
+
+                            <!-- Attributes Container -->
+                            <div id="attributesContainer">
+                                <!-- Existing attributes will be loaded here by JavaScript -->
+                            </div>
+
+                            <!-- Add Attribute Button -->
+                            <button type="button" class="btn btn-outline-primary" id="addAttributeBtn">
+                                <i class="bi bi-plus-circle"></i> Add Attribute
+                            </button>
+
+                            <!-- Hidden field to track attribute count -->
+                            <input type="hidden" id="attributeCounter" value="0" />
+
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-between mt-4 mb-4">
+                        <a asp-action="Details" asp-route-id="@Model.Variant.VariantID" class="btn btn-secondary btn-lg">Cancel</a>
+                        <button type="submit" class="btn btn-success btn-lg">Save Changes</button>
+                    </div>
+
+                </form>
+            </div>
+            <!-- END STANDALONE FORM -->
+
+        </div>
+
+        <!-- Side Panel -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Current Status</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <dt>Status:</dt>
+                        <dd>
+                            @switch (Model.Variant.Status)
+                                {
+                                case ProductStatus.Draft:
+                                <span class="badge bg-warning text-dark">Draft</span>
+                                break;
+                                case ProductStatus.Published:
+                                <span class="badge bg-success">Published</span>
+                                break;
+                                case ProductStatus.Archived:
+                                <span class="badge bg-secondary">Archived</span>
+                                break;
+                                }
+                        </dd>
+                        <dt>Active:</dt>
+                        <dd>
+                            @if (Model.Variant.IsActive)
+                                {
+                                <span class="badge bg-success">Yes</span>
+                                }
+                            else
+                                {
+                                <span class="badge bg-danger">No</span>
+                                }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Tips</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li>Changes are saved immediately</li>
+                        <li>Handle is auto-generated from Title</li>
+                        <li>SKU must remain unique</li>
+                        <li>Use attributes for specifications</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+    @section Scripts {
+        @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+        }
+
+    <script>
+        // ===================================================================
+        // LOAD EXISTING ATTRIBUTES ON PAGE LOAD
+        // ===================================================================
+
+        let attributeCounter = 0;
+        let existingAttributes = @Html.Raw(Json.Serialize(Model.Attributes));
+
+        window.addEventListener('DOMContentLoaded', function() {
+            // Load existing attributes
+            if (existingAttributes && existingAttributes.length > 0) {
+                existingAttributes.forEach(function(attr) {
+                    addAttributeRow(attr.attributeName, attr.attributeValue, attr.isVariantAttribute);
+                });
+            }
+
+            // Initialize tooltips
+            initializeTooltips();
+        });
+
+        // ===================================================================
+        // DYNAMIC ATTRIBUTES SYSTEM
+        // ===================================================================
+
+        document.getElementById('addAttributeBtn').addEventListener('click', function() {
+            addAttributeRow();
+        });
+
+        function addAttributeRow(name = '', value = '', isVariant = false) {
+            const container = document.getElementById('attributesContainer');
+            const index = attributeCounter;
+
+            const rowHtml = `
+                <div class="row mb-3 attribute-row" id="attributeRow${index}">
+                    <div class="col-md-4">
+                        <input type="text"
+                               name="Attributes[${index}].AttributeName"
+                               class="form-control"
+                               placeholder="e.g., Material, Color, Size"
+                               value="${name}" />
+                        <input type="hidden" name="Attributes[${index}].DisplayOrder" value="${index}" />
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text"
+                               name="Attributes[${index}].AttributeValue"
+                               class="form-control"
+                               placeholder="e.g., Powder Coated Steel"
+                               value="${value}" />
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check mt-2">
+                            <input type="checkbox"
+                                   name="Attributes[${index}].IsVariantAttribute"
+                                   class="form-check-input"
+                                   value="true"
+                                   ${isVariant ? 'checked' : ''} />
+                            <label class="form-check-label small">Is Variant Attribute</label>
+                            <input type="hidden" name="Attributes[${index}].IsVariantAttribute" value="false" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeAttributeRow(${index})">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', rowHtml);
+            attributeCounter++;
+            document.getElementById('attributeCounter').value = attributeCounter;
+            initializeTooltips();
+        }
+
+        function removeAttributeRow(index) {
+            const row = document.getElementById('attributeRow' + index);
+            if (row) {
+                row.remove();
+            }
+        }
+
+        function initializeTooltips() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+
+        // ===================================================================
+        // WEIGHT UNIT CONVERSION (For Edit, weight is already in grams)
+        // ===================================================================
+
+        // Note: On Edit, weight is displayed in grams from database
+        // If user changes the unit dropdown and submits, convert accordingly
+
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const weightInput = document.getElementById('weightInput');
+            const weightUnit = document.getElementById('weightUnit');
+
+            if (weightInput && weightInput.value && weightUnit.value !== 'grams') {
+                let weightInGrams = parseFloat(weightInput.value);
+
+                // If user selected a different unit, convert to grams
+                switch(weightUnit.value) {
+                    case 'kg':
+                        weightInGrams = weightInGrams * 1000;
+                        break;
+                    case 'lb':
+                        weightInGrams = weightInGrams * 453.592;
+                        break;
+                    case 'oz':
+                        weightInGrams = weightInGrams * 28.3495;
+                        break;
+                }
+
+                weightInput.value = Math.round(weightInGrams);
+            }
+        });
+    </script>
+    }
