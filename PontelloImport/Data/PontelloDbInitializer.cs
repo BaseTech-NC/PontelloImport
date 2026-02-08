@@ -183,7 +183,62 @@ namespace PontelloImport.Data
                             Description = "Adjustable tie rod assembly for precise steering alignment.",
 							Type = "Steering Component",
 							IsActive = true
-						}
+						},
+						
+        
+        // ADD THESE 5 NEW PRODUCTS (for standalone items):
+        new Product
+		{
+			Title = "Floor Pan Bolt Kit - Phantom",
+			Handle = "floor-pan-bolt-kit-phantom",
+			VendorID = 9, // Authentic Phantom Component
+            ProductCategoryID = 4, // Accessories
+            Description = "Complete bolt kit for Phantom chassis floor pan mounting",
+			Type = "Hardware",
+			IsActive = true
+		},
+		new Product
+		{
+			Title = "Chassis Cleaning Spray",
+			Handle = "chassis-cleaning-spray",
+			VendorID = 7, // Pontello Motorsports
+            ProductCategoryID = 4, // Accessories
+            Description = "Professional-grade biodegradable chassis cleaning spray",
+			Type = "Cleaning Supplies",
+			IsActive = true
+		},
+		new Product
+		{
+			Title = "Racing Gloves",
+			Handle = "racing-gloves",
+			VendorID = 7, // Pontello Motorsports
+            ProductCategoryID = 5, // Safety Equipment
+            Description = "Professional racing gloves with grip padding",
+			Type = "Safety Gear",
+			IsActive = true
+		},
+		new Product
+		{
+			Title = "Torque Wrench - 40Nm",
+			Handle = "torque-wrench-40nm",
+			VendorID = 7, // Pontello Motorsports
+            ProductCategoryID = 6, // Tools
+            Description = "Precision torque wrench for kart maintenance",
+			Type = "Hand Tools",
+			IsActive = true
+		},
+		new Product
+		{
+			Title = "Tire Pressure Gauge Digital",
+			Handle = "tire-pressure-gauge-digital",
+			VendorID = 7, // Pontello Motorsports
+            ProductCategoryID = 6, // Tools
+            Description = "Digital tire pressure gauge for accurate readings",
+			Type = "Measurement Tools",
+			IsActive = true
+		}
+
+
 					};
 
 					context.Products.AddRange(products);
@@ -200,8 +255,14 @@ namespace PontelloImport.Data
 					var steeringWheelProduct = context.Products.First(p => p.Handle == "racing-steering-wheel");
 					var tieRodProduct = context.Products.First(p => p.Handle == "tie-rod-assembly");
 
+					var floorPanProduct = context.Products.First(p => p.Handle == "floor-pan-bolt-kit-phantom");
+					var cleaningSprayProduct = context.Products.First(p => p.Handle == "chassis-cleaning-spray");
+					var racingGlovesProduct = context.Products.First(p => p.Handle == "racing-gloves");
+					var torqueWrenchProduct = context.Products.First(p => p.Handle == "torque-wrench-40nm");
+					var tirePressureGaugeProduct = context.Products.First(p => p.Handle == "tire-pressure-gauge-digital");
+				
 					// Nerf Bar Variants (4 variants: Material × Side)
-					variants.Add(new ProductVariant
+									variants.Add(new ProductVariant
 						{
 						ProductID = nerfBarProduct.ProductID,
 						Title = "Nerf Bar - Powder Coated Left",
@@ -326,7 +387,7 @@ namespace PontelloImport.Data
 					// STANDALONE PRODUCTS (ProductID = null)
 					variants.Add(new ProductVariant
 						{
-						ProductID = null, // Standalone
+						ProductID = floorPanProduct.ProductID, // CHANGED from null
 						Title = "Floor Pan Bolt Kit - Phantom",
 						Handle = "floor-pan-bolt-kit-phantom",
 						SKU = "PRC-1130280",
@@ -338,7 +399,7 @@ namespace PontelloImport.Data
 
 					variants.Add(new ProductVariant
 						{
-						ProductID = null, // Standalone
+						ProductID = cleaningSprayProduct.ProductID, // CHANGED from null
 						Title = "Chassis Cleaning Spray",
 						Handle = "chassis-cleaning-spray",
 						SKU = "PROD-5001",
@@ -350,7 +411,7 @@ namespace PontelloImport.Data
 
 					variants.Add(new ProductVariant
 						{
-						ProductID = null, // Standalone
+						ProductID = racingGlovesProduct.ProductID, // CHANGED from null
 						Title = "Racing Gloves - Medium",
 						Handle = "racing-gloves-medium",
 						SKU = "PROD-6001",
@@ -362,7 +423,7 @@ namespace PontelloImport.Data
 
 					variants.Add(new ProductVariant
 						{
-						ProductID = null, // Standalone
+						ProductID = racingGlovesProduct.ProductID, // CHANGED from null (same parent as Medium)
 						Title = "Racing Gloves - Large",
 						Handle = "racing-gloves-large",
 						SKU = "PROD-6002",
@@ -374,7 +435,7 @@ namespace PontelloImport.Data
 
 					variants.Add(new ProductVariant
 						{
-						ProductID = null, // Standalone
+						ProductID = torqueWrenchProduct.ProductID, // CHANGED from null
 						Title = "Torque Wrench - 40Nm",
 						Handle = "torque-wrench-40nm",
 						SKU = "PROD-7001",
@@ -386,7 +447,7 @@ namespace PontelloImport.Data
 
 					variants.Add(new ProductVariant
 						{
-						ProductID = null, // Standalone
+						ProductID = tirePressureGaugeProduct.ProductID, // CHANGED from null
 						Title = "Tire Pressure Gauge Digital",
 						Handle = "tire-pressure-gauge-digital",
 						SKU = "PROD-7002",

@@ -2,6 +2,8 @@
 	{
 	public class CreateProductViewModel
 		{
+
+		public Product Product { get; set; } = new Product();
 		// All ProductVariant fields
 		public ProductVariant Variant { get; set; } = new ProductVariant();
 

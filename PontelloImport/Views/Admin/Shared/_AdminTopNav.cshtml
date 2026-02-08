@@ -7,7 +7,15 @@
 
      @* Left *@
     <div class="d-lg-none">
-        <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports" class="img-fluid" width="55" height="45" />
+        @* <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports" class="img-fluid" width="55" height="45" /> *@
+        @* <a href="@Url.Action("Index", "Home")"><img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports Logo" /></a> *@
+        <a href="@Url.Action("Index", "Home")">
+            <img src="~/images/pontello-Imports-Logo.png"
+                 alt="Pontello Imports Logo"
+                 class="img-fluid"
+                 width="55"
+                 height="45" />
+        </a>
     </div>
 
      @* Search - hidden on mobile *@
