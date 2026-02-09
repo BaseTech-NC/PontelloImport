@@ -315,5 +315,28 @@
                 weightInput.value = Math.round(weightInGrams);
             }
         });
+
+         // Automatically fill out form fields for testing
+        window.addEventListener('keydown', function(event){
+                if (event.ctrlKey && event.key === '`'){
+
+                    document.querySelector('select[name="Product.VendorID"]').value = document.querySelector('select[name="Product.VendorID"]').options[2].value;
+                    document.querySelector('select[name="Product.ProductCategoryID"]').value = document.querySelector('select[name="Product.ProductCategoryID"]').options[4].value;
+                    document.querySelector('input[name="Product.Type"]').value = "Hardware";
+
+                    document.querySelector('input[name="Variant.Title"]').value = "Racing Steering Wheel - Red 12 inch";
+                    document.querySelector('input[name="Variant.SKU"]').value = "PROD-0000";
+                    document.querySelector('textarea[name="Variant.Description"]').value = "Red 12 inch";
+                    document.querySelector('input[name="Variant.Tags"]').value = "New, Featured";
+
+                    document.querySelector('input[name="Variant.Price"]').value = 150;
+                    document.querySelector('input[name="Variant.CompareAtPrice"]').value = 175;
+                    document.querySelector('input[name="Variant.InventoryQuantity"]').value = 35;
+
+                    document.querySelector('input[name="Variant.Weight"]').value = 1000;
+                    document.querySelector('input[name="Variant.Barcode"]').value = 123456789012;
+
+                }
+            });
     </script>
     }
