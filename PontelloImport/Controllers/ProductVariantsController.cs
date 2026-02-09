@@ -52,9 +52,6 @@ namespace PontelloImport.Controllers
                     // "all" = no additional filter
             }
 
-            // REMOVE THIS LINE:
-            // var variants = await query.ToListAsync();
-
             // Store filter counts for the filter buttons (calculate before pagination)
             var allVariants = await _context.ProductVariants.ToListAsync();
             ViewBag.AllCount = allVariants.Count;
@@ -68,7 +65,6 @@ namespace PontelloImport.Controllers
             ViewBag.CurrentFilter = filter;
             ViewBag.CurrentPageSize = pageSize;
 
-            // CREATE PAGINATED LIST - ADD THIS LINE:
             var paginatedVariants = await PaginatedList<ProductVariant>.CreateAsync(query, pageNumber, pageSize);
 
             return View(paginatedVariants);
@@ -175,9 +171,10 @@ namespace PontelloImport.Controllers
         {
             var viewModel = new CreateProductViewModel();
 
-			// NEW: Add dropdown data for Vendor and Category
+			// Add dropdown data for Vendor, Category, and Product Type
 			ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName");
 			ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName");
+			PopulateProductTypesDropdown();
 
 			return View(viewModel);
         }
@@ -209,23 +206,6 @@ namespace PontelloImport.Controllers
 				variant.Handle = GenerateHandle(variant.Title);
 				}
 
-			// For simple products, copy Variant.Title to Product.Title
-			if (string.IsNullOrWhiteSpace(product.Title) && !string.IsNullOrWhiteSpace(variant.Title))
-				{
-				product.Title = variant.Title;
-				}
-
-			// Generate Handles from Titles
-			if (!string.IsNullOrWhiteSpace(product.Title))
-				{
-				product.Handle = GenerateHandle(product.Title);
-				}
-
-			if (!string.IsNullOrWhiteSpace(variant.Title))
-				{
-				variant.Handle = GenerateHandle(variant.Title);
-				}
-
 			// Remove Product.Title from validation (auto-copied from Variant.Title)
 			ModelState.Remove("Product.Title");
 
@@ -233,11 +213,15 @@ namespace PontelloImport.Controllers
 			ModelState.Remove("Product.Handle");
 			ModelState.Remove("Variant.Handle");
 
+			// Replace generic "The value '' is invalid." with friendly required messages
+			ReplaceBindingErrorsWithRequiredMessages();
+
 			if (!ModelState.IsValid)
 				{
 				// Re-populate dropdowns on error
 				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
 				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+				PopulateProductTypesDropdown(product.Type);
 
 				return View(viewModel);
 				}
@@ -293,34 +277,31 @@ namespace PontelloImport.Controllers
 
 				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.SKU"))
 					{
-					errorMessages.Add($"SKU '{variant.SKU}' already exists.");
-					ModelState.AddModelError("Variant.SKU", "This SKU is already in use.");
+					errorMessages.Add($"The SKU '{variant.SKU}' is already in use.");
+					ModelState.AddModelError("Variant.SKU", "This SKU is already in use. Please choose a unique SKU.");
 					}
 
 				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.Handle"))
 					{
-					errorMessages.Add($"A product with a similar title already exists (Handle: '{variant.Handle}').");
-					ModelState.AddModelError("Variant.Title", "A product with this title already exists.");
+					errorMessages.Add("A product with this title already exists.");
+					ModelState.AddModelError("Variant.Title", "A product with this title already exists. Please use a different title.");
 					}
 
 				if (innerException.Contains("UNIQUE constraint failed: Products.Handle"))
 					{
-					errorMessages.Add($"A product with a similar title already exists (Handle: '{product.Handle}').");
-					ModelState.AddModelError("Product.Title", "A product with this title already exists.");
+					errorMessages.Add("A product with this title already exists.");
+					ModelState.AddModelError("Product.Title", "A product with this title already exists. Please use a different title.");
 					}
 
-				if (errorMessages.Any())
+				if (!errorMessages.Any())
 					{
-					TempData["Error"] = "❌ " + string.Join(" ", errorMessages);
-					}
-				else
-					{
-					TempData["Error"] = $"❌ Database error: {innerException}";
+					TempData["Error"] = $"An unexpected database error occurred: {innerException}";
 					}
 
 				// Re-populate dropdowns on error
 				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
 				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+				PopulateProductTypesDropdown(product.Type);
 
 				return View(viewModel);
 				}
@@ -370,6 +351,7 @@ namespace PontelloImport.Controllers
 			// Add dropdown data
 			ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
 			ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+			PopulateProductTypesDropdown(product.Type);
 
 			return View(viewModel);
 			}
@@ -409,18 +391,15 @@ namespace PontelloImport.Controllers
 			ModelState.Remove("Product.Handle");
 			ModelState.Remove("Variant.Handle");
 
+			// Replace generic "The value '' is invalid." with friendly required messages
+			ReplaceBindingErrorsWithRequiredMessages();
+
 			if (!ModelState.IsValid)
 				{
-				var errors = ModelState.Values
-					.SelectMany(v => v.Errors)
-					.Select(e => e.ErrorMessage)
-					.ToList();
-
-				TempData["Error"] = "Validation failed: " + string.Join(", ", errors);
-
 				// Re-populate dropdowns on error
 				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
 				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+				PopulateProductTypesDropdown(product.Type);
 
 				return View(viewModel);
 				}
@@ -510,34 +489,31 @@ namespace PontelloImport.Controllers
 
 				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.SKU"))
 					{
-					errorMessages.Add($"SKU '{variant.SKU}' already exists.");
-					ModelState.AddModelError("Variant.SKU", "This SKU is already in use.");
+					errorMessages.Add($"The SKU '{variant.SKU}' is already in use.");
+					ModelState.AddModelError("Variant.SKU", "This SKU is already in use. Please choose a unique SKU.");
 					}
 
 				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.Handle"))
 					{
-					errorMessages.Add($"A product with a similar title already exists.");
-					ModelState.AddModelError("Variant.Title", "A product with this title already exists.");
+					errorMessages.Add("A product with this title already exists.");
+					ModelState.AddModelError("Variant.Title", "A product with this title already exists. Please use a different title.");
 					}
 
 				if (innerException.Contains("UNIQUE constraint failed: Products.Handle"))
 					{
-					errorMessages.Add($"A product with a similar title already exists.");
-					ModelState.AddModelError("Product.Title", "A product with this title already exists.");
+					errorMessages.Add("A product with this title already exists.");
+					ModelState.AddModelError("Product.Title", "A product with this title already exists. Please use a different title.");
 					}
 
-				if (errorMessages.Any())
+				if (!errorMessages.Any())
 					{
-					TempData["Error"] = string.Join(" ", errorMessages);
-					}
-				else
-					{
-					TempData["Error"] = $"Database error: {innerException}";
+					TempData["Error"] = $"An unexpected database error occurred: {innerException}";
 					}
 
 				// Re-populate dropdowns on error
 				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
 				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
+				PopulateProductTypesDropdown(product.Type);
 
 				return View(viewModel);
 				}
@@ -591,6 +567,121 @@ namespace PontelloImport.Controllers
             return RedirectToAction(nameof(Details), new { id = variant.VariantID });
         }
 
+
+        // ===================================================================
+        // AJAX UNIQUENESS CHECK ENDPOINTS
+        // ===================================================================
+
+        /// <summary>
+        /// Checks if a SKU is already in use by another variant.
+        /// Called via AJAX for instant client-side feedback.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> CheckSku(string sku, int? variantId)
+        {
+            if (string.IsNullOrWhiteSpace(sku))
+            {
+                return Json(new { isAvailable = true });
+            }
+
+            var exists = await _context.ProductVariants
+                .AnyAsync(v => v.SKU == sku && v.VariantID != (variantId ?? 0));
+
+            return Json(new { isAvailable = !exists });
+        }
+
+        /// <summary>
+        /// Checks if a product title (via handle) is already in use by another variant.
+        /// Called via AJAX for instant client-side feedback.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> CheckTitle(string title, int? variantId)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return Json(new { isAvailable = true });
+            }
+
+            var handle = GenerateHandle(title);
+            var exists = await _context.ProductVariants
+                .AnyAsync(v => v.Handle == handle && v.VariantID != (variantId ?? 0));
+
+            return Json(new { isAvailable = !exists });
+        }
+
+        /// <summary>
+        /// Replaces generic "The value '' is invalid." binding errors with friendly required messages.
+        /// This happens when a number field (int/decimal) receives an empty string — model binding
+        /// fails before [Required] validation ever runs, producing an unhelpful default message.
+        /// </summary>
+        /// <summary>
+        /// Returns the predefined product types list for the dropdown.
+        /// </summary>
+        private List<string> GetProductTypes()
+        {
+            return new List<string>
+            {
+                "Chassis Components",
+                "Engine Parts",
+                "Safety Equipment",
+                "Accessories",
+                "Tools",
+                "Hardware",
+                "Cleaning Supplies",
+                "Performance Parts",
+                "Measurement Tools",
+                "Hand Tools",
+                "Other - Please Specify"
+            };
+        }
+
+        /// <summary>
+        /// Populates ViewData with ProductTypes dropdown, handling custom types for Edit.
+        /// </summary>
+        private void PopulateProductTypesDropdown(string? currentType = null)
+        {
+            var productTypes = GetProductTypes();
+
+            if (!string.IsNullOrEmpty(currentType) && !productTypes.Contains(currentType))
+            {
+                // Current type is custom — select "Other" and store the custom value
+                ViewData["ProductTypes"] = new SelectList(productTypes, "Other - Please Specify");
+                ViewData["CustomType"] = currentType;
+            }
+            else
+            {
+                ViewData["ProductTypes"] = new SelectList(productTypes, currentType);
+            }
+        }
+
+        private void ReplaceBindingErrorsWithRequiredMessages()
+        {
+            var fieldMessages = new Dictionary<string, string>
+            {
+                { "Variant.Price", "Price is required for product creation." },
+                { "Variant.InventoryQuantity", "Inventory Quantity is required for product creation." },
+                { "Variant.CompareAtPrice", "Compare At Price must be a positive value." },
+                { "Variant.Weight", "Weight must be a valid number." }
+            };
+
+            foreach (var kvp in fieldMessages)
+            {
+                if (ModelState.TryGetValue(kvp.Key, out var entry) && entry.Errors.Count > 0)
+                {
+                    // Check if any error is the generic binding error
+                    var hasBindingError = entry.Errors.Any(e =>
+                        e.ErrorMessage.Contains("The value") && e.ErrorMessage.Contains("is not valid") ||
+                        e.ErrorMessage.Contains("The value ''") ||
+                        e.ErrorMessage.Contains("The value \"\""));
+
+                    if (hasBindingError)
+                    {
+                        ModelState.Remove(kvp.Key);
+                        ModelState.AddModelError(kvp.Key, kvp.Value);
+                    }
+                }
+            }
+        }
 
         // Helper method to generate URL-friendly handle from title
         private string GenerateHandle(string title)

@@ -8,7 +8,7 @@
 <div class="container mt-4">
 
     <!-- Warning Header -->
-    <div class="alert alert-danger border-danger" role="alert">
+    <div class="alert alert-dark" role="alert">
         <h4 class="alert-heading">
             <i class="bi bi-exclamation-triangle-fill"></i> Archive Product Variant?
         </h4>
@@ -19,7 +19,7 @@
 
     <!-- Product Details Card -->
     <div class="card">
-        <div class="card-header bg-danger text-white">
+        <div class="card-header bg-dark text-white">
             <h5 class="mb-0">Variant to Archive</h5>
         </div>
         <div class="card-body">
@@ -31,10 +31,10 @@
                         <dd class="col-sm-8"><strong>@Model.Title</strong></dd>
 
                         <dt class="col-sm-4">SKU:</dt>
-                        <dd class="col-sm-8"><code class="text-primary">@Model.SKU</code></dd>
+                        <dd class="col-sm-8"><code class="text-dark">@Model.SKU</code></dd>
 
                         <dt class="col-sm-4">Price:</dt>
-                        <dd class="col-sm-8"><strong class="text-success">@Model.Price.ToString("C")</strong></dd>
+                        <dd class="col-sm-8"><strong class="text-dark">@Model.Price.ToString("C")</strong></dd>
 
                         <dt class="col-sm-4">Inventory:</dt>
                         <dd class="col-sm-8">@Model.InventoryQuantity units</dd>
@@ -47,7 +47,7 @@
                         else
                             {
                             <dt class="col-sm-4">Type:</dt>
-                            <dd class="col-sm-8"><span class="badge bg-info">Standalone Product</span></dd>
+                            <dd class="col-sm-8"><span class="badge bg-light text-dark border border-secondary">Standalone Product</span></dd>
                             }
                     </dl>
                 </div>
@@ -59,10 +59,10 @@
                             @switch (Model.Status)
                                 {
                                 case ProductStatus.Draft:
-                                <span class="badge bg-warning text-dark">Draft</span>
+                                <span class="badge bg-secondary text-white">Draft</span>
                                 break;
                                 case ProductStatus.Published:
-                                <span class="badge bg-success">Published</span>
+                                <span class="badge bg-dark text-white">Published</span>
                                 break;
                                 case ProductStatus.Archived:
                                 <span class="badge bg-secondary">Archived</span>
@@ -74,11 +74,11 @@
                         <dd class="col-sm-8">
                             @if (Model.IsActive)
                                 {
-                                <span class="badge bg-success">Yes</span>
+                                <span class="badge bg-dark text-white">Yes</span>
                                 }
                             else
                                 {
-                                <span class="badge bg-danger">No</span>
+                                <span class="badge bg-light text-dark border border-secondary">No</span>
                                 }
                         </dd>
 
@@ -89,7 +89,7 @@
                             {
                             <dt class="col-sm-4">Attributes:</dt>
                             <dd class="col-sm-8">
-                                <span class="badge bg-warning text-dark">@Model.Attributes.Count attribute(s)</span>
+                                <span class="badge bg-secondary text-white">@Model.Attributes.Count attribute(s)</span>
                             </dd>
                             }
                     </dl>
@@ -114,7 +114,7 @@
 
     <!-- What Will Happen -->
     <div class="card mt-3">
-        <div class="card-header bg-warning text-dark">
+        <div class="card-header bg-secondary text-white">
             <h6 class="mb-0">What will happen:</h6>
         </div>
         <div class="card-body">
@@ -133,10 +133,10 @@
         <input type="hidden" asp-for="VariantID" />
 
         <div class="d-flex justify-content-between">
-            <a asp-action="Index" class="btn btn-secondary btn-lg">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
                 Cancel
             </a>
-            <button type="submit" class="btn btn-danger btn-lg">
+            <button type="submit" class="btn btn-dark btn-lg">
                 Yes, Archive This Variant
             </button>
         </div>

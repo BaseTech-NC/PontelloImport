@@ -457,6 +457,129 @@ namespace PontelloImport.Data
 						IsActive = true
 						});
 
+					// ===== NEW VARIANTS (7 additional for 20+ total) =====
+
+					// Racing Gloves - Small (3rd size variant under Racing Gloves parent)
+					variants.Add(new ProductVariant
+						{
+						ProductID = racingGlovesProduct.ProductID,
+						Title = "Racing Gloves - Small",
+						Handle = "racing-gloves-small",
+						SKU = "PROD-6003",
+						Price = 62.00M,
+						InventoryQuantity = 0,
+						Weight = 190,
+						Description = "Lightweight racing gloves with reinforced palm grip and breathable mesh backing",
+						Tags = "gloves, safety, racing, small",
+						Barcode = "7891234560031",
+						Status = ProductStatus.Published,
+						IsActive = true
+						});
+
+					// Torque Wrench - 25Nm (2nd variant under Torque Wrench parent)
+					variants.Add(new ProductVariant
+						{
+						ProductID = torqueWrenchProduct.ProductID,
+						Title = "Torque Wrench - 25Nm",
+						Handle = "torque-wrench-25nm",
+						SKU = "PROD-7003",
+						Price = 74.99M,
+						InventoryQuantity = 8,
+						Weight = 700,
+						Description = "Compact 1/4-inch drive torque wrench for precise fastening of smaller kart components",
+						Tags = "tools, torque, wrench, maintenance",
+						Barcode = "7891234570032",
+						Status = ProductStatus.Published,
+						IsActive = true
+						});
+
+					// Tire Pressure Gauge - Analog (2nd variant under Tire Pressure Gauge parent)
+					variants.Add(new ProductVariant
+						{
+						ProductID = tirePressureGaugeProduct.ProductID,
+						Title = "Tire Pressure Gauge - Analog",
+						Handle = "tire-pressure-gauge-analog",
+						SKU = "PROD-7004",
+						Price = 28.50M,
+						InventoryQuantity = 25,
+						Weight = 120,
+						Description = "Durable analog tire pressure gauge with 0-60 PSI range and brass stem",
+						Tags = "tools, gauge, tires, pressure, analog",
+						Barcode = "7891234570041",
+						Status = ProductStatus.Published,
+						IsActive = true
+						});
+
+					// Nerf Bar - Chrome Left (5th variant under Nerf Bar parent)
+					variants.Add(new ProductVariant
+						{
+						ProductID = nerfBarProduct.ProductID,
+						Title = "Nerf Bar - Chrome Left",
+						Handle = "nerf-bar-chrome-left",
+						SKU = "PROD-1005",
+						Price = 112.50M,
+						CompareAtPrice = 135.00M,
+						InventoryQuantity = 5,
+						Weight = 950,
+						Description = "Premium chrome-plated nerf bar with mirror finish for left-side chassis protection",
+						Tags = "chassis, nerf bar, chrome, protection",
+						Barcode = "7891234510051",
+						Status = ProductStatus.Published,
+						IsActive = true
+						});
+
+					// Nerf Bar - Chrome Right (6th variant under Nerf Bar parent)
+					variants.Add(new ProductVariant
+						{
+						ProductID = nerfBarProduct.ProductID,
+						Title = "Nerf Bar - Chrome Right",
+						Handle = "nerf-bar-chrome-right",
+						SKU = "PROD-1006",
+						Price = 112.50M,
+						CompareAtPrice = 135.00M,
+						InventoryQuantity = 0,
+						Weight = 950,
+						Description = "Premium chrome-plated nerf bar with mirror finish for right-side chassis protection",
+						Tags = "chassis, nerf bar, chrome, protection",
+						Barcode = "7891234510061",
+						Status = ProductStatus.Draft,
+						IsActive = true
+						});
+
+					// Tie Rod Assembly - 7 inch (3rd variant under Tie Rod parent)
+					variants.Add(new ProductVariant
+						{
+						ProductID = tieRodProduct.ProductID,
+						Title = "Tie Rod Assembly - 7 inch",
+						Handle = "tie-rod-assembly-7in",
+						SKU = "PROD-3003",
+						Price = 52.00M,
+						InventoryQuantity = 14,
+						Weight = 340,
+						Description = "Heavy-duty adjustable tie rod for extended wheelbase kart setups",
+						Tags = "chassis, steering, tie rod, alignment",
+						Barcode = "7891234530031",
+						Status = ProductStatus.Published,
+						IsActive = true
+						});
+
+					// Chassis Cleaning Spray - 1L (2nd variant under Cleaning Spray parent)
+					variants.Add(new ProductVariant
+						{
+						ProductID = cleaningSprayProduct.ProductID,
+						Title = "Chassis Cleaning Spray - 1L",
+						Handle = "chassis-cleaning-spray-1l",
+						SKU = "PROD-5002",
+						Price = 29.99M,
+						InventoryQuantity = 20,
+						Weight = 1000,
+						Description = "Concentrated 1-litre biodegradable chassis cleaner, dilute 1:3 with water",
+						Tags = "cleaning, spray, chassis, maintenance, concentrate",
+						Barcode = "7891234550021",
+						Status = ProductStatus.Draft,
+						IsActive = true
+						});
+
 					context.ProductVariants.AddRange(variants);
 					context.SaveChanges();
 					}
@@ -532,6 +655,46 @@ namespace PontelloImport.Data
 					// Chassis Cleaning Spray (Standalone)
 					attributes.Add(new ProductAttribute { VariantID = cleaningSpray.VariantID, AttributeName = "Volume", AttributeValue = "500ml", IsVariantAttribute = false, DisplayOrder = 1 });
 					attributes.Add(new ProductAttribute { VariantID = cleaningSpray.VariantID, AttributeName = "Type", AttributeValue = "Biodegradable", IsVariantAttribute = false, DisplayOrder = 2 });
+
+					// ===== SPECIFICATION ATTRIBUTES FOR NEW VARIANTS =====
+
+					// Racing Gloves - Small (specs only)
+					var glovesSmall = context.ProductVariants.First(v => v.SKU == "PROD-6003");
+					attributes.Add(new ProductAttribute { VariantID = glovesSmall.VariantID, AttributeName = "Material", AttributeValue = "Leather/Spandex", IsVariantAttribute = false, DisplayOrder = 1 });
+					attributes.Add(new ProductAttribute { VariantID = glovesSmall.VariantID, AttributeName = "Grip Type", AttributeValue = "Silicone Palm Pads", IsVariantAttribute = false, DisplayOrder = 2 });
+					attributes.Add(new ProductAttribute { VariantID = glovesSmall.VariantID, AttributeName = "Closure", AttributeValue = "Velcro Wrist Strap", IsVariantAttribute = false, DisplayOrder = 3 });
+
+					// Torque Wrench - 25Nm (specs only)
+					var torque25 = context.ProductVariants.First(v => v.SKU == "PROD-7003");
+					attributes.Add(new ProductAttribute { VariantID = torque25.VariantID, AttributeName = "Drive Size", AttributeValue = "1/4 inch", IsVariantAttribute = false, DisplayOrder = 1 });
+					attributes.Add(new ProductAttribute { VariantID = torque25.VariantID, AttributeName = "Torque Range", AttributeValue = "5-25 Nm", IsVariantAttribute = false, DisplayOrder = 2 });
+					attributes.Add(new ProductAttribute { VariantID = torque25.VariantID, AttributeName = "Accuracy", AttributeValue = "+/- 4%", IsVariantAttribute = false, DisplayOrder = 3 });
+
+					// Tire Pressure Gauge - Analog (specs only)
+					var gaugeAnalog = context.ProductVariants.First(v => v.SKU == "PROD-7004");
+					attributes.Add(new ProductAttribute { VariantID = gaugeAnalog.VariantID, AttributeName = "Range", AttributeValue = "0-60 PSI", IsVariantAttribute = false, DisplayOrder = 1 });
+					attributes.Add(new ProductAttribute { VariantID = gaugeAnalog.VariantID, AttributeName = "Stem Material", AttributeValue = "Brass", IsVariantAttribute = false, DisplayOrder = 2 });
+
+					// Nerf Bar - Chrome Left (specs only)
+					var nerfChromeLeft = context.ProductVariants.First(v => v.SKU == "PROD-1005");
+					attributes.Add(new ProductAttribute { VariantID = nerfChromeLeft.VariantID, AttributeName = "Finish", AttributeValue = "Mirror Polish", IsVariantAttribute = false, DisplayOrder = 1 });
+					attributes.Add(new ProductAttribute { VariantID = nerfChromeLeft.VariantID, AttributeName = "Installation", AttributeValue = "Bolt-on", IsVariantAttribute = false, DisplayOrder = 2 });
+
+					// Nerf Bar - Chrome Right (specs only)
+					var nerfChromeRight = context.ProductVariants.First(v => v.SKU == "PROD-1006");
+					attributes.Add(new ProductAttribute { VariantID = nerfChromeRight.VariantID, AttributeName = "Finish", AttributeValue = "Mirror Polish", IsVariantAttribute = false, DisplayOrder = 1 });
+					attributes.Add(new ProductAttribute { VariantID = nerfChromeRight.VariantID, AttributeName = "Installation", AttributeValue = "Bolt-on", IsVariantAttribute = false, DisplayOrder = 2 });
+
+					// Tie Rod Assembly - 7 inch (specs only)
+					var tieRod7 = context.ProductVariants.First(v => v.SKU == "PROD-3003");
+					attributes.Add(new ProductAttribute { VariantID = tieRod7.VariantID, AttributeName = "Material", AttributeValue = "Alloy Steel", IsVariantAttribute = false, DisplayOrder = 1 });
+					attributes.Add(new ProductAttribute { VariantID = tieRod7.VariantID, AttributeName = "Thread Type", AttributeValue = "M8 x 1.25", IsVariantAttribute = false, DisplayOrder = 2 });
+
+					// Chassis Cleaning Spray - 1L (specs only)
+					var cleaningSpray1L = context.ProductVariants.First(v => v.SKU == "PROD-5002");
+					attributes.Add(new ProductAttribute { VariantID = cleaningSpray1L.VariantID, AttributeName = "Volume", AttributeValue = "1000ml", IsVariantAttribute = false, DisplayOrder = 1 });
+					attributes.Add(new ProductAttribute { VariantID = cleaningSpray1L.VariantID, AttributeName = "Dilution Ratio", AttributeValue = "1:3 with water", IsVariantAttribute = false, DisplayOrder = 2 });
+					attributes.Add(new ProductAttribute { VariantID = cleaningSpray1L.VariantID, AttributeName = "Formula", AttributeValue = "Biodegradable Concentrate", IsVariantAttribute = false, DisplayOrder = 3 });
 
 					context.ProductAttributes.AddRange(attributes);
 					context.SaveChanges();

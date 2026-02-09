@@ -14,7 +14,7 @@
             <p class="text-muted">
                 @if (Model.ProductID == null)
                     {
-                    <span class="badge bg-info me-2">Standalone Product</span>
+                    <span class="badge bg-light text-dark border border-secondary me-2">Standalone Product</span>
                     }
                 else
                     {
@@ -24,10 +24,10 @@
                 @switch (Model.Status)
                     {
                     case ProductStatus.Draft:
-                    <span class="badge bg-warning text-dark">Draft</span>
+                    <span class="badge bg-secondary text-white">Draft</span>
                     break;
                     case ProductStatus.Published:
-                    <span class="badge bg-success">Published</span>
+                    <span class="badge bg-dark text-white">Published</span>
                     break;
                     case ProductStatus.Archived:
                     <span class="badge bg-secondary">Archived</span>
@@ -36,23 +36,23 @@
 
                 @if (Model.IsActive)
                     {
-                    <span class="badge bg-success">Active</span>
+                    <span class="badge bg-dark text-white">Active</span>
                     }
                 else
                     {
-                    <span class="badge bg-danger">Inactive</span>
+                    <span class="badge bg-light text-dark border border-secondary">Inactive</span>
                     }
             </p>
         </div>
         <div class="col-md-4 text-end">
-            <a asp-action="Edit" asp-route-id="@Model.VariantID" class="btn btn-warning me-2">Edit</a>
+            <a asp-action="Edit" asp-route-id="@Model.VariantID" class="btn btn-secondary me-2">Edit</a>
 
             @if (Model.Status == ProductStatus.Archived)
                 {
                 <!-- Archived: Show Restore button -->
                 <form asp-action="Restore" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-success me-2">
+                    <button type="submit" class="btn btn-secondary me-2">
                         Restore
                     </button>
                 </form>
@@ -62,22 +62,22 @@
                 <!-- Published: Show Unpublish button -->
                 <form asp-action="Unpublish" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-warning me-2">
+                    <button type="submit" class="btn btn-secondary me-2">
                         Unpublish
                     </button>
                 </form>
-                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-danger me-2">Archive</a>
+                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-outline-dark me-2">Archive</a>
                 }
             else
                 {
                 <!-- Draft: Show Publish and Delete buttons -->
                 <form asp-action="Publish" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-success me-2">
+                    <button type="submit" class="btn btn-dark me-2">
                         Publish
                     </button>
                 </form>
-                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-danger me-2">Archive</a>
+                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-outline-dark me-2">Archive</a>
                 }
 
             <a asp-action="Index" class="btn btn-secondary">Back to List</a>
@@ -90,13 +90,13 @@
         <div class="col-md-6">
 
             <div class="card mb-3">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-dark text-white">
                     <h5 class="mb-0">Product Information</h5>
                 </div>
                 <div class="card-body">
                     <dl class="row mb-0">
                         <dt class="col-sm-4">SKU:</dt>
-                        <dd class="col-sm-8"><code class="text-primary">@Model.SKU</code></dd>
+                        <dd class="col-sm-8"><code class="text-dark">@Model.SKU</code></dd>
 
                         <dt class="col-sm-4">Title:</dt>
                         <dd class="col-sm-8">@Model.Title</dd>
@@ -131,20 +131,20 @@
             </div>
 
             <div class="card mb-3">
-                <div class="card-header bg-success text-white">
+                <div class="card-header bg-dark text-white">
                     <h5 class="mb-0">Pricing & Inventory</h5>
                 </div>
                 <div class="card-body">
                     <dl class="row mb-0">
                         <dt class="col-sm-4">Price:</dt>
-                        <dd class="col-sm-8"><strong class="text-success">@Model.Price.ToString("C")</strong></dd>
+                        <dd class="col-sm-8"><strong class="text-dark">@Model.Price.ToString("C")</strong></dd>
 
                         @if (Model.CompareAtPrice.HasValue)
                             {
                             <dt class="col-sm-4">Compare At:</dt>
                             <dd class="col-sm-8">
                                 <del class="text-muted">@Model.CompareAtPrice.Value.ToString("C")</del>
-                                <span class="badge bg-danger ms-2">
+                                <span class="badge bg-dark text-white ms-2">
                                     @(((1 - (Model.Price / Model.CompareAtPrice.Value)) * 100).ToString("F0"))% OFF
                                 </span>
                             </dd>
@@ -152,7 +152,7 @@
 
                         <dt class="col-sm-4">Inventory:</dt>
                         <dd class="col-sm-8">
-                            <span class="@(Model.InventoryQuantity > 0 ? "text-success" : "text-danger")">
+                            <span class="@(Model.InventoryQuantity > 0 ? "text-dark" : "text-secondary")">
                                 <strong>@Model.InventoryQuantity</strong> units
                             </span>
                         </dd>
@@ -161,11 +161,11 @@
                         <dd class="col-sm-8">
                             @if (Model.InventoryPolicy == "deny")
                                 {
-                                <span class="badge bg-warning text-dark">Stop orders when out of stock</span>
+                                <span class="badge bg-secondary text-white">Stop orders when out of stock</span>
                                 }
                             else
                                 {
-                                <span class="badge bg-info">Continue orders when out of stock</span>
+                                <span class="badge bg-light text-dark border border-secondary">Continue orders when out of stock</span>
                                 }
                         </dd>
                     </dl>
@@ -188,6 +188,12 @@
                             <dt class="col-sm-4">Product:</dt>
                             <dd class="col-sm-8">@Model.Product.Title</dd>
 
+                            @if (!string.IsNullOrEmpty(Model.Product.Type))
+                                {
+                                <dt class="col-sm-4">Product Type:</dt>
+                                <dd class="col-sm-8">@Model.Product.Type</dd>
+                                }
+
                             @if (Model.Product.Vendor != null)
                                 {
                                 <dt class="col-sm-4">Vendor:</dt>
@@ -205,7 +211,7 @@
                 }
 
             <div class="card mb-3">
-                <div class="card-header bg-info text-white">
+                <div class="card-header bg-secondary text-white">
                     <h5 class="mb-0">Shipping & Physical</h5>
                 </div>
                 <div class="card-body">
@@ -226,11 +232,11 @@
                         <dd class="col-sm-8">
                             @if (Model.RequiresShipping)
                                 {
-                                <span class="badge bg-success">Yes</span>
+                                <span class="badge bg-dark text-white">Yes</span>
                                 }
                             else
                                 {
-                                <span class="badge bg-secondary">No (Digital Product)</span>
+                                <span class="badge bg-light text-dark border border-secondary">No (Digital Product)</span>
                                 }
                         </dd>
 
@@ -238,11 +244,11 @@
                         <dd class="col-sm-8">
                             @if (Model.IsTaxable)
                                 {
-                                <span class="badge bg-success">Yes</span>
+                                <span class="badge bg-dark text-white">Yes</span>
                                 }
                             else
                                 {
-                                <span class="badge bg-secondary">No</span>
+                                <span class="badge bg-light text-dark border border-secondary">No</span>
                                 }
                         </dd>
                     </dl>
@@ -252,7 +258,7 @@
             @if (Model.Attributes.Any())
                 {
                 <div class="card mb-3">
-                    <div class="card-header bg-warning text-dark">
+                    <div class="card-header bg-secondary text-white">
                         <h5 class="mb-0">Attributes & Specifications</h5>
                     </div>
                     <div class="card-body">
@@ -264,7 +270,7 @@
 
                         @if (variantAttrs.Any())
                             {
-                            <h6 class="text-primary">Variant Attributes</h6>
+                            <h6 class="text-dark fw-bold">Variant Attributes</h6>
                             <dl class="row">
                                 @foreach (var attr in variantAttrs)
                                     {

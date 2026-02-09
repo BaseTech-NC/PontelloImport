@@ -43,7 +43,7 @@
                 @* SUCCESS/ERROR MESSAGES *@
                 @if (TempData["Success"] != null)
                     {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <div class="alert alert-dark alert-dismissible fade show" role="alert">
                         <strong>Success!</strong> @TempData["Success"]
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
@@ -51,7 +51,7 @@
 
                 @if (TempData["Error"] != null)
                     {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <div class="alert alert-secondary alert-dismissible fade show" role="alert">
                         <strong>Error!</strong> @TempData["Error"]
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>

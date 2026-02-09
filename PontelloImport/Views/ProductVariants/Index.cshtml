@@ -28,27 +28,27 @@
         <div class="col-12">
             <div class="btn-group" role="group">
                 <a asp-action="Index" asp-route-filter="all" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "all" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                   class="btn btn-sm @(currentFilter == "all" ? "btn-dark" : "btn-outline-secondary text-dark")">
                     All (@ViewBag.AllCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="standalone" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "standalone" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                   class="btn btn-sm @(currentFilter == "standalone" ? "btn-dark" : "btn-outline-secondary text-dark")">
                     Standalone (@ViewBag.StandaloneCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="variants" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "variants" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                   class="btn btn-sm @(currentFilter == "variants" ? "btn-dark" : "btn-outline-secondary text-dark")">
                     With Parents (@ViewBag.VariantsCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="published" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "published" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                   class="btn btn-sm @(currentFilter == "published" ? "btn-dark" : "btn-outline-secondary text-dark")">
                     Published (@ViewBag.PublishedCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="draft" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "draft" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                   class="btn btn-sm @(currentFilter == "draft" ? "btn-dark" : "btn-outline-secondary text-dark")">
                     Draft (@ViewBag.DraftCount)
                 </a>
                 <a asp-action="Index" asp-route-filter="archived" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
-                   class="btn btn-sm @(currentFilter == "archived" ? "btn-secondary" : "btn-outline-secondary text-dark")">
+                   class="btn btn-sm @(currentFilter == "archived" ? "btn-dark" : "btn-outline-secondary text-dark")">
                     Archived (@ViewBag.ArchivedCount)
                 </a>
             </div>
@@ -87,7 +87,7 @@
         <div class="col-12">
             @if (!Model.Any())
             {
-                <div class="alert alert-info">
+                <div class="alert alert-secondary">
                     No variants found.
                     <a asp-action="Create" class="alert-link">Create your first product</a>
                 </div>
@@ -128,12 +128,12 @@
 
                                     <!-- SKU -->
                                     <td>
-                                        <code class="text-primary">@variant.SKU</code>
+                                        <code class="text-dark">@variant.SKU</code>
                                     </td>
 
                                     <!-- Price -->
                                     <td>
-                                        <strong class="text-success">@variant.Price.ToString("C")</strong>
+                                        <strong class="text-dark">@variant.Price.ToString("C")</strong>
                                         @if (variant.CompareAtPrice.HasValue)
                                         {
                                             <br />
@@ -145,14 +145,14 @@
 
                                     <!-- Inventory -->
                                     <td>
-                                        <span class="@(variant.InventoryQuantity > 0 ? "text-success" : "text-danger")">
+                                        <span class="@(variant.InventoryQuantity > 0 ? "text-dark" : "text-secondary")">
                                             @variant.InventoryQuantity units
                                         </span>
                                         @if (variant.InventoryQuantity == 0)
                                         {
                                             <br />
 
-                                            <span class="badge bg-danger">Out of Stock</span>
+                                            <span class="badge bg-light text-dark border border-dark">Out of Stock</span>
                                         }
                                     </td>
 
@@ -160,7 +160,7 @@
                                     <td>
                                         @if (variant.ProductID == null)
                                         {
-                                            <span class="badge bg-info">Standalone</span>
+                                            <span class="badge bg-light text-dark border border-secondary">Standalone</span>
                                         }
                                         else
                                         {
@@ -173,10 +173,10 @@
                                         @switch (variant.Status)
                                         {
                                             case ProductStatus.Draft:
-                                                <span class="badge bg-warning text-dark">Draft</span>
+                                                <span class="badge bg-secondary text-white">Draft</span>
                                                 break;
                                             case ProductStatus.Published:
-                                                <span class="badge bg-success">Published</span>
+                                                <span class="badge bg-dark text-white">Published</span>
                                                 break;
                                             case ProductStatus.Archived:
                                                 <span class="badge bg-secondary">Archived</span>
@@ -188,22 +188,22 @@
                                     <td class="text-center">
                                         @if (variant.IsActive)
                                         {
-                                            <span class="badge bg-success">Yes</span>
+                                            <span class="badge bg-dark text-white">Yes</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-danger">No</span>
+                                            <span class="badge bg-light text-dark border border-secondary">No</span>
                                         }
                                     </td>
 
                                     <!-- Actions -->
                                     <td style="white-space: nowrap;">
                                         <a asp-action="Details" asp-route-id="@variant.VariantID"
-                                           class="btn btn-sm btn-primary me-1">
+                                           class="btn btn-sm btn-dark me-1">
                                             Details
                                         </a>
                                         <a asp-action="Edit" asp-route-id="@variant.VariantID"
-                                           class="btn btn-sm btn-warning me-1">
+                                           class="btn btn-sm btn-secondary me-1">
                                             Edit
                                         </a>
 
@@ -212,7 +212,7 @@
                                             <!-- Restore Button (for archived variants) -->
                                             <form asp-action="Restore" asp-route-id="@variant.VariantID" method="post" style="display: inline;">
                                                 @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-success">
+                                                <button type="submit" class="btn btn-sm btn-secondary">
                                                     Restore
                                                 </button>
                                             </form>
@@ -221,7 +221,7 @@
                                         {
                                             <!-- Delete Button (for active/draft variants) -->
                                             <a asp-action="Delete" asp-route-id="@variant.VariantID"
-                                               class="btn btn-sm btn-danger">
+                                               class="btn btn-sm btn-outline-dark">
                                                 Archive
                                             </a>
                                         }
@@ -340,7 +340,7 @@
         }
 
             .pagination .page-link {
-                color: #28a745;
+                color: #212529;
                 border: 1px solid #dee2e6;
                 padding: 0.5rem 0.75rem;
                 margin: 0 2px;
@@ -349,13 +349,13 @@
 
                 .pagination .page-link:hover {
                     color: #fff;
-                    background-color: #28a745;
-                    border-color: #28a745;
+                    background-color: #212529;
+                    border-color: #212529;
                 }
 
             .pagination .page-item.active .page-link {
-                background-color: #28a745;
-                border-color: #28a745;
+                background-color: #212529;
+                border-color: #212529;
                 color: white;
                 z-index: 3;
             }
