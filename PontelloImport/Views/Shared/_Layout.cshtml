@@ -38,27 +38,23 @@
     </header>
     <div class="container">
         <main role="main" class="pb-3">
-            <main role="main" class="pb-3">
 
-                @* SUCCESS/ERROR MESSAGES *@
-                @if (TempData["Success"] != null)
-                    {
-                    <div class="alert alert-dark alert-dismissible fade show" role="alert">
-                        <strong>Success!</strong> @TempData["Success"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    }
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
 
-                @if (TempData["Error"] != null)
-                    {
-                    <div class="alert alert-secondary alert-dismissible fade show" role="alert">
-                        <strong>Error!</strong> @TempData["Error"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
 
-                @RenderBody()
-            </main>
             @RenderBody()
         </main>
     </div>

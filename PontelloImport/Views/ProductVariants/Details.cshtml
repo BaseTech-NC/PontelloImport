@@ -1,330 +1,288 @@
-﻿@model PontelloImport.Models.ProductVariant
+@model PontelloImport.Models.ProductVariant
 
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Product Details";
-    }
+}
 
-<div class="container mt-4">
+<div class="container mt-4" style="max-width: 800px;">
 
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h2>@Model.Title</h2>
-            <p class="text-muted">
-                @if (Model.ProductID == null)
-                    {
-                    <span class="badge bg-light text-dark border border-secondary me-2">Standalone Product</span>
-                    }
-                else
-                    {
-                    <span class="badge bg-secondary me-2">Variant of: @Model.Product?.Title</span>
-                    }
-
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 class="mb-2">@Model.Title</h2>
+            <div class="d-flex flex-wrap gap-1">
                 @switch (Model.Status)
-                    {
+                {
                     case ProductStatus.Draft:
-                    <span class="badge bg-secondary text-white">Draft</span>
-                    break;
+                        <span class="badge bg-info">Draft</span>
+                        break;
                     case ProductStatus.Published:
-                    <span class="badge bg-dark text-white">Published</span>
-                    break;
+                        <span class="badge bg-success">Published</span>
+                        break;
                     case ProductStatus.Archived:
-                    <span class="badge bg-secondary">Archived</span>
-                    break;
-                    }
+                        <span class="badge bg-secondary">Archived</span>
+                        break;
+                }
 
-                @if (Model.IsActive)
-                    {
-                    <span class="badge bg-dark text-white">Active</span>
-                    }
-                else
-                    {
-                    <span class="badge bg-light text-dark border border-secondary">Inactive</span>
-                    }
-            </p>
+
+            </div>
         </div>
-        <div class="col-md-4 text-end">
-            <a asp-action="Edit" asp-route-id="@Model.VariantID" class="btn btn-secondary me-2">Edit</a>
+        <div class="d-flex flex-nowrap align-items-center gap-2">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Back to List</a>
+            <a asp-action="Edit" asp-route-id="@Model.VariantID" class="btn btn-sm btn-outline-dark">Edit</a>
 
             @if (Model.Status == ProductStatus.Archived)
-                {
-                <!-- Archived: Show Restore button -->
-                <form asp-action="Restore" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
+            {
+                <form asp-action="Restore" asp-route-id="@Model.VariantID" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-secondary me-2">
-                        Restore
-                    </button>
+                    <button type="submit" class="btn btn-sm btn-dark">Restore</button>
                 </form>
-                }
+            }
             else if (Model.Status == ProductStatus.Published)
-                {
-                <!-- Published: Show Unpublish button -->
-                <form asp-action="Unpublish" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
+            {
+                <form asp-action="Unpublish" asp-route-id="@Model.VariantID" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-secondary me-2">
-                        Unpublish
-                    </button>
+                    <button type="submit" class="btn btn-sm btn-outline-dark">Unpublish</button>
                 </form>
-                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-outline-dark me-2">Archive</a>
-                }
+                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-sm btn-outline-dark">Archive</a>
+            }
             else
-                {
-                <!-- Draft: Show Publish and Delete buttons -->
-                <form asp-action="Publish" asp-route-id="@Model.VariantID" method="post" style="display: inline;">
+            {
+                <form asp-action="Publish" asp-route-id="@Model.VariantID" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-dark me-2">
-                        Publish
-                    </button>
+                    <button type="submit" class="btn btn-sm btn-dark">Publish</button>
                 </form>
-                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-outline-dark me-2">Archive</a>
-                }
-
-            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                <a asp-action="Delete" asp-route-id="@Model.VariantID" class="btn btn-sm btn-outline-dark">Archive</a>
+            }
         </div>
     </div>
 
-    <div class="row">
-
-        <!-- Left Column: Product Information -->
-        <div class="col-md-6">
-
-            <div class="card mb-3">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">Product Information</h5>
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">SKU:</dt>
-                        <dd class="col-sm-8"><code class="text-dark">@Model.SKU</code></dd>
-
-                        <dt class="col-sm-4">Title:</dt>
-                        <dd class="col-sm-8">@Model.Title</dd>
-
-                        <dt class="col-sm-4">Handle:</dt>
-                        <dd class="col-sm-8"><code>@Model.Handle</code></dd>
-
-                        @if (!string.IsNullOrEmpty(Model.Description))
-                            {
-                            <dt class="col-sm-4">Description:</dt>
-                            <dd class="col-sm-8">@Html.Raw(Model.Description)</dd>
-                            }
-
-                        @if (!string.IsNullOrEmpty(Model.Type))
-                            {
-                            <dt class="col-sm-4">Type:</dt>
-                            <dd class="col-sm-8">@Model.Type</dd>
-                            }
-
-                        @if (!string.IsNullOrEmpty(Model.Tags))
-                            {
-                            <dt class="col-sm-4">Tags:</dt>
-                            <dd class="col-sm-8">
-                                @foreach (var tag in Model.Tags.Split(','))
-                                    {
-                                    <span class="badge bg-light text-dark me-1">@tag.Trim()</span>
-                                    }
-                            </dd>
-                            }
-                    </dl>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">Pricing & Inventory</h5>
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">Price:</dt>
-                        <dd class="col-sm-8"><strong class="text-dark">@Model.Price.ToString("C")</strong></dd>
-
-                        @if (Model.CompareAtPrice.HasValue)
-                            {
-                            <dt class="col-sm-4">Compare At:</dt>
-                            <dd class="col-sm-8">
-                                <del class="text-muted">@Model.CompareAtPrice.Value.ToString("C")</del>
-                                <span class="badge bg-dark text-white ms-2">
-                                    @(((1 - (Model.Price / Model.CompareAtPrice.Value)) * 100).ToString("F0"))% OFF
-                                </span>
-                            </dd>
-                            }
-
-                        <dt class="col-sm-4">Inventory:</dt>
-                        <dd class="col-sm-8">
-                            <span class="@(Model.InventoryQuantity > 0 ? "text-dark" : "text-secondary")">
-                                <strong>@Model.InventoryQuantity</strong> units
-                            </span>
-                        </dd>
-
-                        <dt class="col-sm-4">Inventory Policy:</dt>
-                        <dd class="col-sm-8">
-                            @if (Model.InventoryPolicy == "deny")
-                                {
-                                <span class="badge bg-secondary text-white">Stop orders when out of stock</span>
-                                }
-                            else
-                                {
-                                <span class="badge bg-light text-dark border border-secondary">Continue orders when out of stock</span>
-                                }
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-
+    <!-- Product Information -->
+    <div class="card mb-3">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Product Information</h5>
         </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">SKU:</dt>
+                <dd class="col-sm-9"><code class="text-dark">@Model.SKU</code></dd>
 
-        <!-- Right Column: Additional Details -->
-        <div class="col-md-6">
+                <dt class="col-sm-3">Title:</dt>
+                <dd class="col-sm-9">@Model.Title</dd>
 
-            @if (Model.ProductID != null && Model.Product != null)
+                <dt class="col-sm-3">Handle:</dt>
+                <dd class="col-sm-9"><code>@Model.Handle</code></dd>
+
+                @if (!string.IsNullOrEmpty(Model.Description))
                 {
-                <div class="card mb-3">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">Parent Product</h5>
-                    </div>
-                    <div class="card-body">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-4">Product:</dt>
-                            <dd class="col-sm-8">@Model.Product.Title</dd>
-
-                            @if (!string.IsNullOrEmpty(Model.Product.Type))
-                                {
-                                <dt class="col-sm-4">Product Type:</dt>
-                                <dd class="col-sm-8">@Model.Product.Type</dd>
-                                }
-
-                            @if (Model.Product.Vendor != null)
-                                {
-                                <dt class="col-sm-4">Vendor:</dt>
-                                <dd class="col-sm-8">@Model.Product.Vendor.VendorName</dd>
-                                }
-
-                            @if (Model.Product.ProductCategory != null)
-                                {
-                                <dt class="col-sm-4">Category:</dt>
-                                <dd class="col-sm-8">@Model.Product.ProductCategory.CategoryName</dd>
-                                }
-                        </dl>
-                    </div>
-                </div>
+                    <dt class="col-sm-3">Description:</dt>
+                    <dd class="col-sm-9">@Html.Raw(Model.Description)</dd>
                 }
 
-            <div class="card mb-3">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">Shipping & Physical</h5>
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        @if (Model.Weight.HasValue)
-                            {
-                            <dt class="col-sm-4">Weight:</dt>
-                            <dd class="col-sm-8">@Model.Weight.Value grams (@(Model.Weight.Value / 1000.0) kg)</dd>
-                            }
-
-                        @if (!string.IsNullOrEmpty(Model.Barcode))
-                            {
-                            <dt class="col-sm-4">Barcode:</dt>
-                            <dd class="col-sm-8"><code>@Model.Barcode</code></dd>
-                            }
-
-                        <dt class="col-sm-4">Requires Shipping:</dt>
-                        <dd class="col-sm-8">
-                            @if (Model.RequiresShipping)
-                                {
-                                <span class="badge bg-dark text-white">Yes</span>
-                                }
-                            else
-                                {
-                                <span class="badge bg-light text-dark border border-secondary">No (Digital Product)</span>
-                                }
-                        </dd>
-
-                        <dt class="col-sm-4">Taxable:</dt>
-                        <dd class="col-sm-8">
-                            @if (Model.IsTaxable)
-                                {
-                                <span class="badge bg-dark text-white">Yes</span>
-                                }
-                            else
-                                {
-                                <span class="badge bg-light text-dark border border-secondary">No</span>
-                                }
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-
-            @if (Model.Attributes.Any())
+                @if (!string.IsNullOrEmpty(Model.Type))
                 {
-                <div class="card mb-3">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">Attributes & Specifications</h5>
-                    </div>
-                    <div class="card-body">
-
-                            @{
-                            var variantAttrs = Model.Attributes.Where(a => a.IsVariantAttribute).ToList();
-                            var specAttrs = Model.Attributes.Where(a => !a.IsVariantAttribute).ToList();
-                            }
-
-                        @if (variantAttrs.Any())
-                            {
-                            <h6 class="text-dark fw-bold">Variant Attributes</h6>
-                            <dl class="row">
-                                @foreach (var attr in variantAttrs)
-                                    {
-                                    <dt class="col-sm-5">@attr.AttributeName:</dt>
-                                    <dd class="col-sm-7"><strong>@attr.AttributeValue</strong></dd>
-                                    }
-                            </dl>
-                            }
-
-                        @if (specAttrs.Any())
-                            {
-                            <h6 class="text-secondary mt-3">Specifications</h6>
-                            <dl class="row mb-0">
-                                @foreach (var attr in specAttrs)
-                                    {
-                                    <dt class="col-sm-5">@attr.AttributeName:</dt>
-                                    <dd class="col-sm-7">@attr.AttributeValue</dd>
-                                    }
-                            </dl>
-                            }
-
-                    </div>
-                </div>
+                    <dt class="col-sm-3">Type:</dt>
+                    <dd class="col-sm-9">@Model.Type</dd>
                 }
 
-            <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">Audit Information</h5>
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">Created:</dt>
-                        <dd class="col-sm-8">
-                            @Model.CreatedDate
-                            @if (Model.CreatedBy.HasValue)
-                                {
-                                <small class="text-muted">(User ID: @Model.CreatedBy)</small>
-                                }
-                        </dd>
-
-                        <dt class="col-sm-4">Modified:</dt>
-                        <dd class="col-sm-8">
-                            @Model.ModifiedDate
-                            @if (Model.ModifiedBy.HasValue)
-                                {
-                                <small class="text-muted">(User ID: @Model.ModifiedBy)</small>
-                                }
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-
+                @if (!string.IsNullOrEmpty(Model.Tags))
+                {
+                    <dt class="col-sm-3">Tags:</dt>
+                    <dd class="col-sm-9">
+                        @foreach (var tag in Model.Tags.Split(','))
+                        {
+                            <span class="badge bg-light text-dark me-1">@tag.Trim()</span>
+                        }
+                    </dd>
+                }
+            </dl>
         </div>
+    </div>
 
+    <!-- Parent Product -->
+    @if (Model.ProductID != null && Model.Product != null)
+    {
+        <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Parent Product</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Product:</dt>
+                    <dd class="col-sm-9">@Model.Product.Title</dd>
+
+                    @if (!string.IsNullOrEmpty(Model.Product.Type))
+                    {
+                        <dt class="col-sm-3">Product Type:</dt>
+                        <dd class="col-sm-9">@Model.Product.Type</dd>
+                    }
+
+                    @if (Model.Product.Vendor != null)
+                    {
+                        <dt class="col-sm-3">Vendor:</dt>
+                        <dd class="col-sm-9">@Model.Product.Vendor.VendorName</dd>
+                    }
+
+                    @if (Model.Product.ProductCategory != null)
+                    {
+                        <dt class="col-sm-3">Category:</dt>
+                        <dd class="col-sm-9">@Model.Product.ProductCategory.CategoryName</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    }
+
+    <!-- Pricing & Inventory -->
+    <div class="card mb-3">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Pricing & Inventory</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Price:</dt>
+                <dd class="col-sm-9"><strong class="text-dark">@Model.Price.ToString("C")</strong></dd>
+
+                @if (Model.CompareAtPrice.HasValue)
+                {
+                    <dt class="col-sm-3">Compare At:</dt>
+                    <dd class="col-sm-9">
+                        <del class="text-muted">@Model.CompareAtPrice.Value.ToString("C")</del>
+                        <span class="badge bg-dark text-white ms-2">
+                            @(((1 - (Model.Price / Model.CompareAtPrice.Value)) * 100).ToString("F0"))% OFF
+                        </span>
+                    </dd>
+                }
+
+                <dt class="col-sm-3">Inventory:</dt>
+                <dd class="col-sm-9">
+                    @if (Model.InventoryQuantity > 5)
+                    {
+                        <span class="badge bg-success" style="font-weight:normal;">● @Model.InventoryQuantity in stock</span>
+                    }
+                    else if (Model.InventoryQuantity >= 1)
+                    {
+                        <span class="badge bg-warning" style="font-weight:normal;">● @Model.InventoryQuantity left</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger" style="font-weight:normal;">● Out of stock</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-3">Inventory Policy:</dt>
+                <dd class="col-sm-9">
+                    @if (Model.InventoryPolicy == "deny")
+                    {
+                        <span class="badge bg-secondary text-white">Stop orders when out of stock</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-light text-dark border border-secondary">Continue orders when out of stock</span>
+                    }
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Shipping & Physical -->
+    <div class="card mb-3">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Shipping & Physical</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                @if (Model.Weight.HasValue)
+                {
+                    <dt class="col-sm-3">Weight:</dt>
+                    <dd class="col-sm-9">@Model.Weight.Value grams (@(Model.Weight.Value / 1000.0) kg)</dd>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.Barcode))
+                {
+                    <dt class="col-sm-3">Barcode:</dt>
+                    <dd class="col-sm-9"><code>@Model.Barcode</code></dd>
+                }
+
+                <dt class="col-sm-3">Requires Shipping:</dt>
+                <dd class="col-sm-9">
+                    @if (Model.RequiresShipping)
+                    {
+                        <span class="badge bg-dark text-white">Yes</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-light text-dark border border-secondary">No (Digital Product)</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-3">Taxable:</dt>
+                <dd class="col-sm-9">
+                    @if (Model.IsTaxable)
+                    {
+                        <span class="badge bg-dark text-white">Yes</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-light text-dark border border-secondary">No</span>
+                    }
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Attributes & Specifications -->
+    @if (Model.Attributes.Any())
+    {
+        <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Attributes & Specifications</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    @foreach (var attr in Model.Attributes)
+                    {
+                        <dt class="col-sm-3">@attr.AttributeName:</dt>
+                        <dd class="col-sm-9">@attr.AttributeValue</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    }
+
+    <!-- Audit Information -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Audit Information</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Created:</dt>
+                <dd class="col-sm-9">
+                    @if (Model.CreatedDate.HasValue)
+                    {
+                        @Model.CreatedDate.Value.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-3">Last Modified:</dt>
+                <dd class="col-sm-9">
+                    @if (Model.ModifiedDate.HasValue)
+                    {
+                        @Model.ModifiedDate.Value.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </dd>
+            </dl>
+        </div>
     </div>
 
 </div>

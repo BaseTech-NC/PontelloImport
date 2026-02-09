@@ -18,30 +18,85 @@ namespace PontelloImport.Controllers
         }
 
 
-        // GET: ProductVariants - NOW WITH PAGINATION
-        public async Task<IActionResult> Index(string filter = "all", int pageNumber = 1, int pageSize = 10)
+        // GET: ProductVariants - Search, Filter & Pagination
+        public async Task<IActionResult> Index(
+            string filter = "all",
+            int pageNumber = 1,
+            int pageSize = 10,
+            string search = "",
+            int? categoryId = null,
+            int? vendorId = null,
+            string productType = "",
+            string stockStatus = "")
         {
             // Validate page size (prevent abuse)
             if (pageSize < 1) pageSize = 10;
             if (pageSize > 100) pageSize = 100;
 
-            // Base query - get all variants with related data
-            IQueryable<ProductVariant> query = _context.ProductVariants
-                .Include(v => v.Product)                    // Include parent product (if exists)
-                    .ThenInclude(p => p.Vendor)            // Include vendor through parent
-                .Include(v => v.Product.ProductCategory)   // Include category through parent
-                .Include(v => v.Attributes)                // Include attributes
-                .OrderByDescending(v => v.CreatedDate);    // Newest first
+            // Sanitize inputs
+            search = search?.Trim() ?? "";
+            productType = productType?.Trim() ?? "";
+            stockStatus = stockStatus?.Trim() ?? "";
 
-            // Apply filters
+            // Base query with related data
+            IQueryable<ProductVariant> query = _context.ProductVariants
+                .Include(v => v.Product)
+                    .ThenInclude(p => p.Vendor)
+                .Include(v => v.Product.ProductCategory)
+                .Include(v => v.Attributes);
+
+            // Search filter (Title or SKU)
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(v =>
+                    v.Title.Contains(search) ||
+                    v.SKU.Contains(search));
+            }
+
+            // Category filter
+            if (categoryId.HasValue)
+            {
+                query = query.Where(v => v.Product != null && v.Product.ProductCategoryID == categoryId.Value);
+            }
+
+            // Vendor filter
+            if (vendorId.HasValue)
+            {
+                query = query.Where(v => v.Product != null && v.Product.VendorID == vendorId.Value);
+            }
+
+            // Product Type filter
+            if (!string.IsNullOrEmpty(productType))
+            {
+                query = query.Where(v => v.Product != null && v.Product.Type == productType);
+            }
+
+            // Stock Status filter
+            if (!string.IsNullOrEmpty(stockStatus))
+            {
+                switch (stockStatus.ToLower())
+                {
+                    case "instock":
+                        query = query.Where(v => v.InventoryQuantity > 5);
+                        break;
+                    case "lowstock":
+                        query = query.Where(v => v.InventoryQuantity >= 1 && v.InventoryQuantity <= 5);
+                        break;
+                    case "outofstock":
+                        query = query.Where(v => v.InventoryQuantity == 0);
+                        break;
+                }
+            }
+
+            // Count queries BEFORE applying status filter (counts reflect search + dropdown filters)
+            ViewBag.AllCount = await query.Where(v => v.Status != ProductStatus.Archived).CountAsync();
+            ViewBag.PublishedCount = await query.Where(v => v.Status == ProductStatus.Published).CountAsync();
+            ViewBag.DraftCount = await query.Where(v => v.Status == ProductStatus.Draft).CountAsync();
+            ViewBag.ArchivedCount = await query.Where(v => v.Status == ProductStatus.Archived).CountAsync();
+
+            // Apply status tab filter
             switch (filter.ToLower())
             {
-                case "standalone":
-                    query = query.Where(v => v.ProductID == null);  // No parent = standalone
-                    break;
-                case "variants":
-                    query = query.Where(v => v.ProductID != null);  // Has parent = variant
-                    break;
                 case "published":
                     query = query.Where(v => v.Status == ProductStatus.Published);
                     break;
@@ -51,23 +106,41 @@ namespace PontelloImport.Controllers
                 case "archived":
                     query = query.Where(v => v.Status == ProductStatus.Archived);
                     break;
-                    // "all" = no additional filter
+                default: // "all" — show non-archived
+                    query = query.Where(v => v.Status != ProductStatus.Archived);
+                    break;
             }
 
-            // Store filter counts for the filter buttons (calculate before pagination)
-            var allVariants = await _context.ProductVariants.ToListAsync();
-            ViewBag.AllCount = allVariants.Count;
-            ViewBag.StandaloneCount = allVariants.Count(v => v.ProductID == null);
-            ViewBag.VariantsCount = allVariants.Count(v => v.ProductID != null);
-            ViewBag.PublishedCount = allVariants.Count(v => v.Status == ProductStatus.Published);
-            ViewBag.DraftCount = allVariants.Count(v => v.Status == ProductStatus.Draft);
-            ViewBag.ArchivedCount = allVariants.Count(v => v.Status == ProductStatus.Archived);
+            // Order and paginate
+            query = query.OrderByDescending(v => v.CreatedDate);
+            var paginatedVariants = await PaginatedList<ProductVariant>.CreateAsync(query, pageNumber, pageSize);
 
-            // Pass filter and page size to view
+            // Populate dropdown data
+            ViewBag.Categories = new SelectList(
+                await _context.ProductCategories.Where(c => c.IsActive).OrderBy(c => c.CategoryName).ToListAsync(),
+                "CategoryID", "CategoryName", categoryId);
+
+            ViewBag.Vendors = new SelectList(
+                await _context.Vendors.Where(v => v.IsActive).OrderBy(v => v.VendorName).ToListAsync(),
+                "VendorID", "VendorName", vendorId);
+
+            ViewBag.ProductTypes = new SelectList(
+                await _context.Products
+                    .Where(p => !string.IsNullOrEmpty(p.Type))
+                    .Select(p => p.Type)
+                    .Distinct()
+                    .OrderBy(t => t)
+                    .ToListAsync(),
+                productType);
+
+            // Pass all filter state to view
             ViewBag.CurrentFilter = filter;
             ViewBag.CurrentPageSize = pageSize;
-
-            var paginatedVariants = await PaginatedList<ProductVariant>.CreateAsync(query, pageNumber, pageSize);
+            ViewBag.CurrentSearch = search;
+            ViewBag.CurrentCategoryId = categoryId;
+            ViewBag.CurrentVendorId = vendorId;
+            ViewBag.CurrentProductType = productType;
+            ViewBag.CurrentStockStatus = stockStatus;
 
             return View(paginatedVariants);
         }
@@ -105,6 +178,7 @@ namespace PontelloImport.Controllers
 
             var variant = await _context.ProductVariants
                 .Include(v => v.Product)
+                    .ThenInclude(p => p.Vendor)
                 .Include(v => v.Attributes)
                 .FirstOrDefaultAsync(v => v.VariantID == id);
 
@@ -135,9 +209,9 @@ namespace PontelloImport.Controllers
             _context.Update(variant);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Variant '{variant.Title}' has been archived successfully.";
+            TempData["Success"] = $"'{variant.Title}' has been archived successfully.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Details), new { id = variant.VariantID });
         }
 
 
@@ -163,9 +237,9 @@ namespace PontelloImport.Controllers
             _context.Update(variant);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Variant '{variant.Title}' restored successfully!";
+            TempData["Success"] = $"'{variant.Title}' has been restored as a draft.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Details), new { id = variant.VariantID });
         }
 
         // GET: ProductVariants/Create

@@ -29,7 +29,7 @@
 
                     @if (!ViewData.ModelState.IsValid)
                     {
-                    <div class="alert alert-dark alert-dismissible fade show" role="alert">
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <strong>Please correct the following errors:</strong>
                         <div asp-validation-summary="All" class="mt-2 mb-0"></div>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -231,19 +231,15 @@
                         <div class="card-body">
 
                             <p class="text-muted mb-3">
-                                Add custom attributes to describe this product. Variant attributes create different SKUs (e.g., Color, Size),
-                                while specifications provide additional details (e.g., Material, Weight Capacity).
+                                Add attributes to describe this product (e.g., Color, Size, Material).
                             </p>
 
                             <div class="row mb-2 attribute-header" id="attributeHeaderRow">
-                                <div class="col-md-4">
+                                <div class="col-md-5">
                                     <span class="form-label fw-semibold">Attribute Name</span>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-5">
                                     <span class="form-label fw-semibold">Attribute Value</span>
-                                </div>
-                                <div class="col-md-2">
-                                    <span class="form-label fw-semibold">Variant?</span>
                                 </div>
                                 <div class="col-md-2"></div>
                             </div>
@@ -289,25 +285,14 @@
                             @switch (Model.Variant.Status)
                                 {
                                 case ProductStatus.Draft:
-                                <span class="badge bg-secondary text-white">Draft</span>
+                                <span class="badge bg-info">Draft</span>
                                 break;
                                 case ProductStatus.Published:
-                                <span class="badge bg-dark text-white">Published</span>
+                                <span class="badge bg-success">Published</span>
                                 break;
                                 case ProductStatus.Archived:
                                 <span class="badge bg-secondary">Archived</span>
                                 break;
-                                }
-                        </dd>
-                        <dt>Active:</dt>
-                        <dd>
-                            @if (Model.Variant.IsActive)
-                                {
-                                <span class="badge bg-dark text-white">Yes</span>
-                                }
-                            else
-                                {
-                                <span class="badge bg-light text-dark border border-secondary">No</span>
                                 }
                         </dd>
                     </dl>
@@ -418,7 +403,7 @@
         window.addEventListener('DOMContentLoaded', function() {
             if (existingAttributes && existingAttributes.length > 0) {
                 existingAttributes.forEach(function(attr) {
-                    addAttributeRow(attr.attributeName, attr.attributeValue, attr.isVariantAttribute);
+                    addAttributeRow(attr.attributeName, attr.attributeValue);
                 });
             }
             initializeTooltips();
@@ -427,29 +412,61 @@
         // ===================================================================
         // DYNAMIC ATTRIBUTES SYSTEM
         // ===================================================================
+        const PREDEFINED_ATTRIBUTES = [
+            'Size', 'Color', 'Material', 'Position', 'Finish',
+            'Weight', 'Diameter', 'Width', 'Thread Type', 'Bolt Form',
+            'Nut Form', 'Compound', 'Design', 'Condition', 'Power Source'
+        ];
+        const OTHER_SENTINEL = '__OTHER__';
 
         document.getElementById('addAttributeBtn').addEventListener('click', function() {
             addAttributeRow();
         });
 
-        function addAttributeRow(name = '', value = '', isVariant = false) {
+        function addAttributeRow(name = '', value = '') {
             const container = document.getElementById('attributesContainer');
             const index = attributeCounter;
 
+            // Determine if name is predefined or custom
+            const isPredefined = PREDEFINED_ATTRIBUTES.includes(name);
+            const isOther = (name !== '' && !isPredefined);
+
+            // Build option tags
+            let optionsHtml = '<option value="">-- Select Attribute --</option>';
+            PREDEFINED_ATTRIBUTES.forEach(function(attr) {
+                const selected = (isPredefined && attr === name) ? ' selected' : '';
+                optionsHtml += '<option value="' + attr + '"' + selected + '>' + attr + '</option>';
+            });
+            const otherSelected = isOther ? ' selected' : '';
+            optionsHtml += '<option value="' + OTHER_SENTINEL + '"' + otherSelected + '>Other - Specify Your Own</option>';
+
+            const customDisplay = isOther ? 'block' : 'none';
+            const customValue = isOther ? name : '';
+
             const rowHtml = `
                 <div class="row mb-3 attribute-row" id="attributeRow${index}">
-                    <div class="col-md-4">
-                        <label for="attrName${index}" class="visually-hidden">Attribute Name ${index + 1}</label>
-                        <input type="text"
-                               id="attrName${index}"
-                               name="Attributes[${index}].AttributeName"
-                               class="form-control"
-                               aria-label="Attribute Name"
-                               placeholder="e.g., Material, Color, Size"
-                               value="${name}" />
+                    <div class="col-md-5">
+                        <label for="attrNameSelect${index}" class="visually-hidden">Attribute Name ${index + 1}</label>
+                        <select id="attrNameSelect${index}"
+                                name="Attributes[${index}].AttributeName"
+                                class="form-select attribute-name-select"
+                                aria-label="Attribute Name"
+                                data-index="${index}"
+                                onchange="onAttributeSelectChange(${index})">
+                            ${optionsHtml}
+                        </select>
+                        <div id="customAttrContainer${index}" style="display: ${customDisplay}; margin-top: 0.5rem;">
+                            <input type="text"
+                                   id="customAttrInput${index}"
+                                   class="form-control"
+                                   placeholder="Enter custom attribute name"
+                                   value="${customValue}"
+                                   maxlength="100" />
+                        </div>
                         <input type="hidden" name="Attributes[${index}].DisplayOrder" value="${index}" />
+                        <input type="hidden" name="Attributes[${index}].IsVariantAttribute" value="false" />
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <label for="attrValue${index}" class="visually-hidden">Attribute Value ${index + 1}</label>
                         <input type="text"
                                id="attrValue${index}"
@@ -458,18 +475,6 @@
                                aria-label="Attribute Value"
                                placeholder="e.g., Powder Coated Steel"
                                value="${value}" />
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-check mt-2">
-                            <input type="checkbox"
-                                   id="attrIsVariant${index}"
-                                   name="Attributes[${index}].IsVariantAttribute"
-                                   class="form-check-input"
-                                   value="true"
-                                   ${isVariant ? 'checked' : ''} />
-                            <label class="form-check-label small" for="attrIsVariant${index}">Is Variant Attribute</label>
-                            <input type="hidden" name="Attributes[${index}].IsVariantAttribute" value="false" />
-                        </div>
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-outline-dark btn-sm w-100"
@@ -484,6 +489,7 @@
             container.insertAdjacentHTML('beforeend', rowHtml);
             attributeCounter++;
             document.getElementById('attributeCounter').value = attributeCounter;
+            updateAttributeDropdowns();
             initializeTooltips();
         }
 
@@ -491,8 +497,72 @@
             const row = document.getElementById('attributeRow' + index);
             if (row) {
                 row.remove();
+                updateAttributeDropdowns();
             }
         }
+
+        function onAttributeSelectChange(index) {
+            const select = document.getElementById('attrNameSelect' + index);
+            const customContainer = document.getElementById('customAttrContainer' + index);
+            const customInput = document.getElementById('customAttrInput' + index);
+
+            if (select.value === OTHER_SENTINEL) {
+                customContainer.style.display = 'block';
+                customInput.focus();
+            } else {
+                customContainer.style.display = 'none';
+                customInput.value = '';
+            }
+            updateAttributeDropdowns();
+        }
+
+        function updateAttributeDropdowns() {
+            var allSelects = document.querySelectorAll('.attribute-name-select');
+            var selectedValues = [];
+
+            allSelects.forEach(function(sel) {
+                if (sel.value && sel.value !== OTHER_SENTINEL) {
+                    selectedValues.push(sel.value);
+                }
+            });
+
+            allSelects.forEach(function(sel) {
+                var currentValue = sel.value;
+                var options = sel.querySelectorAll('option');
+
+                options.forEach(function(opt) {
+                    if (opt.value === '' || opt.value === OTHER_SENTINEL) {
+                        opt.disabled = false;
+                    } else if (opt.value === currentValue) {
+                        opt.disabled = false;
+                    } else {
+                        opt.disabled = selectedValues.indexOf(opt.value) !== -1;
+                    }
+                });
+            });
+        }
+
+        // On form submit: swap __OTHER__ with actual custom values
+        document.querySelector('form').addEventListener('submit', function(e) {
+            var allSelects = document.querySelectorAll('.attribute-name-select');
+
+            allSelects.forEach(function(sel) {
+                if (sel.value === OTHER_SENTINEL) {
+                    var index = sel.getAttribute('data-index');
+                    var customInput = document.getElementById('customAttrInput' + index);
+                    var customValue = customInput ? customInput.value.trim() : '';
+
+                    if (customValue) {
+                        var hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = sel.name;
+                        hiddenInput.value = customValue;
+                        sel.closest('form').appendChild(hiddenInput);
+                        sel.disabled = true;
+                    }
+                }
+            });
+        });
 
         function initializeTooltips() {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
