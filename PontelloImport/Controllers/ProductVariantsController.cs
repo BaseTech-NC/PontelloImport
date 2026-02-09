@@ -49,8 +49,8 @@ namespace PontelloImport.Controllers
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(v =>
-                    v.Title.Contains(search) ||
-                    v.SKU.Contains(search));
+                    v.Title.ToLower().Contains(search.ToLower()) ||
+                    v.SKU.ToLower().Contains(search.ToLower()));
             }
 
             // Category filter
