@@ -21,14 +21,11 @@
 
                 <!-- DEMO AUTOFILL: Press Ctrl+Shift+F to auto-fill (Temporary - for P1 presentation) -->
 
-                @if (!ViewData.ModelState.IsValid)
-                {
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" id="validationSummaryAlert" style="@(ViewData.ModelState.IsValid ? "display:none;" : "")">
                     <strong>Please correct the following errors:</strong>
-                    <div asp-validation-summary="All" class="mt-2 mb-0"></div>
+                    <div asp-validation-summary="All" class="mt-2 mb-0" data-valmsg-summary="true"></div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                }
 
                 <!-- CARD 1: BASIC INFORMATION -->
                 <div class="card mb-3">
@@ -141,6 +138,7 @@
                             <span class="text-danger">*</span>
                             <input asp-for="Variant.InventoryQuantity" class="form-control" type="number" placeholder="0" min="0" />
                             <span asp-validation-for="Variant.InventoryQuantity" class="text-danger"></span>
+                            <small class="form-text text-muted">Defaults to 0 if left empty</small>
                         </div>
 
                         <!-- Weight -->
@@ -256,6 +254,32 @@
     </style>
 
     <script>
+        // ===================================================================
+        // JQUERY VALIDATE: SHOW SUMMARY ALERT + SCROLL TO FIRST ERROR
+        // ===================================================================
+        $(function () {
+            var $form = $('form');
+            var validator = $form.data('validator');
+            if (validator) {
+                // Show the summary alert when validation fails
+                validator.settings.invalidHandler = function (event, validatorObj) {
+                    if (validatorObj.numberOfInvalids() > 0) {
+                        $('#validationSummaryAlert').show();
+                    }
+                };
+                // Scroll to first error on submit
+                $form.on('submit', function () {
+                    if (!validator.valid()) {
+                        $('#validationSummaryAlert').show();
+                        var $firstError = $form.find('.field-validation-error:first');
+                        if ($firstError.length) {
+                            $('html, body').animate({ scrollTop: $firstError.closest('.mb-3').offset().top - 100 }, 300);
+                        }
+                    }
+                });
+            }
+        });
+
         // ===================================================================
         // PRODUCT TYPE HYBRID DROPDOWN
         // ===================================================================
@@ -482,7 +506,8 @@
         });
 
         // ===================================================================
-        // INSTANT CLIENT-SIDE VALIDATION
+        // EXTRA CLIENT-SIDE VALIDATION (SKU format, uniqueness, negatives)
+        // Required fields + summary are handled by jQuery Validate above.
         // ===================================================================
         (function () {
             // --- Helpers ---
@@ -504,47 +529,15 @@
             }
 
             function showError(input, message) {
-                input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
                 const fb = getOrCreateFeedback(input);
                 fb.textContent = message;
                 fb.className = 'field-instant-feedback text-danger';
             }
 
             function clearFeedback(input) {
-                input.classList.remove('is-invalid', 'is-valid');
                 const fb = document.getElementById('instant-' + input.id);
                 if (fb) { fb.textContent = ''; fb.className = 'field-instant-feedback'; }
             }
-
-            // --- Required field validation on blur ---
-            // For text fields, empty means no value. For number fields (Price),
-            // empty string means the user cleared it.
-            const requiredFields = [
-                { id: 'Variant_Title', name: 'Product Title' },
-                { id: 'Variant_SKU', name: 'SKU' },
-                { id: 'Variant_Price', name: 'Price' },
-                { id: 'Variant_InventoryQuantity', name: 'Inventory Quantity' }
-            ];
-
-            requiredFields.forEach(function (field) {
-                const input = document.getElementById(field.id);
-                if (!input) return;
-
-                input.addEventListener('blur', function () {
-                    if (this.value === null || this.value === undefined || this.value.toString().trim() === '') {
-                        showError(this, field.name + ' is required for product creation.');
-                    }
-                });
-
-                input.addEventListener('input', function () {
-                    // Only clear required-field error if user is typing valid content
-                    // Negative check will re-show its own error if needed
-                    if (this.value !== null && this.value !== undefined && this.value.toString().trim() !== '') {
-                        clearFeedback(this);
-                    }
-                });
-            });
 
             // --- Negative value detection on input ---
             const numericFields = [
@@ -562,6 +555,8 @@
                     const val = parseFloat(this.value);
                     if (!isNaN(val) && val < 0) {
                         showError(this, field.name + ' cannot be negative. Please enter a positive value.');
+                    } else {
+                        clearFeedback(this);
                     }
                 });
             });
@@ -571,12 +566,11 @@
             let skuTimer = null;
             const skuInput = document.getElementById('Variant_SKU');
             if (skuInput) {
-                // Instant format check while typing
                 skuInput.addEventListener('input', function () {
                     const val = this.value.trim();
                     if (!val) { clearFeedback(this); return; }
 
-                    // Auto-uppercase for convenience
+                    // Auto-uppercase
                     const cursorPos = this.selectionStart;
                     this.value = this.value.toUpperCase();
                     this.setSelectionRange(cursorPos, cursorPos);
@@ -588,11 +582,9 @@
                     }
                 });
 
-                // Uniqueness check on blur (only if format is valid)
                 skuInput.addEventListener('blur', function () {
                     const val = this.value.trim();
-                    if (!val) return;
-                    if (!skuPattern.test(val)) return;
+                    if (!val || !skuPattern.test(val)) return;
 
                     clearTimeout(skuTimer);
                     skuTimer = setTimeout(function () {
@@ -631,28 +623,6 @@
                             })
                             .catch(function () { });
                     }, 500);
-                });
-            }
-
-            // --- Prevent form submit if instant errors exist ---
-            const form = document.querySelector('form');
-            if (form) {
-                form.addEventListener('submit', function (e) {
-                    // Check required fields
-                    requiredFields.forEach(function (field) {
-                        const input = document.getElementById(field.id);
-                        if (input && (input.value === null || input.value === undefined || input.value.toString().trim() === '')) {
-                            showError(input, field.name + ' is required for product creation.');
-                        }
-                    });
-
-                    // Check for any instant validation errors
-                    const errors = form.querySelectorAll('.is-invalid');
-                    if (errors.length > 0) {
-                        e.preventDefault();
-                        errors[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        errors[0].focus();
-                    }
                 });
             }
         })();

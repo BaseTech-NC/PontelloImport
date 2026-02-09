@@ -3,7 +3,7 @@
 
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "Product Variants";
+    ViewData["Title"] = "Product Catalogue";
     var currentFilter = ViewBag.CurrentFilter as string ?? "all";
     var currentPageSize = ViewBag.CurrentPageSize ?? 10;
     var currentSearch = ViewBag.CurrentSearch as string ?? "";
@@ -23,8 +23,8 @@
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-md-6">
-            <h2>Product Variants</h2>
-            <p class="text-muted">Manage standalone products and product variants</p>
+            <h2>Product Catalogue</h2>
+            <p class="text-muted">Browse, manage, and organise your entire product inventory.</p>
         </div>
         <div class="col-md-6 text-end">
             <a asp-action="Create" class="btn btn-dark btn-lg">
