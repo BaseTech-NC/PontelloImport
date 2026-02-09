@@ -36,8 +36,115 @@
     border-bottom: 1px solid #dee2e6;
 }
 .nav-pills .nav-link.active {
-    background-color: #000;
+    background-color: #4A7BA7;
     color: #fff;
+}
+
+/* ════════════════════════════════════════════════════════
+   PONTELLO IMPORTS - SOFT COLOR PALETTE
+   ════════════════════════════════════════════════════════ */
+
+:root {
+    --pi-blue: #4A7BA7;
+    --pi-blue-dark: #2C5F8D;
+    --pi-blue-light: #E8F1F8;
+    --pi-blue-info: #7A9EBC;
+    --pi-green: #6B9C7D;
+    --pi-amber: #C89F6B;
+    --pi-red: #B85C5C;
+    --pi-gray: #6C757D;
+}
+
+/* Buttons */
+.btn-dark {
+    background-color: var(--pi-blue) !important;
+    border-color: var(--pi-blue) !important;
+}
+.btn-dark:hover {
+    background-color: var(--pi-blue-dark) !important;
+    border-color: var(--pi-blue-dark) !important;
+}
+.btn-outline-dark {
+    color: var(--pi-blue) !important;
+    border-color: var(--pi-blue) !important;
+}
+.btn-outline-dark:hover {
+    background-color: var(--pi-blue) !important;
+    color: white !important;
+}
+
+/* Badges */
+.badge.bg-dark {
+    background-color: var(--pi-blue) !important;
+}
+.badge.bg-success {
+    background-color: var(--pi-green) !important;
+}
+.badge.bg-warning {
+    background-color: var(--pi-amber) !important;
+    color: white !important;
+}
+.badge.bg-danger {
+    background-color: var(--pi-red) !important;
+}
+.badge.bg-info {
+    background-color: var(--pi-blue-info) !important;
+    color: white !important;
+}
+
+/* Card headers */
+.card-header.bg-dark {
+    background-color: var(--pi-blue) !important;
+}
+
+/* Form focus */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--pi-blue);
+    box-shadow: 0 0 0 0.25rem rgba(74, 123, 167, 0.25);
+}
+
+/* Table */
+.table thead {
+    background-color: var(--pi-blue-light);
+    color: var(--pi-blue-dark);
+}
+.table-hover tbody tr:hover {
+    background-color: var(--pi-blue-light);
+}
+
+/* Filter button group */
+.btn-group .btn.btn-outline-secondary.text-dark:hover {
+    background-color: var(--pi-blue-light) !important;
+    color: var(--pi-blue) !important;
+    border-color: var(--pi-blue) !important;
+}
+
+/* Pagination */
+.pagination .page-link {
+    color: var(--pi-blue);
+}
+.pagination .page-link:hover {
+    color: white;
+    background-color: var(--pi-blue);
+    border-color: var(--pi-blue);
+}
+.pagination .page-item.active .page-link {
+    background-color: var(--pi-blue);
+    border-color: var(--pi-blue);
+    color: white;
+}
+
+/* Alerts */
+.alert-success {
+    background-color: var(--pi-blue-light);
+    border-color: var(--pi-blue);
+    color: var(--pi-blue-dark);
+}
+.alert-danger {
+    background-color: #FDEAEA;
+    border-color: var(--pi-red);
+    color: #8B3A3A;
 }
 
 

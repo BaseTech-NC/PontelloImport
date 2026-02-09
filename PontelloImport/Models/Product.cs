@@ -17,10 +17,12 @@ namespace PontelloImport.Models
 		[Display(Name = "URL Handle")]
 		public string Handle { get; set; }
 
+		[Required(ErrorMessage = "Vendor is required. Please select from the drop-down menu.")]
 		[Display(Name = "Vendor")]
 		public int? VendorID { get; set; }
 		public Vendor? Vendor { get; set; }
 
+		[Required(ErrorMessage = "Category is required. Please select from the drop-down menu.")]
 		[Display(Name = "Category")]
 		public int? ProductCategoryID { get; set; }
 		public ProductCategory? ProductCategory { get; set; }

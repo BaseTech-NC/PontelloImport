@@ -8,7 +8,7 @@
 <div class="container mt-4">
 
     <!-- Warning Header -->
-    <div class="alert alert-danger border-danger" role="alert">
+    <div class="alert alert-dark" role="alert">
         <h4 class="alert-heading">
             <i class="bi bi-exclamation-triangle-fill"></i> Archive Product Variant?
         </h4>
@@ -19,7 +19,7 @@
 
     <!-- Product Details Card -->
     <div class="card">
-        <div class="card-header bg-danger text-white">
+        <div class="card-header bg-dark text-white">
             <h5 class="mb-0">Variant to Archive</h5>
         </div>
         <div class="card-body">
@@ -31,23 +31,31 @@
                         <dd class="col-sm-8"><strong>@Model.Title</strong></dd>
 
                         <dt class="col-sm-4">SKU:</dt>
-                        <dd class="col-sm-8"><code class="text-primary">@Model.SKU</code></dd>
+                        <dd class="col-sm-8"><code class="text-dark">@Model.SKU</code></dd>
 
                         <dt class="col-sm-4">Price:</dt>
-                        <dd class="col-sm-8"><strong class="text-success">@Model.Price.ToString("C")</strong></dd>
+                        <dd class="col-sm-8"><strong class="text-dark">@Model.Price.ToString("C")</strong></dd>
 
                         <dt class="col-sm-4">Inventory:</dt>
-                        <dd class="col-sm-8">@Model.InventoryQuantity units</dd>
-
-                        @if (Model.ProductID != null)
+                        <dd class="col-sm-8">
+                            @if (Model.InventoryQuantity > 5)
                             {
-                            <dt class="col-sm-4">Parent Product:</dt>
-                            <dd class="col-sm-8">@Model.Product?.Title</dd>
+                                <span class="badge bg-success" style="font-weight:normal;">● @Model.InventoryQuantity in stock</span>
                             }
-                        else
+                            else if (Model.InventoryQuantity >= 1)
                             {
-                            <dt class="col-sm-4">Type:</dt>
-                            <dd class="col-sm-8"><span class="badge bg-info">Standalone Product</span></dd>
+                                <span class="badge bg-warning" style="font-weight:normal;">● @Model.InventoryQuantity left</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger" style="font-weight:normal;">● Out of stock</span>
+                            }
+                        </dd>
+
+                        @if (Model.Product?.Vendor != null)
+                            {
+                            <dt class="col-sm-4">Vendor:</dt>
+                            <dd class="col-sm-8">@Model.Product.Vendor.VendorName</dd>
                             }
                     </dl>
                 </div>
@@ -59,7 +67,7 @@
                             @switch (Model.Status)
                                 {
                                 case ProductStatus.Draft:
-                                <span class="badge bg-warning text-dark">Draft</span>
+                                <span class="badge bg-info">Draft</span>
                                 break;
                                 case ProductStatus.Published:
                                 <span class="badge bg-success">Published</span>
@@ -70,38 +78,35 @@
                                 }
                         </dd>
 
-                        <dt class="col-sm-4">Active:</dt>
-                        <dd class="col-sm-8">
-                            @if (Model.IsActive)
-                                {
-                                <span class="badge bg-success">Yes</span>
-                                }
-                            else
-                                {
-                                <span class="badge bg-danger">No</span>
-                                }
-                        </dd>
-
                         <dt class="col-sm-4">Created:</dt>
-                        <dd class="col-sm-8">@Model.CreatedDate</dd>
+                        <dd class="col-sm-8">
+                            @if (Model.CreatedDate.HasValue)
+                            {
+                                @Model.CreatedDate.Value.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </dd>
 
                         @if (Model.Attributes.Any())
                             {
                             <dt class="col-sm-4">Attributes:</dt>
                             <dd class="col-sm-8">
-                                <span class="badge bg-warning text-dark">@Model.Attributes.Count attribute(s)</span>
+                                <span class="badge bg-secondary text-white">@Model.Attributes.Count attribute(s)</span>
                             </dd>
                             }
                     </dl>
                 </div>
             </div>
 
-            @if (Model.Attributes.Any(a => a.IsVariantAttribute))
+            @if (Model.Attributes.Any())
                 {
                 <div class="mt-3">
-                    <h6>Variant Attributes:</h6>
+                    <h6>Attributes:</h6>
                     <p class="mb-0">
-                        @foreach (var attr in Model.Attributes.Where(a => a.IsVariantAttribute))
+                        @foreach (var attr in Model.Attributes)
                             {
                             <span class="badge bg-light text-dark me-1">@attr.AttributeName: @attr.AttributeValue</span>
                             }
@@ -114,7 +119,7 @@
 
     <!-- What Will Happen -->
     <div class="card mt-3">
-        <div class="card-header bg-warning text-dark">
+        <div class="card-header bg-secondary text-white">
             <h6 class="mb-0">What will happen:</h6>
         </div>
         <div class="card-body">
@@ -133,10 +138,10 @@
         <input type="hidden" asp-for="VariantID" />
 
         <div class="d-flex justify-content-between">
-            <a asp-action="Index" class="btn btn-secondary btn-lg">
+            <a asp-action="Details" asp-route-id="@Model.VariantID" class="btn btn-outline-secondary">
                 Cancel
             </a>
-            <button type="submit" class="btn btn-danger btn-lg">
+            <button type="submit" class="btn btn-dark">
                 Yes, Archive This Variant
             </button>
         </div>

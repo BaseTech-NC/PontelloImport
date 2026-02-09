@@ -13,22 +13,24 @@ namespace PontelloImport.Models
 		public Product? Product { get; set; }
 
 
-		[Required(ErrorMessage = "Product title is required")]
-		[StringLength(255, ErrorMessage = "Title cannot exceed 255 characters")]
+		[Required(ErrorMessage = "Product Title is required for product creation.")]
+		[StringLength(255, ErrorMessage = "Title cannot exceed 255 characters.")]
 		[Display(Name = "Product Title")]
 		public string Title { get; set; }
 
-		
+
 		[StringLength(255)]
 		[Display(Name = "URL Handle")]
 		public string Handle { get; set; }
 
-		[Required(ErrorMessage = "SKU is required")]
-		[StringLength(100, ErrorMessage = "SKU cannot exceed 100 characters")]
+		[Required(ErrorMessage = "SKU is required for product creation.")]
+		[StringLength(100, ErrorMessage = "SKU cannot exceed 100 characters.")]
+		[RegularExpression(@"^[A-Z]{2,4}-\d{3,7}(-[A-Z]{1,3})?$",
+			ErrorMessage = "SKU must follow format: AB-123 or ABC-1234-XY (letters-numbers or letters-numbers-letters)")]
 		[Display(Name = "SKU")]
 		public string SKU { get; set; }
 
-		[Required(ErrorMessage = "Price is required.")]
+		[Required(ErrorMessage = "Price is required for product creation.")]
 		[Column(TypeName = "decimal(10,2)")]
 		[Range(0.01, 999999.99, ErrorMessage = "Price must be a positive value.")]
 		[Display(Name = "Price")]
@@ -36,13 +38,13 @@ namespace PontelloImport.Models
 		public decimal Price { get; set; }
 
 		[Column(TypeName = "decimal(10,2)")]
-		[Range(0.01, 999999.99, ErrorMessage = "Compare at price must be a positive value.")]
+		[Range(0.01, 999999.99, ErrorMessage = "Compare At Price must be a positive value.")]
 		[Display(Name = "Compare At Price")]
 		[DataType(DataType.Currency)]
 		public decimal? CompareAtPrice { get; set; }
 
-		[Required(ErrorMessage = "Inventory quantity is required.")]
-		[Range(0, int.MaxValue, ErrorMessage = "Inventory quantity must be 0 or greater.")]
+		[Required(ErrorMessage = "Inventory Quantity is required for product creation.")]
+		[Range(0, int.MaxValue, ErrorMessage = "Inventory Quantity cannot be negative. Please enter 0 or a positive number.")]
 		[Display(Name = "Inventory Quantity")]
 		public int InventoryQuantity { get; set; } = 0;
 
@@ -50,7 +52,7 @@ namespace PontelloImport.Models
 		[Display(Name = "Inventory Policy")]
 		public string InventoryPolicy { get; set; } = "deny";
 
-		[Range(0, int.MaxValue, ErrorMessage = "Weight must be 0 or greater.")]
+		[Range(0, int.MaxValue, ErrorMessage = "Weight cannot be negative. Please enter 0 or a positive number.")]
 		[Display(Name = "Weight")]
 		public int? Weight { get; set; }
 
