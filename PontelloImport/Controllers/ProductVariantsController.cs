@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
@@ -9,6 +10,7 @@ namespace PontelloImport.Controllers
     public class ProductVariantsController : Controller
     {
         private readonly PontelloDbContext _context;
+        private const string ReviewTempDataKey = "CreateProductReviewData";
 
         public ProductVariantsController(PontelloDbContext context)
         {
@@ -167,49 +169,63 @@ namespace PontelloImport.Controllers
         }
 
         // GET: ProductVariants/Create
-        public IActionResult Create()
+        public IActionResult Create(bool fromReview = false)
         {
-            var viewModel = new CreateProductViewModel();
+            CreateProductViewModel viewModel;
+
+			// Only load TempData when returning from Review page via "Back to Edit"
+			if (fromReview && TempData.ContainsKey(ReviewTempDataKey))
+				{
+				var json = TempData[ReviewTempDataKey] as string;
+				// Do NOT call TempData.Keep - let it be consumed so fresh visits start clean
+
+				if (!string.IsNullOrEmpty(json))
+					{
+					viewModel = JsonSerializer.Deserialize<CreateProductViewModel>(json)
+								?? new CreateProductViewModel();
+					}
+				else
+					{
+					viewModel = new CreateProductViewModel();
+					}
+				}
+			else
+				{
+				// Fresh visit - clear any stale review data
+				if (TempData.ContainsKey(ReviewTempDataKey))
+					{
+					TempData.Remove(ReviewTempDataKey);
+					}
+				viewModel = new CreateProductViewModel();
+				}
 
 			// Add dropdown data for Vendor, Category, and Product Type
-			ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName");
-			ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName");
-			PopulateProductTypesDropdown();
+			ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", viewModel.Product.VendorID);
+			ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", viewModel.Product.ProductCategoryID);
+			PopulateProductTypesDropdown(viewModel.Product.Type);
 
 			return View(viewModel);
         }
 
 
-		// POST: ProductVariants/Create
+		// POST: ProductVariants/Create - Validate and redirect to Review (no DB save)
 		[HttpPost]
 		[ValidateAntiForgeryToken]
-		public async Task<IActionResult> Create(CreateProductViewModel viewModel)
+		public IActionResult Create(CreateProductViewModel viewModel)
 			{
 			var product = viewModel.Product;
 			var variant = viewModel.Variant;
 
-			// Generate Handles from Titles
 			// For simple products, copy Variant.Title to Product.Title
 			if (string.IsNullOrWhiteSpace(product.Title) && !string.IsNullOrWhiteSpace(variant.Title))
 				{
 				product.Title = variant.Title;
 				}
 
-			// Generate Handles from Titles
-			if (!string.IsNullOrWhiteSpace(product.Title))
-				{
-				product.Handle = GenerateHandle(product.Title);
-				}
-
-			if (!string.IsNullOrWhiteSpace(variant.Title))
-				{
-				variant.Handle = GenerateHandle(variant.Title);
-				}
-
 			// Remove Product.Title from validation (auto-copied from Variant.Title)
 			ModelState.Remove("Product.Title");
 
-			// Remove Handles from validation (auto-generated)
+			// Remove Handles from validation (auto-generated at save time)
 			ModelState.Remove("Product.Handle");
 			ModelState.Remove("Variant.Handle");
 
@@ -226,18 +242,130 @@ namespace PontelloImport.Controllers
 				return View(viewModel);
 				}
 
+			// Generate handles for display on Review page
+			if (!string.IsNullOrWhiteSpace(product.Title))
+				{
+				product.Handle = GenerateHandle(product.Title);
+				}
+			if (!string.IsNullOrWhiteSpace(variant.Title))
+				{
+				variant.Handle = GenerateHandle(variant.Title);
+				}
+
+			// Serialize to TempData and redirect to Review page
+			var json = JsonSerializer.Serialize(viewModel);
+			TempData[ReviewTempDataKey] = json;
+
+			return RedirectToAction(nameof(Review));
+			}
+
+
+		// GET: ProductVariants/Review - Display product data for confirmation
+		public IActionResult Review()
+			{
+			if (!TempData.ContainsKey(ReviewTempDataKey))
+				{
+				TempData["Error"] = "No product data to review. Please fill out the form first.";
+				return RedirectToAction(nameof(Create));
+				}
+
+			var json = TempData[ReviewTempDataKey] as string;
+			TempData.Keep(ReviewTempDataKey); // Keep data for Save or Back to Edit
+
+			if (string.IsNullOrEmpty(json))
+				{
+				TempData["Error"] = "Product data was lost. Please fill out the form again.";
+				return RedirectToAction(nameof(Create));
+				}
+
+			var viewModel = JsonSerializer.Deserialize<CreateProductViewModel>(json);
+
+			if (viewModel == null)
+				{
+				TempData["Error"] = "Could not load product data. Please try again.";
+				return RedirectToAction(nameof(Create));
+				}
+
+			// Look up Vendor and Category names for display
+			if (viewModel.Product.VendorID.HasValue)
+				{
+				var vendor = _context.Vendors.Find(viewModel.Product.VendorID.Value);
+				ViewData["VendorName"] = vendor?.VendorName ?? "Unknown Vendor";
+				}
+
+			if (viewModel.Product.ProductCategoryID.HasValue)
+				{
+				var category = _context.ProductCategories.Find(viewModel.Product.ProductCategoryID.Value);
+				ViewData["CategoryName"] = category?.CategoryName ?? "Unknown Category";
+				}
+
+			return View(viewModel);
+			}
+
+
+		// POST: ProductVariants/ConfirmCreate - Save product to database
+		[HttpPost]
+		[ValidateAntiForgeryToken]
+		public async Task<IActionResult> ConfirmCreate(string saveAction)
+			{
+			if (!TempData.ContainsKey(ReviewTempDataKey))
+				{
+				TempData["Error"] = "Product data was lost. Please fill out the form again.";
+				return RedirectToAction(nameof(Create));
+				}
+
+			var json = TempData[ReviewTempDataKey] as string;
+			// Do NOT call TempData.Keep - consume the data after save
+
+			if (string.IsNullOrEmpty(json))
+				{
+				TempData["Error"] = "Product data was lost. Please fill out the form again.";
+				return RedirectToAction(nameof(Create));
+				}
+
+			var viewModel = JsonSerializer.Deserialize<CreateProductViewModel>(json);
+
+			if (viewModel == null)
+				{
+				TempData["Error"] = "Could not load product data. Please try again.";
+				return RedirectToAction(nameof(Create));
+				}
+
+			var product = viewModel.Product;
+			var variant = viewModel.Variant;
+
+			// Regenerate handles fresh
+			if (string.IsNullOrWhiteSpace(product.Title) && !string.IsNullOrWhiteSpace(variant.Title))
+				{
+				product.Title = variant.Title;
+				}
+
+			if (!string.IsNullOrWhiteSpace(product.Title))
+				{
+				product.Handle = GenerateHandle(product.Title);
+				}
+			if (!string.IsNullOrWhiteSpace(variant.Title))
+				{
+				variant.Handle = GenerateHandle(variant.Title);
+				}
+
+			// Set status based on which button was clicked
+			bool isPublish = saveAction == "publish";
+
 			try
 				{
 				// STEP 1: Create Product parent FIRST
-				product.Status = ProductStatus.Draft;
-				product.IsActive = true;
+				product.ProductID = 0; // Ensure EF treats as new entity
+				product.Status = isPublish ? ProductStatus.Published : ProductStatus.Draft;
+				product.IsActive = isPublish;
 
 				_context.Products.Add(product);
-				await _context.SaveChangesAsync();  // Save to get ProductID
+				await _context.SaveChangesAsync();
 
 				// STEP 2: Create ProductVariant child (linked to parent)
-				variant.ProductID = product.ProductID;  // Link to parent
-				variant.Status = ProductStatus.Draft;
+				variant.VariantID = 0; // Ensure EF treats as new entity
+				variant.ProductID = product.ProductID;
+				variant.Status = isPublish ? ProductStatus.Published : ProductStatus.Draft;
 				variant.IsActive = false;
 
 				_context.ProductVariants.Add(variant);
@@ -267,43 +395,32 @@ namespace PontelloImport.Controllers
 					await _context.SaveChangesAsync();
 					}
 
-				TempData["Success"] = $"Product '{variant.Title}' created successfully with {viewModel.Attributes?.Count(a => !string.IsNullOrWhiteSpace(a.AttributeName))} attribute(s)!";
+				var statusLabel = isPublish ? "published" : "saved as draft";
+				var attrCount = viewModel.Attributes?.Count(a => !string.IsNullOrWhiteSpace(a.AttributeName)) ?? 0;
+				TempData["Success"] = $"Product '{variant.Title}' {statusLabel} successfully with {attrCount} attribute(s)!";
 				return RedirectToAction(nameof(Details), new { id = variant.VariantID });
 				}
 			catch (DbUpdateException ex)
 				{
 				var innerException = ex.InnerException?.Message ?? ex.Message;
-				var errorMessages = new List<string>();
 
 				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.SKU"))
 					{
-					errorMessages.Add($"The SKU '{variant.SKU}' is already in use.");
-					ModelState.AddModelError("Variant.SKU", "This SKU is already in use. Please choose a unique SKU.");
+					TempData["Error"] = $"The SKU '{variant.SKU}' is already in use. Please go back and change it.";
 					}
-
-				if (innerException.Contains("UNIQUE constraint failed: ProductVariants.Handle"))
+				else if (innerException.Contains("UNIQUE constraint failed: ProductVariants.Handle") ||
+						 innerException.Contains("UNIQUE constraint failed: Products.Handle"))
 					{
-					errorMessages.Add("A product with this title already exists.");
-					ModelState.AddModelError("Variant.Title", "A product with this title already exists. Please use a different title.");
+					TempData["Error"] = "A product with this title already exists. Please go back and change the title.";
 					}
-
-				if (innerException.Contains("UNIQUE constraint failed: Products.Handle"))
-					{
-					errorMessages.Add("A product with this title already exists.");
-					ModelState.AddModelError("Product.Title", "A product with this title already exists. Please use a different title.");
-					}
-
-				if (!errorMessages.Any())
+				else
 					{
 					TempData["Error"] = $"An unexpected database error occurred: {innerException}";
 					}
 
-				// Re-populate dropdowns on error
-				ViewData["VendorID"] = new SelectList(_context.Vendors.Where(v => v.IsActive), "VendorID", "VendorName", product.VendorID);
-				ViewData["ProductCategoryID"] = new SelectList(_context.ProductCategories.Where(c => c.IsActive), "CategoryID", "CategoryName", product.ProductCategoryID);
-				PopulateProductTypesDropdown(product.Type);
-
-				return View(viewModel);
+				// Re-store the data so user can go back and fix
+				TempData[ReviewTempDataKey] = json;
+				return RedirectToAction(nameof(Review));
 				}
 			}
 

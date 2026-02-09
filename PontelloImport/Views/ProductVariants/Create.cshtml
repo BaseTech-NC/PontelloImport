@@ -125,7 +125,7 @@
                                 <span class="text-danger">*</span>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input asp-for="Variant.Price" class="form-control" placeholder="0.00" step="0.01" min="0" value="" />
+                                    <input asp-for="Variant.Price" class="form-control" placeholder="0.00" step="0.01" min="0" />
                                 </div>
                                 <span asp-validation-for="Variant.Price" class="text-danger"></span>
                             </div>
@@ -145,7 +145,7 @@
                         <div class="mb-3">
                             <label asp-for="Variant.InventoryQuantity" class="form-label"></label>
                             <span class="text-danger">*</span>
-                            <input asp-for="Variant.InventoryQuantity" class="form-control" type="number" placeholder="0" min="0" value="" />
+                            <input asp-for="Variant.InventoryQuantity" class="form-control" type="number" placeholder="0" min="0" />
                             <span asp-validation-for="Variant.InventoryQuantity" class="text-danger"></span>
                         </div>
 
@@ -230,7 +230,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-dark btn-lg">Create Product</button>
+                            <button type="submit" class="btn btn-dark btn-lg">Review Product</button>
                         </div>
                     </div>
                 </div>
