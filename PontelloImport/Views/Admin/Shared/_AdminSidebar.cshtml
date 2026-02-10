@@ -19,14 +19,14 @@
 
         <ul class="nav nav-pills flex-column gap-1">
 
-            <li class="nav-item">
-                <a class="nav-link @(controller == "Dashboard" ? "active" : "text-dark")"
-                   asp-area=""
-                   asp-controller="Dashboard"
-                   asp-action="Index">
-                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                </a>
-            </li>
+            @* <li class="nav-item"> *@
+            @*     <a class="nav-link @(controller == "Dashboard" ? "active" : "text-dark")" *@
+            @*        asp-area="" *@
+            @*        asp-controller="Dashboard" *@
+            @*        asp-action="Index"> *@
+            @*         <i class="bi bi-speedometer2 me-2"></i> Dashboard *@
+            @*     </a> *@
+            @* </li> *@
 
             <li class="nav-item">
                 <a class="nav-link @(controller == "ProductVariants" ? "active" : "text-dark")"
@@ -37,14 +37,14 @@
                 </a>
             </li>
 
-            <li class="nav-item">
+           @*  <li class="nav-item">
                 <a class="nav-link @(controller == "Orders" ? "active" : "text-dark")"
                    asp-area="Admin"
                    asp-controller="Orders"
                    asp-action="Index">
                     <i class="bi bi-cart me-2"></i> Orders
                 </a>
-            </li>
+            </li> *@
 
         </ul>
 
