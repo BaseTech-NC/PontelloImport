@@ -609,6 +609,18 @@
         })();
 
         // ===================================================================
+        // PRE-POPULATE ATTRIBUTES (when returning from Review via Back to Edit)
+        // ===================================================================
+        (function () {
+            var preloaded = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Attributes));
+            if (preloaded && preloaded.length > 0) {
+                preloaded.forEach(function (attr) {
+                    addAttributeRow(attr.AttributeName || '', attr.AttributeValue || '');
+                });
+            }
+        })();
+
+        // ===================================================================
         // DEMO AUTOFILL - Ctrl+Shift+F (Temporary - for P1 presentation)
         // ===================================================================
         (function () {
