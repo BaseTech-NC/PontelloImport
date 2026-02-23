@@ -64,7 +64,7 @@ namespace PontelloImport.Controllers
 		// POST: Products/Create
 		[HttpPost]
 		[ValidateAntiForgeryToken]
-		public async Task<IActionResult> Create([Bind("Title,BodyHTML,Type,Tags,VendorID,ProductCategoryID")] Product product)
+		public async Task<IActionResult> Create([Bind("Title,Description,Type,Tags,VendorID,ProductCategoryID")] Product product)
 			{
 			if (ModelState.IsValid)
 				{
