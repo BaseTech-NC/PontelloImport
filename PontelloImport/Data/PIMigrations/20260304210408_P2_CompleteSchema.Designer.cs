@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PontelloImport.Data;
 
@@ -10,9 +11,11 @@ using PontelloImport.Data;
 namespace PontelloImport.Data.PIMigrations
 {
     [DbContext(typeof(PontelloDbContext))]
-    partial class PontelloDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260304210408_P2_CompleteSchema")]
+    partial class P2_CompleteSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.12");
@@ -567,27 +570,6 @@ namespace PontelloImport.Data.PIMigrations
                     b.HasIndex("ProductVariantID");
 
                     b.ToTable("OrderLines");
-                });
-
-            modelBuilder.Entity("PontelloImport.Models.OrderSequence", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("LastUsedNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("OrderSequence");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            LastUsedNumber = 0
-                        });
                 });
 
             modelBuilder.Entity("PontelloImport.Models.PaymentTerms", b =>

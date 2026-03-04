@@ -1,50 +1,39 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace PontelloImport.Models
-	{
-	public class Product : Auditable
-		{
-		[Key]
-		public int ProductID { get; set; }
+{
+    public class Product
+    {
+        public int ProductID { get; set; }
 
-		[Required(ErrorMessage = "Product title is required")]
-		[StringLength(255, ErrorMessage = "Title cannot exceed 255 characters")]
-		[Display(Name = "Product Title")]
-		public string Title { get; set; }
+        [Required, MaxLength(255)]
+        public string Title { get; set; }
 
-		
-		[StringLength(255)]
-		[Display(Name = "URL Handle")]
-		public string Handle { get; set; }
+        [Required, MaxLength(100)]
+        public string Handle { get; set; }
 
-		[Required(ErrorMessage = "Vendor is required. Please select from the drop-down menu.")]
-		[Display(Name = "Vendor")]
-		public int? VendorID { get; set; }
-		public Vendor? Vendor { get; set; }
+        public int VendorID { get; set; }
+        public Vendor? Vendor { get; set; }
 
-		[Required(ErrorMessage = "Category is required. Please select from the drop-down menu.")]
-		[Display(Name = "Category")]
-		public int? ProductCategoryID { get; set; }
-		public ProductCategory? ProductCategory { get; set; }
+        public int ProductCategoryID { get; set; }
+        public ProductCategory? ProductCategory { get; set; }
 
-		[Display(Name = "Description")]
-		[DataType(DataType.MultilineText)]
-		public string? Description { get; set; }
+        public int? ProductTypeID { get; set; }
+        public ProductType? ProductType { get; set; }
 
-		[StringLength(100, ErrorMessage = "Type cannot exceed 100 characters")]
-		[Display(Name = "Product Type")]
-		public string? Type { get; set; }
+        public string? Description { get; set; }
 
-		[Display(Name = "Tags")]
-		public string? Tags { get; set; }
+        public string? Tags { get; set; }
 
-		[Display(Name = "Status")]
-		public ProductStatus Status { get; set; } = ProductStatus.Draft;
+        public ProductStatus Status { get; set; } = ProductStatus.Draft;
 
-		[Display(Name = "Active")]
-		public bool IsActive { get; set; } = true;
+        public string? CreatedBy { get; set; }
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public string? ModifiedBy { get; set; }
+        public DateTime? ModifiedDate { get; set; }
 
-		// Navigation property
-		public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
-		}
-	}
+        // Navigation
+        public ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
+        public ICollection<ProductSpecification> ProductSpecifications { get; set; } = new List<ProductSpecification>();
+    }
+}

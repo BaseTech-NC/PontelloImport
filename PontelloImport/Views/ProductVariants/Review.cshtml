@@ -30,31 +30,25 @@
                 <div class="card-body">
                     <dl class="row mb-0">
                         <dt class="col-sm-4">Title:</dt>
-                        <dd class="col-sm-8">@Model.Variant.Title</dd>
+                        <dd class="col-sm-8">@Model.Product.Title</dd>
 
                         <dt class="col-sm-4">SKU:</dt>
                         <dd class="col-sm-8"><code class="text-dark">@Model.Variant.SKU</code></dd>
 
                         <dt class="col-sm-4">Handle:</dt>
-                        <dd class="col-sm-8"><code>@Model.Variant.Handle</code></dd>
+                        <dd class="col-sm-8"><code>@Model.Product.Handle</code></dd>
 
-                        @if (!string.IsNullOrEmpty(Model.Variant.Description))
+                        @if (!string.IsNullOrEmpty(Model.Product.Description))
                             {
                             <dt class="col-sm-4">Description:</dt>
-                            <dd class="col-sm-8">@Model.Variant.Description</dd>
+                            <dd class="col-sm-8">@Model.Product.Description</dd>
                             }
 
-                        @if (!string.IsNullOrEmpty(Model.Product.Type))
-                            {
-                            <dt class="col-sm-4">Product Type:</dt>
-                            <dd class="col-sm-8">@Model.Product.Type</dd>
-                            }
-
-                        @if (!string.IsNullOrEmpty(Model.Variant.Tags))
+                        @if (!string.IsNullOrEmpty(Model.Product.Tags))
                             {
                             <dt class="col-sm-4">Tags:</dt>
                             <dd class="col-sm-8">
-                                @foreach (var tag in Model.Variant.Tags.Split(','))
+                                @foreach (var tag in Model.Product.Tags.Split(','))
                                     {
                                     <span class="badge bg-light text-dark me-1">@tag.Trim()</span>
                                     }
@@ -150,7 +144,7 @@
                         @if (Model.Variant.Weight.HasValue)
                             {
                             <dt class="col-sm-4">Weight:</dt>
-                            <dd class="col-sm-8">@Model.Variant.Weight.Value grams (@(Model.Variant.Weight.Value / 1000.0) kg)</dd>
+                            <dd class="col-sm-8">@Model.Variant.Weight.Value grams (@(Model.Variant.Weight.Value / 1000m) kg)</dd>
                             }
 
                         @if (!string.IsNullOrEmpty(Model.Variant.Barcode))

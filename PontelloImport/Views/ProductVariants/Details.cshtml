@@ -10,7 +10,7 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
-            <h2 class="mb-2">@Model.Title</h2>
+            <h2 class="mb-2">@(Model.Product?.Title ?? Model.SKU)</h2>
             <div class="d-flex flex-wrap gap-1">
                 @switch (Model.Status)
                 {
@@ -69,28 +69,22 @@
                 <dd class="col-sm-9"><code class="text-dark">@Model.SKU</code></dd>
 
                 <dt class="col-sm-3">Title:</dt>
-                <dd class="col-sm-9">@Model.Title</dd>
+                <dd class="col-sm-9">@(Model.Product?.Title ?? Model.SKU)</dd>
 
                 <dt class="col-sm-3">Handle:</dt>
-                <dd class="col-sm-9"><code>@Model.Handle</code></dd>
+                <dd class="col-sm-9"><code>@(Model.Product?.Handle ?? "-")</code></dd>
 
-                @if (!string.IsNullOrEmpty(Model.Description))
+                @if (!string.IsNullOrEmpty(Model.Product?.Description))
                 {
                     <dt class="col-sm-3">Description:</dt>
-                    <dd class="col-sm-9">@Html.Raw(Model.Description)</dd>
+                    <dd class="col-sm-9">@Html.Raw(Model.Product.Description)</dd>
                 }
 
-                @if (!string.IsNullOrEmpty(Model.Type))
-                {
-                    <dt class="col-sm-3">Type:</dt>
-                    <dd class="col-sm-9">@Model.Type</dd>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.Tags))
+                @if (!string.IsNullOrEmpty(Model.Product?.Tags))
                 {
                     <dt class="col-sm-3">Tags:</dt>
                     <dd class="col-sm-9">
-                        @foreach (var tag in Model.Tags.Split(','))
+                        @foreach (var tag in Model.Product.Tags.Split(','))
                         {
                             <span class="badge bg-light text-dark me-1">@tag.Trim()</span>
                         }
@@ -112,10 +106,10 @@
                     <dt class="col-sm-3">Product:</dt>
                     <dd class="col-sm-9">@Model.Product.Title</dd>
 
-                    @if (!string.IsNullOrEmpty(Model.Product.Type))
+                    @if (Model.Product.ProductType != null)
                     {
                         <dt class="col-sm-3">Product Type:</dt>
-                        <dd class="col-sm-9">@Model.Product.Type</dd>
+                        <dd class="col-sm-9">@Model.Product.ProductType.TypeName</dd>
                     }
 
                     @if (Model.Product.Vendor != null)
@@ -196,7 +190,7 @@
                 @if (Model.Weight.HasValue)
                 {
                     <dt class="col-sm-3">Weight:</dt>
-                    <dd class="col-sm-9">@Model.Weight.Value grams (@(Model.Weight.Value / 1000.0) kg)</dd>
+                    <dd class="col-sm-9">@Model.Weight.Value grams (@(Model.Weight.Value / 1000m) kg)</dd>
                 }
 
                 @if (!string.IsNullOrEmpty(Model.Barcode))
@@ -233,7 +227,17 @@
     </div>
 
     <!-- Attributes & Specifications -->
-    @if (Model.Attributes.Any())
+    @{
+        var optPairs = new[]
+        {
+            (Model.Option1Name, Model.Option1Value),
+            (Model.Option2Name, Model.Option2Value),
+            (Model.Option3Name, Model.Option3Value),
+            (Model.Option4Name, Model.Option4Value),
+            (Model.Option5Name, Model.Option5Value),
+        }.Where(p => p.Item1 != null).ToList();
+    }
+    @if (optPairs.Any())
     {
         <div class="card mb-3">
             <div class="card-header bg-secondary text-white">
@@ -241,10 +245,10 @@
             </div>
             <div class="card-body">
                 <dl class="row mb-0">
-                    @foreach (var attr in Model.Attributes)
+                    @foreach (var (name, val) in optPairs)
                     {
-                        <dt class="col-sm-3">@attr.AttributeName:</dt>
-                        <dd class="col-sm-9">@attr.AttributeValue</dd>
+                        <dt class="col-sm-3">@name:</dt>
+                        <dd class="col-sm-9">@val</dd>
                     }
                 </dl>
             </div>
@@ -259,16 +263,7 @@
         <div class="card-body">
             <dl class="row mb-0">
                 <dt class="col-sm-3">Created:</dt>
-                <dd class="col-sm-9">
-                    @if (Model.CreatedDate.HasValue)
-                    {
-                        @Model.CreatedDate.Value.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")
-                    }
-                    else
-                    {
-                        <span class="text-muted">—</span>
-                    }
-                </dd>
+                <dd class="col-sm-9">@Model.CreatedDate.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")</dd>
 
                 <dt class="col-sm-3">Last Modified:</dt>
                 <dd class="col-sm-9">

@@ -62,7 +62,12 @@ app.MapRazorPages()
    .WithStaticAssets();
 
 
-// Seed the database
+// Apply EF migrations, then seed reference/test data
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PontelloDbContext>();
+    db.Database.Migrate();
+}
 PontelloDbInitializer.Seed(app);
 
 app.Run();

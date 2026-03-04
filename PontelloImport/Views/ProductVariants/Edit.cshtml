@@ -62,11 +62,11 @@
 
                             <!-- Type Field (Hybrid Dropdown) -->
                             <div class="mb-3">
-                                <label asp-for="Product.Type" class="form-label">Product Type</label>
-                                <select asp-for="Product.Type" class="form-select" id="productTypeDropdown" asp-items="@(ViewData["ProductTypes"] as SelectList)">
+                                <label asp-for="Product.ProductTypeID" class="form-label">Product Type</label>
+                                <select asp-for="Product.ProductTypeID" class="form-select" id="productTypeDropdown" asp-items="@(ViewData["ProductTypes"] as SelectList)">
                                     <option value="">-- Select Product Type --</option>
                                 </select>
-                                <span asp-validation-for="Product.Type" class="text-danger"></span>
+                                <span asp-validation-for="Product.ProductTypeID" class="text-danger"></span>
                             </div>
 
                             <!-- Custom type input (hidden by default) -->
@@ -78,10 +78,10 @@
 
                             <!-- Title -->
                             <div class="mb-3">
-                                <label asp-for="Variant.Title" class="form-label"></label>
+                                <label asp-for="Product.Title" class="form-label"></label>
                                 <span class="text-danger">*</span>
-                                <input asp-for="Variant.Title" class="form-control" placeholder="e.g., Nerf Bar - Powder Coated Left" />
-                                <span asp-validation-for="Variant.Title" class="text-danger"></span>
+                                <input asp-for="Product.Title" class="form-control" placeholder="e.g., Nerf Bar - Powder Coated Left" />
+                                <span asp-validation-for="Product.Title" class="text-danger"></span>
                             </div>
 
                             <!-- SKU -->
@@ -95,23 +95,16 @@
 
                             <!-- Description -->
                             <div class="mb-3">
-                                <label asp-for="Variant.Description" class="form-label"></label>
-                                <textarea asp-for="Variant.Description" class="form-control" rows="4" placeholder="Product description..."></textarea>
-                                <span asp-validation-for="Variant.Description" class="text-danger"></span>
-                            </div>
-
-                            <!-- Type -->
-                            <div class="mb-3">
-                                <label asp-for="Variant.Type" class="form-label"></label>
-                                <input asp-for="Variant.Type" class="form-control" placeholder="e.g., Chassis Component" />
-                                <span asp-validation-for="Variant.Type" class="text-danger"></span>
+                                <label asp-for="Product.Description" class="form-label"></label>
+                                <textarea asp-for="Product.Description" class="form-control" rows="4" placeholder="Product description..."></textarea>
+                                <span asp-validation-for="Product.Description" class="text-danger"></span>
                             </div>
 
                             <!-- Tags -->
                             <div class="mb-3">
-                                <label asp-for="Variant.Tags" class="form-label"></label>
-                                <input asp-for="Variant.Tags" class="form-control" placeholder="e.g., new, featured, sale" />
-                                <span asp-validation-for="Variant.Tags" class="text-danger"></span>
+                                <label asp-for="Product.Tags" class="form-label"></label>
+                                <input asp-for="Product.Tags" class="form-control" placeholder="e.g., new, featured, sale" />
+                                <span asp-validation-for="Product.Tags" class="text-danger"></span>
                                 <small class="form-text text-muted">Comma-separated values</small>
                             </div>
 

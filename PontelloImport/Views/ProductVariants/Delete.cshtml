@@ -28,7 +28,7 @@
                 <div class="col-md-6">
                     <dl class="row">
                         <dt class="col-sm-4">Title:</dt>
-                        <dd class="col-sm-8"><strong>@Model.Title</strong></dd>
+                        <dd class="col-sm-8"><strong>@(Model.Product?.Title ?? Model.SKU)</strong></dd>
 
                         <dt class="col-sm-4">SKU:</dt>
                         <dd class="col-sm-8"><code class="text-dark">@Model.SKU</code></dd>
@@ -79,40 +79,30 @@
                         </dd>
 
                         <dt class="col-sm-4">Created:</dt>
-                        <dd class="col-sm-8">
-                            @if (Model.CreatedDate.HasValue)
-                            {
-                                @Model.CreatedDate.Value.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")
-                            }
-                            else
-                            {
-                                <span class="text-muted">—</span>
-                            }
-                        </dd>
-
-                        @if (Model.Attributes.Any())
-                            {
-                            <dt class="col-sm-4">Attributes:</dt>
-                            <dd class="col-sm-8">
-                                <span class="badge bg-secondary text-white">@Model.Attributes.Count attribute(s)</span>
-                            </dd>
-                            }
+                        <dd class="col-sm-8">@Model.CreatedDate.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")</dd>
                     </dl>
                 </div>
             </div>
 
-            @if (Model.Attributes.Any())
+            @{
+                var deleteOptPairs = new[]
                 {
+                    (Model.Option1Name, Model.Option1Value),
+                    (Model.Option2Name, Model.Option2Value),
+                }.Where(p => p.Item1 != null).ToList();
+            }
+            @if (deleteOptPairs.Any())
+            {
                 <div class="mt-3">
-                    <h6>Attributes:</h6>
+                    <h6>Options:</h6>
                     <p class="mb-0">
-                        @foreach (var attr in Model.Attributes)
-                            {
-                            <span class="badge bg-light text-dark me-1">@attr.AttributeName: @attr.AttributeValue</span>
-                            }
+                        @foreach (var (name, val) in deleteOptPairs)
+                        {
+                            <span class="badge bg-light text-dark me-1">@name: @val</span>
+                        }
                     </p>
                 </div>
-                }
+            }
 
         </div>
     </div>

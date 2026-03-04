@@ -250,18 +250,19 @@
                                     <td>
                                         <a asp-action="Details" asp-route-id="@variant.VariantID"
                                            class="text-decoration-none text-dark fw-semibold">
-                                            @variant.Title
+                                            @(variant.Product?.Title ?? variant.SKU)
                                         </a>
                                         @{
-                                            var attrSnippets = variant.Attributes
-                                                .OrderBy(a => a.DisplayOrder)
-                                                .Take(2)
-                                                .Select(a => $"{a.AttributeName}: {a.AttributeValue}");
+                                            var optSnippets = new[]
+                                            {
+                                                variant.Option1Name != null ? $"{variant.Option1Name}: {variant.Option1Value}" : null,
+                                                variant.Option2Name != null ? $"{variant.Option2Name}: {variant.Option2Value}" : null,
+                                            }.Where(s => s != null).ToList();
                                         }
-                                        @if (attrSnippets.Any())
+                                        @if (optSnippets.Any())
                                         {
                                             <br />
-                                            <small class="text-muted">@string.Join(" | ", attrSnippets)</small>
+                                            <small class="text-muted">@string.Join(" | ", optSnippets)</small>
                                         }
                                     </td>
 
