@@ -5,7 +5,7 @@
       "name": "PontelloImport",
       "runtimeExecutable": "dotnet",
       "runtimeArgs": ["run", "--project", "C:\\Dev\\Pontello-Imports\\PontelloImport\\PontelloImport.csproj"],
-      "port": 5000
+      "port": 5272
     }
   ]
 }

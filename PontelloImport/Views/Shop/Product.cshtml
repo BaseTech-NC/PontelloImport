@@ -1,0 +1,208 @@
+@model PontelloImport.Models.Product
+
+@{
+    ViewData["Title"] = Model.Title;
+    var variants = Model.ProductVariants.ToList();
+    var hasMultipleVariants = variants.Count > 1;
+    var defaultVariant = variants.FirstOrDefault(v => v.IsDefault) ?? variants.FirstOrDefault();
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index">Shop</a></li>
+        <li class="breadcrumb-item active">@Model.Title</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <div class="col-md-7">
+        <h1 class="h2">@Model.Title</h1>
+        <p class="text-muted mb-1">
+            <strong>Vendor:</strong> @(Model.Vendor?.VendorName ?? "—")
+            &nbsp;|&nbsp;
+            <strong>Category:</strong> @(Model.ProductCategory?.CategoryName ?? "—")
+        </p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <div class="mt-3">
+                <p>@Model.Description</p>
+            </div>
+        }
+
+        @if (Model.ProductSpecifications.Any())
+        {
+            <div class="mt-4">
+                <h5>Specifications</h5>
+                <table class="table table-sm table-bordered">
+                    <tbody>
+                        @foreach (var spec in Model.ProductSpecifications)
+                        {
+                            <tr>
+                                <th class="w-40 bg-light">@spec.Name</th>
+                                <td>@spec.Value</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form asp-action="AddToCart" method="post">
+                    @Html.AntiForgeryToken()
+
+                    @if (hasMultipleVariants)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Select Variant</label>
+                            <select id="variantSelect" name="productVariantId" class="form-select">
+                                @foreach (var v in variants)
+                                {
+                                    var label = BuildVariantLabel(v);
+                                    <option value="@v.VariantID"
+                                            data-price="@v.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"
+                                            data-sku="@v.SKU"
+                                            data-options="@BuildOptionsJson(v)"
+                                            selected="@(v.VariantID == defaultVariant?.VariantID)">
+                                        @label — $@v.Price.ToString("F2")
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <div id="variantOptions" class="mb-3"></div>
+                    }
+                    else if (defaultVariant != null)
+                    {
+                        <input type="hidden" name="productVariantId" value="@defaultVariant.VariantID" />
+                    }
+
+                    <div class="mb-3">
+                        <p class="fs-4 fw-bold text-dark" id="variantPrice">
+                            $@(defaultVariant?.Price.ToString("F2") ?? "0.00")
+                        </p>
+                        <p class="text-muted small" id="variantSku">SKU: @(defaultVariant?.SKU ?? "")</p>
+                    </div>
+
+                    @if (!hasMultipleVariants && defaultVariant != null)
+                    {
+                        var opts = GetOptionPairs(defaultVariant);
+                        @if (opts.Any())
+                        {
+                            <div class="mb-3">
+                                <table class="table table-sm table-borderless mb-0">
+                                    @foreach (var (name, val) in opts)
+                                    {
+                                        <tr>
+                                            <th class="ps-0 text-muted small w-40">@name</th>
+                                            <td class="small">@val</td>
+                                        </tr>
+                                    }
+                                </table>
+                            </div>
+                        }
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantity</label>
+                        <input type="number" name="quantity" class="form-control" value="1" min="1" style="max-width: 100px;" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Add to Cart</button>
+                </form>
+
+                <div class="mt-3 text-center">
+                    <a asp-action="Cart" class="text-decoration-none text-muted small">View Cart</a>
+                    &nbsp;·&nbsp;
+                    <a asp-action="Index" class="text-decoration-none text-muted small">Continue Shopping</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string BuildVariantLabel(PontelloImport.Models.ProductVariant v)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(v.Option1Value)) parts.Add(v.Option1Value!);
+        if (!string.IsNullOrWhiteSpace(v.Option2Value)) parts.Add(v.Option2Value!);
+        if (!string.IsNullOrWhiteSpace(v.Option3Value)) parts.Add(v.Option3Value!);
+        if (!string.IsNullOrWhiteSpace(v.Option4Value)) parts.Add(v.Option4Value!);
+        if (!string.IsNullOrWhiteSpace(v.Option5Value)) parts.Add(v.Option5Value!);
+        return parts.Any() ? string.Join(" / ", parts) : v.SKU;
+    }
+
+    string BuildOptionsJson(PontelloImport.Models.ProductVariant v)
+    {
+        var pairs = GetOptionPairs(v);
+        var items = pairs.Select(p => $"{{\"name\":\"{EscapeJson(p.Item1)}\",\"value\":\"{EscapeJson(p.Item2)}\"}}");
+        return "[" + string.Join(",", items) + "]";
+    }
+
+    List<(string, string)> GetOptionPairs(PontelloImport.Models.ProductVariant v)
+    {
+        var list = new List<(string, string)>();
+        if (!string.IsNullOrWhiteSpace(v.Option1Name) && !string.IsNullOrWhiteSpace(v.Option1Value))
+            list.Add((v.Option1Name!, v.Option1Value!));
+        if (!string.IsNullOrWhiteSpace(v.Option2Name) && !string.IsNullOrWhiteSpace(v.Option2Value))
+            list.Add((v.Option2Name!, v.Option2Value!));
+        if (!string.IsNullOrWhiteSpace(v.Option3Name) && !string.IsNullOrWhiteSpace(v.Option3Value))
+            list.Add((v.Option3Name!, v.Option3Value!));
+        if (!string.IsNullOrWhiteSpace(v.Option4Name) && !string.IsNullOrWhiteSpace(v.Option4Value))
+            list.Add((v.Option4Name!, v.Option4Value!));
+        if (!string.IsNullOrWhiteSpace(v.Option5Name) && !string.IsNullOrWhiteSpace(v.Option5Value))
+            list.Add((v.Option5Name!, v.Option5Value!));
+        return list;
+    }
+
+    string EscapeJson(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+}
+
+@section Scripts {
+    @if (hasMultipleVariants)
+    {
+        <script>
+            (function () {
+                var select = document.getElementById('variantSelect');
+                var priceEl = document.getElementById('variantPrice');
+                var skuEl = document.getElementById('variantSku');
+                var optionsEl = document.getElementById('variantOptions');
+
+                function updateVariant() {
+                    var opt = select.options[select.selectedIndex];
+                    priceEl.textContent = '$' + opt.getAttribute('data-price');
+                    skuEl.textContent = 'SKU: ' + opt.getAttribute('data-sku');
+
+                    var optionsJson = opt.getAttribute('data-options');
+                    try {
+                        var options = JSON.parse(optionsJson);
+                        if (options.length > 0) {
+                            var html = '<table class="table table-sm table-borderless mb-0"><tbody>';
+                            options.forEach(function (o) {
+                                html += '<tr><th class="ps-0 text-muted small w-40">' + escHtml(o.name) + '</th><td class="small">' + escHtml(o.value) + '</td></tr>';
+                            });
+                            html += '</tbody></table>';
+                            optionsEl.innerHTML = html;
+                        } else {
+                            optionsEl.innerHTML = '';
+                        }
+                    } catch (e) {
+                        optionsEl.innerHTML = '';
+                    }
+                }
+
+                function escHtml(s) {
+                    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                }
+
+                select.addEventListener('change', updateVariant);
+                updateVariant();
+            })();
+        </script>
+    }
+}
