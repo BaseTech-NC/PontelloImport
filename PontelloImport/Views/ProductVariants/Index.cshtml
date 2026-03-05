@@ -236,9 +236,12 @@
                         <thead>
                             <tr>
                                 <th>Product Title</th>
-                                <th>Category</th>
+                                <th>SKU</th>
+                                <th>Price</th>
                                 <th>Inventory</th>
                                 <th>Status</th>
+                                <th>Vendor</th>
+                                <th>Category</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -246,7 +249,7 @@
                             @foreach (var variant in Model)
                             {
                                 <tr>
-                                    <!-- Title + Attribute Snippets -->
+                                    <!-- Product Title + option snippet -->
                                     <td>
                                         <a asp-action="Details" asp-route-id="@variant.VariantID"
                                            class="text-decoration-none text-dark fw-semibold">
@@ -266,12 +269,13 @@
                                         }
                                     </td>
 
-                                    <!-- Category -->
-                                    <td>
-                                        <span class="text-muted">@(variant.Product?.ProductCategory?.CategoryName ?? "-")</span>
-                                    </td>
+                                    <!-- SKU -->
+                                    <td><code class="text-dark">@variant.SKU</code></td>
 
-                                    <!-- Inventory with Stock Badges -->
+                                    <!-- Price -->
+                                    <td>@variant.Price.ToString("C")</td>
+
+                                    <!-- Inventory -->
                                     <td>
                                         @if (variant.InventoryQuantity > 5)
                                         {
@@ -279,7 +283,7 @@
                                         }
                                         else if (variant.InventoryQuantity >= 1)
                                         {
-                                            <span class="badge bg-warning" style="font-weight:normal;">● @variant.InventoryQuantity left</span>
+                                            <span class="badge bg-warning text-dark" style="font-weight:normal;">● @variant.InventoryQuantity left</span>
                                         }
                                         else
                                         {
@@ -291,16 +295,29 @@
                                     <td>
                                         @switch (variant.Status)
                                         {
-                                            case ProductStatus.Draft:
-                                                <span class="badge bg-info">Draft</span>
-                                                break;
                                             case ProductStatus.Published:
                                                 <span class="badge bg-success">Published</span>
                                                 break;
+                                            case ProductStatus.Draft:
+                                                <span class="badge bg-warning text-dark">Draft</span>
+                                                break;
+                                            case ProductStatus.Unlisted:
+                                                <span class="badge bg-secondary">Unlisted</span>
+                                                break;
                                             case ProductStatus.Archived:
-                                                <span class="badge bg-secondary">Archived</span>
+                                                <span class="badge bg-danger">Archived</span>
                                                 break;
                                         }
+                                    </td>
+
+                                    <!-- Vendor -->
+                                    <td>
+                                        <span class="text-muted">@(variant.Product?.Vendor?.VendorName ?? "-")</span>
+                                    </td>
+
+                                    <!-- Category -->
+                                    <td>
+                                        <span class="text-muted">@(variant.Product?.ProductCategory?.CategoryName ?? "-")</span>
                                     </td>
 
                                     <!-- Actions -->
@@ -313,21 +330,18 @@
                                            class="btn btn-sm btn-secondary me-1">
                                             Edit
                                         </a>
-
                                         @if (variant.Status == ProductStatus.Archived)
                                         {
                                             <form asp-action="Restore" asp-route-id="@variant.VariantID" method="post" style="display: inline;">
                                                 @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-secondary">
-                                                    Restore
-                                                </button>
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Restore</button>
                                             </form>
                                         }
                                         else
                                         {
                                             <a asp-action="Delete" asp-route-id="@variant.VariantID"
                                                class="btn btn-sm btn-outline-dark">
-                                                Archive
+                                                Delete
                                             </a>
                                         }
                                     </td>

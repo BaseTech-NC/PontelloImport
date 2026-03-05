@@ -14,14 +14,17 @@
             <div class="d-flex flex-wrap gap-1">
                 @switch (Model.Status)
                 {
-                    case ProductStatus.Draft:
-                        <span class="badge bg-info">Draft</span>
-                        break;
                     case ProductStatus.Published:
                         <span class="badge bg-success">Published</span>
                         break;
+                    case ProductStatus.Draft:
+                        <span class="badge bg-warning text-dark">Draft</span>
+                        break;
+                    case ProductStatus.Unlisted:
+                        <span class="badge bg-secondary">Unlisted</span>
+                        break;
                     case ProductStatus.Archived:
-                        <span class="badge bg-secondary">Archived</span>
+                        <span class="badge bg-danger">Archived</span>
                         break;
                 }
 
@@ -95,7 +98,7 @@
     </div>
 
     <!-- Parent Product -->
-    @if (Model.ProductID != null && Model.Product != null)
+    @if (Model.Product != null)
     {
         <div class="card mb-3">
             <div class="card-header bg-secondary text-white">
@@ -243,14 +246,24 @@
             <div class="card-header bg-secondary text-white">
                 <h5 class="mb-0">Attributes & Specifications</h5>
             </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    @foreach (var (name, val) in optPairs)
-                    {
-                        <dt class="col-sm-3">@name:</dt>
-                        <dd class="col-sm-9">@val</dd>
-                    }
-                </dl>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 35%;">Attribute</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (name, val) in optPairs)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@name</td>
+                                <td>@val</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     }

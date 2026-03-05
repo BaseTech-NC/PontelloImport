@@ -28,13 +28,106 @@ namespace PontelloImport.Controllers
             string productType = "",
             string stockStatus = "")
         {
-            throw new NotImplementedException("Pending V3 rewrite");
+            // Base query — include navigations needed for display and filtering
+            var baseQuery = _context.ProductVariants
+                .Include(v => v.Product)
+                    .ThenInclude(p => p!.Vendor)
+                .Include(v => v.Product)
+                    .ThenInclude(p => p!.ProductCategory)
+                .AsQueryable();
+
+            // Search by SKU or Product.Title
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.ToLower();
+                baseQuery = baseQuery.Where(v =>
+                    v.SKU.ToLower().Contains(q) ||
+                    v.Product!.Title.ToLower().Contains(q));
+            }
+
+            // Filter by category
+            if (categoryId.HasValue)
+                baseQuery = baseQuery.Where(v => v.Product!.ProductCategoryID == categoryId.Value);
+
+            // Filter by vendor
+            if (vendorId.HasValue)
+                baseQuery = baseQuery.Where(v => v.Product!.VendorID == vendorId.Value);
+
+            // Filter by product type (TypeName string match)
+            if (!string.IsNullOrWhiteSpace(productType))
+                baseQuery = baseQuery.Where(v => v.Product!.ProductType!.TypeName == productType);
+
+            // Filter by stock level
+            baseQuery = stockStatus switch
+            {
+                "instock"    => baseQuery.Where(v => v.InventoryQuantity > 5),
+                "lowstock"   => baseQuery.Where(v => v.InventoryQuantity >= 1 && v.InventoryQuantity <= 5),
+                "outofstock" => baseQuery.Where(v => v.InventoryQuantity == 0),
+                _            => baseQuery
+            };
+
+            // Status counts (across all statuses, respecting search/category/vendor/stock filters)
+            ViewBag.AllCount       = await baseQuery.CountAsync();
+            ViewBag.PublishedCount = await baseQuery.CountAsync(v => v.Status == ProductStatus.Published);
+            ViewBag.DraftCount     = await baseQuery.CountAsync(v => v.Status == ProductStatus.Draft);
+            ViewBag.ArchivedCount  = await baseQuery.CountAsync(v => v.Status == ProductStatus.Archived);
+
+            // Apply status filter
+            var filteredQuery = filter switch
+            {
+                "published" => baseQuery.Where(v => v.Status == ProductStatus.Published),
+                "draft"     => baseQuery.Where(v => v.Status == ProductStatus.Draft),
+                "unlisted"  => baseQuery.Where(v => v.Status == ProductStatus.Unlisted),
+                "archived"  => baseQuery.Where(v => v.Status == ProductStatus.Archived),
+                _           => baseQuery
+            };
+
+            filteredQuery = filteredQuery.OrderBy(v => v.Product!.Title).ThenBy(v => v.SKU);
+
+            // Dropdowns
+            ViewBag.Categories = new SelectList(
+                await _context.ProductCategories.OrderBy(c => c.CategoryName).ToListAsync(),
+                "CategoryID", "CategoryName", categoryId);
+
+            ViewBag.Vendors = new SelectList(
+                await _context.Vendors.Where(v => v.IsActive).OrderBy(v => v.VendorName).ToListAsync(),
+                "VendorID", "VendorName", vendorId);
+
+            ViewBag.ProductTypes = new SelectList(
+                await _context.ProductTypes.Where(t => t.IsActive).OrderBy(t => t.TypeName).ToListAsync(),
+                "TypeName", "TypeName", productType);
+
+            // Preserve filter state for view
+            ViewBag.CurrentFilter      = filter;
+            ViewBag.CurrentSearch      = search;
+            ViewBag.CurrentCategoryId  = categoryId;
+            ViewBag.CurrentVendorId    = vendorId;
+            ViewBag.CurrentProductType = productType;
+            ViewBag.CurrentStockStatus = stockStatus;
+            ViewBag.CurrentPageSize    = pageSize;
+
+            return View(await PaginatedList<ProductVariant>.CreateAsync(filteredQuery, pageNumber, pageSize));
         }
 
         // GET: ProductVariants/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            throw new NotImplementedException("Pending V3 rewrite");
+            if (id == null) return NotFound();
+
+            var variant = await _context.ProductVariants
+                .Include(v => v.Product)
+                    .ThenInclude(p => p!.Vendor)
+                .Include(v => v.Product)
+                    .ThenInclude(p => p!.ProductCategory)
+                .Include(v => v.Product)
+                    .ThenInclude(p => p!.ProductType)
+                .Include(v => v.Product)
+                    .ThenInclude(p => p!.ProductSpecifications)
+                .FirstOrDefaultAsync(v => v.VariantID == id);
+
+            if (variant == null) return NotFound();
+
+            return View(variant);
         }
 
         // GET: ProductVariants/Delete/5
@@ -136,9 +229,10 @@ namespace PontelloImport.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> CheckTitle(string title, int? variantId)
+        public IActionResult CheckTitle(string title, int? variantId)
         {
-            throw new NotImplementedException("Pending V3 rewrite");
+            // Title lives on Product in V3, not on variant — always available at variant level
+            return Json(new { isAvailable = true });
         }
 
         // ===================================================================
