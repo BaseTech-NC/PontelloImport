@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PontelloImport.Models
 {
@@ -7,7 +8,8 @@ namespace PontelloImport.Models
         public int DealerID { get; set; }
 
         public string? ApplicationUserID { get; set; }
-        public ApplicationUser? ApplicationUser { get; set; }
+        // [NotMapped] because ApplicationUser lives in ApplicationDbContext
+        [NotMapped] public ApplicationUser? ApplicationUser { get; set; }
 
         [Required, MaxLength(255)]
         public string CompanyName { get; set; }

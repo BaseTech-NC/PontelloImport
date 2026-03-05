@@ -11,8 +11,8 @@ using PontelloImport.Data;
 namespace PontelloImport.Data.PIMigrations
 {
     [DbContext(typeof(PontelloDbContext))]
-    [Migration("20260304212336_AddOrderSequence")]
-    partial class AddOrderSequence
+    [Migration("20260304220029_InitialSchema")]
+    partial class InitialSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -81,73 +81,6 @@ namespace PontelloImport.Data.PIMigrations
                         .IsUnique();
 
                     b.ToTable("AdminUsers");
-                });
-
-            modelBuilder.Entity("PontelloImport.Models.ApplicationUser", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AccessFailedCount")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NormalizedEmail")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NormalizedUserName")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PasswordHash")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SecurityStamp")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("UserName")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ApplicationUser");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.Cart", b =>
@@ -993,17 +926,6 @@ namespace PontelloImport.Data.PIMigrations
                     b.ToTable("Vendors");
                 });
 
-            modelBuilder.Entity("PontelloImport.Models.AdminUser", b =>
-                {
-                    b.HasOne("PontelloImport.Models.ApplicationUser", "ApplicationUser")
-                        .WithOne("AdminUser")
-                        .HasForeignKey("PontelloImport.Models.AdminUser", "ApplicationUserID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ApplicationUser");
-                });
-
             modelBuilder.Entity("PontelloImport.Models.Cart", b =>
                 {
                     b.HasOne("PontelloImport.Models.Dealer", "Dealer")
@@ -1036,10 +958,6 @@ namespace PontelloImport.Data.PIMigrations
 
             modelBuilder.Entity("PontelloImport.Models.Dealer", b =>
                 {
-                    b.HasOne("PontelloImport.Models.ApplicationUser", "ApplicationUser")
-                        .WithOne("Dealer")
-                        .HasForeignKey("PontelloImport.Models.Dealer", "ApplicationUserID");
-
                     b.HasOne("PontelloImport.Models.Address", "BillingAddress")
                         .WithMany()
                         .HasForeignKey("BillingAddressID")
@@ -1056,8 +974,6 @@ namespace PontelloImport.Data.PIMigrations
                         .WithMany()
                         .HasForeignKey("ShippingAddressID")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ApplicationUser");
 
                     b.Navigation("BillingAddress");
 
@@ -1213,13 +1129,6 @@ namespace PontelloImport.Data.PIMigrations
                         .IsRequired();
 
                     b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("PontelloImport.Models.ApplicationUser", b =>
-                {
-                    b.Navigation("AdminUser");
-
-                    b.Navigation("Dealer");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.Cart", b =>

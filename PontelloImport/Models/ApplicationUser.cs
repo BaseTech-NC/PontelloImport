@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
 
 namespace PontelloImport.Models
@@ -15,8 +16,8 @@ namespace PontelloImport.Models
         public string UserType { get; set; } = "Dealer";
         // Values: "SuperAdmin" / "Admin" / "Dealer"
 
-        // Navigation
-        public AdminUser? AdminUser { get; set; }
-        public Dealer? Dealer { get; set; }
+        // Navigation — [NotMapped] because AdminUser/Dealer live in PontelloDbContext
+        [NotMapped] public AdminUser? AdminUser { get; set; }
+        [NotMapped] public Dealer? Dealer { get; set; }
     }
 }

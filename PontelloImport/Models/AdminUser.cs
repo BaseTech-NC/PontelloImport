@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PontelloImport.Models
 {
@@ -8,7 +9,8 @@ namespace PontelloImport.Models
 
         [Required]
         public string ApplicationUserID { get; set; }
-        public ApplicationUser? ApplicationUser { get; set; }
+        // [NotMapped] because ApplicationUser lives in ApplicationDbContext
+        [NotMapped] public ApplicationUser? ApplicationUser { get; set; }
 
         public bool IsSuperAdmin { get; set; } = false;
     }
