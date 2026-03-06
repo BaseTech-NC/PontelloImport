@@ -240,17 +240,6 @@
         .input-validation-error {
             border-color: #dc3545 !important;
         }
-        .field-instant-feedback {
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
-            display: block;
-        }
-        .field-instant-feedback.text-success {
-            color: #198754 !important;
-        }
-        .field-instant-feedback.text-danger {
-            color: #dc3545 !important;
-        }
     </style>
 
     <script>
@@ -507,40 +496,39 @@
 
         // ===================================================================
         // EXTRA CLIENT-SIDE VALIDATION (SKU format, uniqueness, negatives)
-        // Required fields + summary are handled by jQuery Validate above.
+        // Uses the SAME asp-validation-for spans as jQuery Validate to avoid
+        // duplicate error messages.
         // ===================================================================
         (function () {
-            // --- Helpers ---
-            function getOrCreateFeedback(input) {
-                const id = 'instant-' + input.id;
-                let el = document.getElementById(id);
-                if (!el) {
-                    el = document.createElement('div');
-                    el.id = id;
-                    el.className = 'field-instant-feedback';
-                    const parent = input.closest('.mb-3') || input.closest('.col-md-6');
-                    if (parent) {
-                        parent.appendChild(el);
-                    } else {
-                        input.parentNode.insertBefore(el, input.nextSibling);
-                    }
-                }
-                return el;
+            // --- Helpers: write into the existing asp-validation-for span ---
+            function getValSpan(input) {
+                // asp-validation-for generates: data-valmsg-for="Variant.SKU" etc.
+                var name = input.getAttribute('name') || input.id.replace(/_/g, '.');
+                return document.querySelector('[data-valmsg-for="' + name + '"]');
             }
 
             function showError(input, message) {
-                const fb = getOrCreateFeedback(input);
-                fb.textContent = message;
-                fb.className = 'field-instant-feedback text-danger';
+                var span = getValSpan(input);
+                if (span) {
+                    span.textContent = message;
+                    span.classList.remove('field-validation-valid');
+                    span.classList.add('field-validation-error');
+                }
+                input.classList.add('input-validation-error');
             }
 
-            function clearFeedback(input) {
-                const fb = document.getElementById('instant-' + input.id);
-                if (fb) { fb.textContent = ''; fb.className = 'field-instant-feedback'; }
+            function clearError(input) {
+                var span = getValSpan(input);
+                if (span && !span.classList.contains('field-validation-valid')) {
+                    span.textContent = '';
+                    span.classList.remove('field-validation-error');
+                    span.classList.add('field-validation-valid');
+                }
+                input.classList.remove('input-validation-error');
             }
 
             // --- Negative value detection on input ---
-            const numericFields = [
+            var numericFields = [
                 { id: 'Variant_Price', name: 'Price' },
                 { id: 'Variant_CompareAtPrice', name: 'Compare At Price' },
                 { id: 'Variant_InventoryQuantity', name: 'Inventory Quantity' },
@@ -548,43 +536,36 @@
             ];
 
             numericFields.forEach(function (field) {
-                const input = document.getElementById(field.id);
+                var input = document.getElementById(field.id);
                 if (!input) return;
 
                 input.addEventListener('input', function () {
-                    const val = parseFloat(this.value);
+                    var val = parseFloat(this.value);
                     if (!isNaN(val) && val < 0) {
                         showError(this, field.name + ' cannot be negative. Please enter a positive value.');
                     } else {
-                        clearFeedback(this);
+                        clearError(this);
                     }
                 });
             });
 
-            // --- SKU format + uniqueness validation ---
-            const skuPattern = /^[A-Z]{2,4}-\d{3,7}(-[A-Z]{1,3})?$/;
-            let skuTimer = null;
-            const skuInput = document.getElementById('Variant_SKU');
+            // --- SKU auto-uppercase + uniqueness validation ---
+            var skuTimer = null;
+            var skuInput = document.getElementById('Variant_SKU');
             if (skuInput) {
+                // Auto-uppercase while typing
                 skuInput.addEventListener('input', function () {
-                    const val = this.value.trim();
-                    if (!val) { clearFeedback(this); return; }
-
-                    // Auto-uppercase
-                    const cursorPos = this.selectionStart;
+                    var cursorPos = this.selectionStart;
                     this.value = this.value.toUpperCase();
                     this.setSelectionRange(cursorPos, cursorPos);
-
-                    if (!skuPattern.test(val.toUpperCase())) {
-                        showError(this, 'SKU must follow format: AB-123 or ABC-1234-XY (letters-numbers or letters-numbers-letters)');
-                    } else {
-                        clearFeedback(this);
-                    }
                 });
 
+                // Uniqueness check on blur (only if format is valid — regex is handled by jQuery Validate)
                 skuInput.addEventListener('blur', function () {
-                    const val = this.value.trim();
-                    if (!val || !skuPattern.test(val)) return;
+                    var val = this.value.trim();
+                    if (!val) return;
+                    var skuPattern = /^[A-Z]{2,4}-\d{3,7}(-[A-Z]{1,3})?$/;
+                    if (!skuPattern.test(val)) return;
 
                     clearTimeout(skuTimer);
                     skuTimer = setTimeout(function () {
@@ -594,7 +575,7 @@
                                 if (!data.isAvailable) {
                                     showError(skuInput, 'This SKU is already in use. Please choose a unique SKU.');
                                 } else {
-                                    clearFeedback(skuInput);
+                                    clearError(skuInput);
                                 }
                             })
                             .catch(function () { });
@@ -603,11 +584,11 @@
             }
 
             // --- Title uniqueness check (debounced) ---
-            let titleTimer = null;
-            const titleInput = document.getElementById('Variant_Title');
+            var titleTimer = null;
+            var titleInput = document.getElementById('Variant_Title');
             if (titleInput) {
                 titleInput.addEventListener('blur', function () {
-                    const val = this.value.trim();
+                    var val = this.value.trim();
                     if (!val) return;
 
                     clearTimeout(titleTimer);
@@ -618,11 +599,23 @@
                                 if (!data.isAvailable) {
                                     showError(titleInput, 'A product with this title already exists. Please use a different title.');
                                 } else {
-                                    clearFeedback(titleInput);
+                                    clearError(titleInput);
                                 }
                             })
                             .catch(function () { });
                     }, 500);
+                });
+            }
+        })();
+
+        // ===================================================================
+        // PRE-POPULATE ATTRIBUTES (when returning from Review via Back to Edit)
+        // ===================================================================
+        (function () {
+            var preloaded = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Attributes));
+            if (preloaded && preloaded.length > 0) {
+                preloaded.forEach(function (attr) {
+                    addAttributeRow(attr.AttributeName || '', attr.AttributeValue || '');
                 });
             }
         })();
