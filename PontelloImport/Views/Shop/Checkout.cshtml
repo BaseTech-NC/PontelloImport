@@ -1,0 +1,134 @@
+@model PontelloImport.Models.Cart
+
+@{
+    ViewData["Title"] = "Checkout";
+    var dealer = ViewBag.Dealer as PontelloImport.Models.Dealer;
+    var items = Model.CartItems.ToList();
+    var subtotal = items.Sum(ci => ci.Quantity * (ci.ProductVariant?.Price ?? 0m));
+    var isTaxExempt = dealer?.IsTaxExempt ?? false;
+    var taxAmount = isTaxExempt ? (decimal?)null : Math.Round(subtotal * 0.13m, 2);
+    var total = subtotal + (taxAmount ?? 0);
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Shop</a></li>
+        <li class="breadcrumb-item"><a asp-action="Cart">Cart</a></li>
+        <li class="breadcrumb-item active">Checkout</li>
+    </ol>
+</nav>
+
+<h2 class="mb-4">Review Your Order</h2>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Order Items</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Variant / SKU</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in items)
+                        {
+                            var v = item.ProductVariant;
+                            var lineTotal = item.Quantity * (v?.Price ?? 0m);
+                            var optValues = new[] { v?.Option1Value, v?.Option2Value, v?.Option3Value, v?.Option4Value, v?.Option5Value }
+                                .Where(o => !string.IsNullOrWhiteSpace(o));
+                            var variantLabel = optValues.Any() ? string.Join(" / ", optValues) : "Default";
+
+                            <tr>
+                                <td class="fw-semibold">@(v?.Product?.Title ?? "—")</td>
+                                <td>
+                                    <span class="d-block">@variantLabel</span>
+                                    <span class="text-muted small">SKU: @(v?.SKU ?? "—")</span>
+                                </td>
+                                <td class="text-center">@item.Quantity</td>
+                                <td class="text-end">$@(v?.Price.ToString("F2") ?? "0.00")</td>
+                                <td class="text-end fw-semibold">$@lineTotal.ToString("F2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (dealer != null)
+        {
+            <div class="card">
+                <div class="card-header fw-semibold">Billing Information</div>
+                <div class="card-body">
+                    <p class="mb-1 fw-semibold">@dealer.CompanyName</p>
+                    @if (dealer.BillingAddress != null)
+                    {
+                        var a = dealer.BillingAddress;
+                        <p class="mb-0 text-muted">
+                            @a.Street<br />
+                            @a.City, @a.Province &nbsp; @a.PostalCode<br />
+                            @a.Country
+                        </p>
+                    }
+                    <hr class="my-2" />
+                    <p class="mb-0">
+                        <strong>Payment Terms:</strong>
+                        @(dealer.PaymentTerms?.TermName ?? "—")
+                        @if (dealer.IsTaxExempt)
+                        {
+                            <span class="badge bg-success ms-2">Tax Exempt</span>
+                        }
+                    </p>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header fw-semibold">Order Summary</div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td>Subtotal</td>
+                        <td class="text-end">$@subtotal.ToString("F2")</td>
+                    </tr>
+                    @if (isTaxExempt)
+                    {
+                        <tr>
+                            <td>Tax</td>
+                            <td class="text-end text-muted">Tax Exempt</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td>Tax (13%)</td>
+                            <td class="text-end">$@taxAmount!.Value.ToString("F2")</td>
+                        </tr>
+                    }
+                    <tr class="border-top">
+                        <th>Total</th>
+                        <th class="text-end fs-5">$@total.ToString("F2")</th>
+                    </tr>
+                </table>
+
+                <form asp-action="SubmitOrder" method="post" class="mt-3">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-success w-100 btn-lg">
+                        Confirm and Submit Order
+                    </button>
+                </form>
+
+                <div class="text-center mt-2">
+                    <a asp-action="Cart" class="text-muted small text-decoration-none">&larr; Back to Cart</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

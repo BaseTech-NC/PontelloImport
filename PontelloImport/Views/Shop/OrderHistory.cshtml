@@ -1,0 +1,70 @@
+@model List<PontelloImport.Models.Order>
+@using Microsoft.AspNetCore.Html
+
+@{
+    ViewData["Title"] = "Order History";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Order History</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary">Continue Shopping</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No orders yet. <a asp-action="Index">Browse products</a> to place your first order.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>PO Number</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th class="text-center">Items</th>
+                    <th class="text-end">Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td class="fw-semibold">@order.PONumber</td>
+                        <td>@order.OrderDate.ToLocalTime().ToString("MMM d, yyyy")</td>
+                        <td>@StatusBadge(order.Status)</td>
+                        <td class="text-center">@order.OrderLines.Count</td>
+                        <td class="text-end">$@order.TotalAmount.ToString("F2")</td>
+                        <td class="text-end">
+                            <a asp-action="OrderDetail" asp-route-id="@order.OrderID"
+                               class="btn btn-sm btn-outline-primary">View Details</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@functions {
+    IHtmlContent StatusBadge(string status)
+    {
+        var (cssClass, label) = status switch
+        {
+            "Submitted"      => ("badge bg-primary", "Submitted"),
+            "Confirmed"      => ("badge bg-success", "Confirmed"),
+            "Shipped"        => ("badge", "Shipped"),
+            "Invoiced"       => ("badge bg-info text-dark", "Invoiced"),
+            "Cancelled"      => ("badge bg-danger", "Cancelled"),
+            "ActionRequired" => ("badge bg-warning text-dark", "Action Required"),
+            _                => ("badge bg-secondary", status)
+        };
+
+        var style = status == "Shipped" ? " style=\"background:#6f42c1\"" : "";
+        return new HtmlString($"<span class=\"{cssClass}\"{style}>{label}</span>");
+    }
+}
