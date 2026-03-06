@@ -1,0 +1,170 @@
+@model List<PontelloImport.Models.Order>
+
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Orders";
+    var currentStatus = ViewBag.CurrentStatus as string ?? "";
+    var currentSearch = ViewBag.CurrentSearch as string ?? "";
+}
+
+@functions {
+    string StatusBadge(string status) => status switch
+    {
+        "Submitted"      => "badge bg-primary",
+        "ActionRequired" => "badge bg-warning text-dark",
+        "Confirmed"      => "badge bg-success",
+        "Shipped"        => "badge text-white",
+        "Invoiced"       => "badge bg-info text-dark",
+        "Cancelled"      => "badge bg-danger",
+        _                => "badge bg-secondary"
+    };
+
+    string StatusBadgeStyle(string status) =>
+        status == "Shipped" ? "background:#6f42c1;" : "";
+}
+
+<div class="container-fluid mt-4">
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Orders</h2>
+            <p class="text-muted">Review and manage all dealer orders.</p>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <form asp-action="Index" method="get">
+                <input type="hidden" name="status" value="@currentStatus" />
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small mb-1">Search</label>
+                        <input type="text" name="search" class="form-control form-control-sm"
+                               placeholder="Search by PO number or dealer..."
+                               value="@currentSearch" />
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-dark btn-sm">Search</button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(currentSearch))
+                    {
+                        <div class="col-auto">
+                            <a asp-action="Index" asp-route-status="@currentStatus"
+                               class="btn btn-outline-secondary btn-sm">Clear</a>
+                        </div>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status Filter Tabs -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link @(string.IsNullOrEmpty(currentStatus) ? "active" : "")"
+                       href="@Url.Action("Index", new { search = currentSearch })">
+                        All <span class="badge bg-secondary ms-1">@ViewBag.AllCount</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(currentStatus == "Submitted" ? "active" : "")"
+                       href="@Url.Action("Index", new { status = "Submitted", search = currentSearch })">
+                        Submitted <span class="badge bg-primary ms-1">@ViewBag.SubmittedCount</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(currentStatus == "ActionRequired" ? "active" : "")"
+                       href="@Url.Action("Index", new { status = "ActionRequired", search = currentSearch })">
+                        Action Required <span class="badge bg-warning text-dark ms-1">@ViewBag.ActionRequiredCount</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(currentStatus == "Confirmed" ? "active" : "")"
+                       href="@Url.Action("Index", new { status = "Confirmed", search = currentSearch })">
+                        Confirmed <span class="badge bg-success ms-1">@ViewBag.ConfirmedCount</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(currentStatus == "Shipped" ? "active" : "")"
+                       href="@Url.Action("Index", new { status = "Shipped", search = currentSearch })">
+                        Shipped <span class="badge ms-1 text-white" style="background:#6f42c1;">@ViewBag.ShippedCount</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(currentStatus == "Invoiced" ? "active" : "")"
+                       href="@Url.Action("Index", new { status = "Invoiced", search = currentSearch })">
+                        Invoiced <span class="badge bg-info text-dark ms-1">@ViewBag.InvoicedCount</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(currentStatus == "Cancelled" ? "active" : "")"
+                       href="@Url.Action("Index", new { status = "Cancelled", search = currentSearch })">
+                        Cancelled <span class="badge bg-danger ms-1">@ViewBag.CancelledCount</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            @if (Model.Count == 0)
+            {
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                    No orders found.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>PO Number</th>
+                                <th>Dealer</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th class="text-end">Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in Model)
+                            {
+                                var rowClass = order.Status switch
+                                {
+                                    "Submitted"      => "table-warning",
+                                    "ActionRequired" => "table-danger",
+                                    _                => ""
+                                };
+                                <tr class="@rowClass">
+                                    <td class="fw-semibold">@order.PONumber</td>
+                                    <td>@order.DealerCompanyName</td>
+                                    <td>@order.OrderDate.ToString("MMM d, yyyy")</td>
+                                    <td>
+                                        <span class="@StatusBadge(order.Status)"
+                                              style="@StatusBadgeStyle(order.Status)">
+                                            @order.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-end">@order.TotalAmount.ToString("C")</td>
+                                    <td class="text-end">
+                                        <a asp-action="Details" asp-route-id="@order.OrderID"
+                                           class="btn btn-sm btn-outline-dark">Details</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>

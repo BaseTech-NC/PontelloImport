@@ -1,0 +1,305 @@
+@model PontelloImport.Models.Order
+
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = $"Order {Model.PONumber}";
+}
+
+@functions {
+    string BadgeClass(string status) => status switch
+    {
+        "Submitted"      => "badge bg-primary",
+        "ActionRequired" => "badge bg-warning text-dark",
+        "Confirmed"      => "badge bg-success",
+        "Shipped"        => "badge text-white",
+        "Invoiced"       => "badge bg-info text-dark",
+        "Cancelled"      => "badge bg-danger",
+        _                => "badge bg-secondary"
+    };
+
+    string BadgeStyle(string status) =>
+        status == "Shipped" ? "background:#6f42c1;" : "";
+}
+
+<div class="container-fluid mt-4">
+
+    <!-- Breadcrumb + Header -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-auto">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Orders
+            </a>
+        </div>
+        <div class="col">
+            <h4 class="mb-0">
+                Order @Model.PONumber
+                <span class="@BadgeClass(Model.Status)" style="@BadgeStyle(Model.Status) font-size:0.75rem;">
+                    @Model.Status
+                </span>
+            </h4>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Left column: Lines + Actions + History -->
+        <div class="col-lg-8">
+
+            <!-- Order Lines -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">Items</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Variant</th>
+                                    <th>SKU</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in Model.OrderLines)
+                                {
+                                    <tr>
+                                        <td>@line.ProductTitle</td>
+                                        <td class="text-muted">@(line.VariantTitle ?? "—")</td>
+                                        <td><code class="text-dark">@line.SKU</code></td>
+                                        <td class="text-center">@line.Quantity</td>
+                                        <td class="text-end">@line.UnitPrice.ToString("C")</td>
+                                        <td class="text-end fw-semibold">@line.LineTotal.ToString("C")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="5" class="text-end text-muted">Subtotal</td>
+                                    <td class="text-end">@Model.SubtotalAmount.ToString("C")</td>
+                                </tr>
+                                @if (Model.TaxAmount.HasValue)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-end text-muted">
+                                            Tax @(Model.TaxRate.HasValue ? $"({Model.TaxRate * 100:0.##}%)" : "")
+                                        </td>
+                                        <td class="text-end">@Model.TaxAmount.Value.ToString("C")</td>
+                                    </tr>
+                                }
+                                @if (Model.ShippingCost.HasValue)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-end text-muted">Shipping</td>
+                                        <td class="text-end">@Model.ShippingCost.Value.ToString("C")</td>
+                                    </tr>
+                                }
+                                <tr class="border-top">
+                                    <td colspan="5" class="text-end fw-semibold">Total</td>
+                                    <td class="text-end fw-semibold fs-6">@Model.TotalAmount.ToString("C")</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            @if (Model.Status == "Submitted")
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">Actions</div>
+                    <div class="card-body d-flex gap-2 flex-wrap">
+                        <form method="post" asp-action="Confirm" asp-route-id="@Model.OrderID">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i> Confirm Order
+                            </button>
+                        </form>
+                        <form method="post" asp-action="FlagIssue" asp-route-id="@Model.OrderID">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-flag me-1"></i> Flag Issue
+                            </button>
+                        </form>
+                        <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
+                              onsubmit="return confirm('Cancel this order? This cannot be undone.')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-x-circle me-1"></i> Cancel Order
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else if (Model.Status == "ActionRequired")
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">Actions</div>
+                    <div class="card-body d-flex gap-2 flex-wrap">
+                        <form method="post" asp-action="Confirm" asp-route-id="@Model.OrderID">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i> Confirm Order
+                            </button>
+                        </form>
+                        <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
+                              onsubmit="return confirm('Cancel this order? This cannot be undone.')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-x-circle me-1"></i> Cancel Order
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else if (Model.Status == "Confirmed")
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">Ship Order</div>
+                    <div class="card-body">
+                        <form method="post" asp-action="AddShipping" asp-route-id="@Model.OrderID">
+                            @Html.AntiForgeryToken()
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label">Shipping Cost ($)</label>
+                                    <input type="number" name="ShippingCost" class="form-control"
+                                           step="0.01" min="0" placeholder="0.00" required />
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Tracking Number</label>
+                                    <input type="text" name="TrackingNumber" class="form-control"
+                                           placeholder="e.g. 1Z999AA10123456784" required />
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-dark">
+                                        <i class="bi bi-truck me-1"></i> Mark as Shipped
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+            else if (Model.Status == "Shipped")
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">Actions</div>
+                    <div class="card-body d-flex gap-3 align-items-center flex-wrap">
+                        <form method="post" asp-action="MarkInvoiced" asp-route-id="@Model.OrderID">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-dark">
+                                <i class="bi bi-receipt me-1"></i> Mark as Invoiced
+                            </button>
+                        </form>
+                        @if (!string.IsNullOrEmpty(Model.TrackingNumber))
+                        {
+                            <div class="text-muted">
+                                <i class="bi bi-truck me-1"></i>
+                                Tracking: <code class="text-dark">@Model.TrackingNumber</code>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else if (Model.Status == "Invoiced")
+            {
+                <div class="card mb-4">
+                    <div class="card-body text-muted">
+                        <i class="bi bi-check-all me-1"></i>
+                        This order has been invoiced. No further actions are available.
+                        @if (!string.IsNullOrEmpty(Model.TrackingNumber))
+                        {
+                            <span class="ms-3">
+                                <i class="bi bi-truck me-1"></i>
+                                Tracking: <code class="text-dark">@Model.TrackingNumber</code>
+                            </span>
+                        }
+                    </div>
+                </div>
+            }
+            else if (Model.Status == "Cancelled")
+            {
+                <div class="card mb-4">
+                    <div class="card-body text-muted">
+                        <i class="bi bi-x-circle me-1"></i>
+                        This order has been cancelled. No further actions are available.
+                    </div>
+                </div>
+            }
+
+            <!-- Order History -->
+            <div class="card">
+                <div class="card-header bg-dark text-white">History</div>
+                @if (!Model.OrderHistories.Any())
+                {
+                    <div class="card-body text-muted">No history entries.</div>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var h in Model.OrderHistories)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="@BadgeClass(h.ChangeType)" style="@BadgeStyle(h.ChangeType)">
+                                            @h.ChangeType
+                                        </span>
+                                        <div class="mt-1">@h.ChangeDescription</div>
+                                        <small class="text-muted">by @h.ChangedBy</small>
+                                    </div>
+                                    <small class="text-muted text-nowrap ms-3">
+                                        @h.ChangedDate.ToString("MMM d, yyyy h:mm tt")
+                                    </small>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+        </div>
+
+        <!-- Right column: Order Details -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">Order Details</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5 text-muted">PO Number</dt>
+                        <dd class="col-sm-7 fw-semibold">@Model.PONumber</dd>
+
+                        <dt class="col-sm-5 text-muted">Dealer</dt>
+                        <dd class="col-sm-7">@Model.DealerCompanyName</dd>
+
+                        <dt class="col-sm-5 text-muted">Order Date</dt>
+                        <dd class="col-sm-7">@Model.OrderDate.ToString("MMM d, yyyy")</dd>
+
+                        <dt class="col-sm-5 text-muted">Payment Terms</dt>
+                        <dd class="col-sm-7">@(Model.PaymentTerms?.TermName ?? "—")</dd>
+
+                        <dt class="col-sm-5 text-muted">Payment Due</dt>
+                        <dd class="col-sm-7">
+                            @(Model.PaymentDueDate.HasValue
+                                ? Model.PaymentDueDate.Value.ToString("MMM d, yyyy")
+                                : "—")
+                        </dd>
+
+                        <dt class="col-sm-5 text-muted">Tax Exempt</dt>
+                        <dd class="col-sm-7">@(Model.IsTaxExempt ? "Yes" : "No")</dd>
+
+                        <dt class="col-sm-5 text-muted">Status</dt>
+                        <dd class="col-sm-7">
+                            <span class="@BadgeClass(Model.Status)" style="@BadgeStyle(Model.Status)">
+                                @Model.Status
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
