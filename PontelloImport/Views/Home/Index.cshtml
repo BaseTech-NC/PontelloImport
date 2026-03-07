@@ -3,52 +3,126 @@
     ViewData["Title"] = "Pontello Imports";
 }
 
-<div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 80vh; padding: 2rem 1rem;">
+<style>
+    .portal-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        transition: box-shadow 150ms;
+    }
 
-    <!-- Logo + Title -->
+    .portal-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    }
+
+    .portal-card .card-icon {
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
+        line-height: 1;
+    }
+
+    .portal-card .card-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.6rem;
+    }
+
+    .portal-card h4 {
+        color: #111827;
+        font-weight: 600;
+        font-size: 1.15rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .portal-card p {
+        color: #6B7280;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        flex-grow: 1;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-dealer {
+        background: #2563EB;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+        width: 100%;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        transition: background 150ms;
+    }
+
+    .btn-dealer:hover {
+        background: #1D4ED8;
+        color: #ffffff;
+    }
+
+    .btn-admin {
+        background: #111827;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+        width: 100%;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        transition: background 150ms;
+    }
+
+    .btn-admin:hover {
+        background: #1F2937;
+        color: #ffffff;
+    }
+</style>
+
+<div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 78vh; padding: 2rem 0;">
+
+    <!-- Title -->
     <div class="text-center mb-5">
-        <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height: 80px;" class="mb-3" />
-        <p class="text-muted mb-0" style="font-size: 1.05rem; max-width: 480px;">
+        <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height: 72px;" class="mb-4" />
+        <h1 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;">
+            Pontello Imports
+        </h1>
+        <p style="color: #6B7280; font-size: 0.95rem; max-width: 400px; margin: 0 auto;">
             Wholesale karting &amp; motorsports components — Canada &amp; United States
         </p>
     </div>
 
-    <!-- Portal Cards -->
-    <div class="row g-4 justify-content-center w-100" style="max-width: 820px;">
+    <!-- Cards -->
+    <div class="row g-4 justify-content-center w-100" style="max-width: 760px;">
 
-        <!-- Dealer Portal -->
         <div class="col-md-5">
-            <div class="card h-100 shadow-sm border-0" style="border-top: 4px solid #0d6efd !important;">
-                <div class="card-body d-flex flex-column p-4">
-                    <div class="mb-3">
-                        <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold px-3 py-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">DEALER PORTAL</span>
-                    </div>
-                    <h4 class="card-title fw-bold mb-2">Dealer Portal</h4>
-                    <p class="card-text text-muted mb-4 flex-grow-1">
-                        Browse products, manage your cart, and submit orders.
-                    </p>
-                    <a href="/Home/EnterDealerPortal" class="btn btn-primary btn-lg w-100">
-                        Enter Dealer Portal
-                    </a>
-                </div>
+            <div class="portal-card">
+                <div class="card-icon">🏁</div>
+                <div class="card-label" style="color: #2563EB;">Dealer Portal</div>
+                <h4>Dealer Portal</h4>
+                <p>Browse products, manage your cart, and submit orders to Pontello Imports.</p>
+                <a href="/Home/EnterDealerPortal" class="btn-dealer">Enter Dealer Portal</a>
             </div>
         </div>
 
-        <!-- Admin Panel -->
         <div class="col-md-5">
-            <div class="card h-100 shadow-sm border-0" style="border-top: 4px solid #212529 !important;">
-                <div class="card-body d-flex flex-column p-4">
-                    <div class="mb-3">
-                        <span class="badge bg-dark bg-opacity-10 text-dark fw-semibold px-3 py-2" style="font-size: 0.75rem; letter-spacing: 0.05em; background-color: #e9ecef !important;">ADMIN</span>
-                    </div>
-                    <h4 class="card-title fw-bold mb-2">Pontello Admin</h4>
-                    <p class="card-text text-muted mb-4 flex-grow-1">
-                        Manage products, process orders, and oversee dealer activity.
-                    </p>
-                    <a href="/Home/EnterAdminPortal" class="btn btn-dark btn-lg w-100">
-                        Enter Admin Panel
-                    </a>
-                </div>
+            <div class="portal-card">
+                <div class="card-icon">⚙️</div>
+                <div class="card-label" style="color: #6B7280;">Admin</div>
+                <h4>Pontello Admin</h4>
+                <p>Manage products, process orders, and oversee all dealer activity.</p>
+                <a href="/Home/EnterAdminPortal" class="btn-admin">Enter Admin Panel</a>
             </div>
         </div>
 

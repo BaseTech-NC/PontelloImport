@@ -7,164 +7,292 @@
     var currentSearch = ViewBag.CurrentSearch as string ?? "";
 }
 
-@functions {
-    string StatusBadge(string status) => status switch
-    {
-        "Submitted"      => "badge bg-primary",
-        "ActionRequired" => "badge bg-warning text-dark",
-        "Confirmed"      => "badge bg-success",
-        "Shipped"        => "badge text-white",
-        "Invoiced"       => "badge bg-info text-dark",
-        "Cancelled"      => "badge bg-danger",
-        _                => "badge bg-secondary"
-    };
+<style>
+    /* Global font override for admin pages */
+    *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
 
-    string StatusBadgeStyle(string status) =>
-        status == "Shipped" ? "background:#6f42c1;" : "";
+    /* Status filter tabs */
+    .order-tabs {
+        display: flex;
+        gap: 2px;
+        border-bottom: 1px solid #E5E7EB;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+    }
+
+    .order-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.5rem 0.85rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #6B7280;
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        border-radius: 4px 4px 0 0;
+        transition: color 150ms, background 150ms;
+    }
+
+    .order-tab:hover {
+        color: #111827;
+        background: #F3F4F6;
+    }
+
+    .order-tab.active {
+        color: #2563EB;
+        border-bottom-color: #2563EB;
+        background: transparent;
+    }
+
+    .order-tab .tab-count {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: #F3F4F6;
+        color: #6B7280;
+    }
+
+    .order-tab.active .tab-count {
+        background: #EFF6FF;
+        color: #2563EB;
+    }
+
+    /* Table card */
+    .orders-table-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .orders-table-card table {
+        margin-bottom: 0;
+    }
+
+    .orders-table-card thead th {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #6B7280;
+        background: #F8FAFC;
+        border-bottom: 1px solid #E5E7EB;
+        padding: 0.75rem 1rem;
+    }
+
+    .orders-table-card tbody td {
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid #F3F4F6;
+        color: #111827;
+        font-size: 0.875rem;
+        vertical-align: middle;
+    }
+
+    .orders-table-card tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .orders-table-card tbody tr:hover td {
+        background: #F8FAFC;
+    }
+
+    /* Soft status badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .badge-submitted      { background: #EFF6FF; color: #2563EB; }
+    .badge-confirmed      { background: #F0FDF4; color: #16A34A; }
+    .badge-actionrequired { background: #FFF7ED; color: #EA580C; }
+    .badge-shipped        { background: #FAF5FF; color: #7C3AED; }
+    .badge-invoiced       { background: #F0FDFA; color: #0D9488; }
+    .badge-cancelled      { background: #FEF2F2; color: #DC2626; }
+    .badge-default        { background: #F3F4F6; color: #6B7280; }
+
+    /* Details button */
+    .btn-details {
+        color: #2563EB;
+        border: 1px solid #BFDBFE;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 0.3rem 0.75rem;
+        text-decoration: none;
+        transition: background 150ms;
+        white-space: nowrap;
+    }
+
+    .btn-details:hover {
+        background: #EFF6FF;
+        color: #1D4ED8;
+    }
+
+    /* Search input */
+    .orders-search {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: #111827;
+        background: #ffffff;
+        transition: border-color 150ms;
+    }
+
+    .orders-search:focus {
+        border-color: #2563EB;
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        outline: none;
+    }
+
+    .btn-search {
+        background: #111827;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.45rem 1.1rem;
+        transition: background 150ms;
+    }
+
+    .btn-search:hover { background: #1F2937; color: #ffffff; }
+
+    .btn-clear-search {
+        color: #6B7280;
+        border: 1px solid #E5E7EB;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.45rem 0.85rem;
+        text-decoration: none;
+        transition: background 150ms;
+    }
+
+    .btn-clear-search:hover { background: #F3F4F6; color: #374151; }
+</style>
+
+@functions {
+    string StatusBadgeClass(string status) => status switch
+    {
+        "Submitted"      => "status-badge badge-submitted",
+        "Confirmed"      => "status-badge badge-confirmed",
+        "ActionRequired" => "status-badge badge-actionrequired",
+        "Shipped"        => "status-badge badge-shipped",
+        "Invoiced"       => "status-badge badge-invoiced",
+        "Cancelled"      => "status-badge badge-cancelled",
+        _                => "status-badge badge-default"
+    };
 }
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4" style="max-width: 1200px;">
 
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col">
-            <h2>Orders</h2>
-            <p class="text-muted">Review and manage all dealer orders.</p>
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 style="font-weight: 600; color: #111827; font-size: 1.4rem; margin-bottom: 0.2rem;">Order Management</h2>
+            <p style="color: #6B7280; font-size: 0.875rem; margin: 0;">Review and process all dealer orders.</p>
         </div>
     </div>
 
     <!-- Search Bar -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <form asp-action="Index" method="get">
-                <input type="hidden" name="status" value="@currentStatus" />
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label text-muted small mb-1">Search</label>
-                        <input type="text" name="search" class="form-control form-control-sm"
-                               placeholder="Search by PO number or dealer..."
-                               value="@currentSearch" />
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-dark btn-sm">Search</button>
-                    </div>
-                    @if (!string.IsNullOrEmpty(currentSearch))
-                    {
-                        <div class="col-auto">
-                            <a asp-action="Index" asp-route-status="@currentStatus"
-                               class="btn btn-outline-secondary btn-sm">Clear</a>
-                        </div>
-                    }
-                </div>
-            </form>
+    <form asp-action="Index" method="get" class="mb-3">
+        <input type="hidden" name="status" value="@currentStatus" />
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="text" name="search" class="orders-search form-control" style="max-width: 300px;"
+                   placeholder="Search PO number or dealer…" value="@currentSearch" />
+            <button type="submit" class="btn-search">Search</button>
+            @if (!string.IsNullOrEmpty(currentSearch))
+            {
+                <a asp-action="Index" asp-route-status="@currentStatus" class="btn-clear-search">Clear</a>
+            }
         </div>
-    </div>
+    </form>
 
     <!-- Status Filter Tabs -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <ul class="nav nav-tabs">
-                <li class="nav-item">
-                    <a class="nav-link @(string.IsNullOrEmpty(currentStatus) ? "active" : "")"
-                       href="@Url.Action("Index", new { search = currentSearch })">
-                        All <span class="badge bg-secondary ms-1">@ViewBag.AllCount</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(currentStatus == "Submitted" ? "active" : "")"
-                       href="@Url.Action("Index", new { status = "Submitted", search = currentSearch })">
-                        Submitted <span class="badge bg-primary ms-1">@ViewBag.SubmittedCount</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(currentStatus == "ActionRequired" ? "active" : "")"
-                       href="@Url.Action("Index", new { status = "ActionRequired", search = currentSearch })">
-                        Action Required <span class="badge bg-warning text-dark ms-1">@ViewBag.ActionRequiredCount</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(currentStatus == "Confirmed" ? "active" : "")"
-                       href="@Url.Action("Index", new { status = "Confirmed", search = currentSearch })">
-                        Confirmed <span class="badge bg-success ms-1">@ViewBag.ConfirmedCount</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(currentStatus == "Shipped" ? "active" : "")"
-                       href="@Url.Action("Index", new { status = "Shipped", search = currentSearch })">
-                        Shipped <span class="badge ms-1 text-white" style="background:#6f42c1;">@ViewBag.ShippedCount</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(currentStatus == "Invoiced" ? "active" : "")"
-                       href="@Url.Action("Index", new { status = "Invoiced", search = currentSearch })">
-                        Invoiced <span class="badge bg-info text-dark ms-1">@ViewBag.InvoicedCount</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(currentStatus == "Cancelled" ? "active" : "")"
-                       href="@Url.Action("Index", new { status = "Cancelled", search = currentSearch })">
-                        Cancelled <span class="badge bg-danger ms-1">@ViewBag.CancelledCount</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
+    <div class="order-tabs">
+        <a class="order-tab @(string.IsNullOrEmpty(currentStatus) ? "active" : "")"
+           href="@Url.Action("Index", new { search = currentSearch })">
+            All <span class="tab-count">@ViewBag.AllCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Submitted" ? "active" : "")"
+           href="@Url.Action("Index", new { status = "Submitted", search = currentSearch })">
+            Submitted <span class="tab-count">@ViewBag.SubmittedCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "ActionRequired" ? "active" : "")"
+           href="@Url.Action("Index", new { status = "ActionRequired", search = currentSearch })">
+            Action Required <span class="tab-count">@ViewBag.ActionRequiredCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Confirmed" ? "active" : "")"
+           href="@Url.Action("Index", new { status = "Confirmed", search = currentSearch })">
+            Confirmed <span class="tab-count">@ViewBag.ConfirmedCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Shipped" ? "active" : "")"
+           href="@Url.Action("Index", new { status = "Shipped", search = currentSearch })">
+            Shipped <span class="tab-count">@ViewBag.ShippedCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Invoiced" ? "active" : "")"
+           href="@Url.Action("Index", new { status = "Invoiced", search = currentSearch })">
+            Invoiced <span class="tab-count">@ViewBag.InvoicedCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Cancelled" ? "active" : "")"
+           href="@Url.Action("Index", new { status = "Cancelled", search = currentSearch })">
+            Cancelled <span class="tab-count">@ViewBag.CancelledCount</span>
+        </a>
     </div>
 
     <!-- Orders Table -->
-    <div class="card">
-        <div class="card-body p-0">
-            @if (Model.Count == 0)
-            {
-                <div class="p-4 text-center text-muted">
-                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                    No orders found.
-                </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+    <div class="orders-table-card">
+        @if (Model.Count == 0)
+        {
+            <div style="text-align:center; padding:3rem; color:#6B7280;">
+                <div style="font-size:1.75rem; margin-bottom:0.6rem;">📭</div>
+                <p style="margin:0; font-size:0.9rem;">No orders found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>PO Number</th>
+                            <th>Dealer</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in Model)
+                        {
                             <tr>
-                                <th>PO Number</th>
-                                <th>Dealer</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th class="text-end">Total</th>
-                                <th></th>
+                                <td style="font-weight: 600;">@order.PONumber</td>
+                                <td style="color: #374151;">@order.DealerCompanyName</td>
+                                <td style="color: #6B7280;">@order.OrderDate.ToString("MMM d, yyyy")</td>
+                                <td>
+                                    <span class="@StatusBadgeClass(order.Status)">@order.Status</span>
+                                </td>
+                                <td style="text-align:right; font-weight:600;">@order.TotalAmount.ToString("C")</td>
+                                <td style="text-align:right;">
+                                    <a asp-action="Details" asp-route-id="@order.OrderID" class="btn-details">Details</a>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var order in Model)
-                            {
-                                var rowClass = order.Status switch
-                                {
-                                    "Submitted"      => "table-warning",
-                                    "ActionRequired" => "table-danger",
-                                    _                => ""
-                                };
-                                <tr class="@rowClass">
-                                    <td class="fw-semibold">@order.PONumber</td>
-                                    <td>@order.DealerCompanyName</td>
-                                    <td>@order.OrderDate.ToString("MMM d, yyyy")</td>
-                                    <td>
-                                        <span class="@StatusBadge(order.Status)"
-                                              style="@StatusBadgeStyle(order.Status)">
-                                            @order.Status
-                                        </span>
-                                    </td>
-                                    <td class="text-end">@order.TotalAmount.ToString("C")</td>
-                                    <td class="text-end">
-                                        <a asp-action="Details" asp-route-id="@order.OrderID"
-                                           class="btn btn-sm btn-outline-dark">Details</a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 
 </div>
