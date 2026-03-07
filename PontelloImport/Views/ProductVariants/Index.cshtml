@@ -18,462 +18,511 @@
                           !string.IsNullOrEmpty(currentStockStatus);
 }
 
-<div class="container-fluid mt-4">
+<style>
+    *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
+
+    /* Filter inputs */
+    .cat-input {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: #111827;
+        background: #ffffff;
+        padding: 0.42rem 0.75rem;
+        transition: border-color 150ms;
+        height: 36px;
+    }
+    .cat-input:focus {
+        border-color: #2563EB;
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        outline: none;
+    }
+
+    /* Buttons */
+    .btn-search-sm {
+        background: #111827;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.42rem 1rem;
+        height: 36px;
+        transition: background 150ms;
+        white-space: nowrap;
+    }
+    .btn-search-sm:hover { background: #1F2937; color: #fff; }
+
+    .btn-clear-sm {
+        color: #6B7280;
+        border: 1px solid #E5E7EB;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.42rem 0.85rem;
+        height: 36px;
+        text-decoration: none;
+        transition: background 150ms;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+    }
+    .btn-clear-sm:hover { background: #F3F4F6; color: #374151; }
+
+    .btn-create {
+        background: #111827;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1.1rem;
+        text-decoration: none;
+        transition: background 150ms;
+        display: inline-block;
+    }
+    .btn-create:hover { background: #1F2937; color: #fff; }
+
+    /* Status tabs */
+    .cat-tabs {
+        display: flex;
+        gap: 2px;
+        border-bottom: 1px solid #E5E7EB;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+    }
+    .cat-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.5rem 0.85rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #6B7280;
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        border-radius: 4px 4px 0 0;
+        transition: color 150ms, background 150ms;
+    }
+    .cat-tab:hover { color: #111827; background: #F3F4F6; }
+    .cat-tab.active { color: #2563EB; border-bottom-color: #2563EB; background: transparent; }
+    .cat-tab .tab-count {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: #F3F4F6;
+        color: #6B7280;
+    }
+    .cat-tab.active .tab-count { background: #EFF6FF; color: #2563EB; }
+
+    /* Table card */
+    .cat-table-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .cat-table-card table { margin-bottom: 0; }
+    .cat-table-card thead th {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #6B7280;
+        background: #F8FAFC;
+        border-bottom: 1px solid #E5E7EB;
+        padding: 0.75rem 1rem;
+    }
+    .cat-table-card tbody td {
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid #F3F4F6;
+        color: #111827;
+        font-size: 0.875rem;
+        vertical-align: middle;
+    }
+    .cat-table-card tbody tr:last-child td { border-bottom: none; }
+    .cat-table-card tbody tr:hover td { background: #F8FAFC; }
+
+    /* Soft pill badges */
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+    /* Status */
+    .pill-published  { background: #F0FDF4; color: #16A34A; }
+    .pill-draft      { background: #FFF7ED; color: #EA580C; }
+    .pill-unlisted   { background: #F3F4F6; color: #6B7280; }
+    .pill-archived   { background: #FEF2F2; color: #DC2626; }
+    /* Inventory */
+    .pill-instock    { background: #F0FDF4; color: #16A34A; }
+    .pill-lowstock   { background: #FFF7ED; color: #EA580C; }
+    .pill-outofstock { background: #FEF2F2; color: #DC2626; }
+
+    /* Action buttons */
+    .btn-act-details {
+        color: #2563EB;
+        border: 1px solid #BFDBFE;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        padding: 0.25rem 0.65rem;
+        text-decoration: none;
+        transition: background 150ms;
+        white-space: nowrap;
+    }
+    .btn-act-details:hover { background: #EFF6FF; color: #1D4ED8; }
+
+    .btn-act-edit {
+        color: #6B7280;
+        border: 1px solid #E5E7EB;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        padding: 0.25rem 0.65rem;
+        text-decoration: none;
+        transition: background 150ms;
+        white-space: nowrap;
+    }
+    .btn-act-edit:hover { background: #F3F4F6; color: #374151; }
+
+    .btn-act-ghost {
+        color: #9CA3AF;
+        border: 1px solid #E5E7EB;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        padding: 0.25rem 0.65rem;
+        text-decoration: none;
+        transition: background 150ms;
+        white-space: nowrap;
+    }
+    .btn-act-ghost:hover { background: #F3F4F6; color: #6B7280; }
+
+    /* Pagination */
+    .pag { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 1.25rem; }
+    .pag-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #6B7280;
+        border: 1px solid #E5E7EB;
+        border-radius: 6px;
+        text-decoration: none;
+        transition: background 150ms, color 150ms;
+        background: #fff;
+    }
+    .pag-link:hover { background: #F3F4F6; color: #111827; }
+    .pag-link.active { background: #2563EB; color: #fff; border-color: #2563EB; }
+    .pag-link.disabled { color: #D1D5DB; pointer-events: none; }
+</style>
+
+<div class="container-fluid mt-4" style="max-width: 1200px;">
 
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <h2>Product Catalogue</h2>
-            <p class="text-muted">Browse, manage, and organise your entire product inventory.</p>
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 style="font-weight:600; color:#111827; font-size:1.4rem; margin-bottom:0.2rem;">Product Catalogue</h2>
+            <p style="color:#6B7280; font-size:0.875rem; margin:0;">Browse, manage, and organise your entire product inventory.</p>
         </div>
-        <div class="col-md-6 text-end">
-            <a asp-action="Create" class="btn btn-dark btn-lg">
-                Create New Product
-            </a>
-        </div>
+        <a asp-action="Create" class="btn-create">+ Create Product</a>
     </div>
 
     <!-- Search & Filter Bar -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <form asp-action="Index" method="get" id="filterForm">
-                <input type="hidden" name="filter" value="@currentFilter" />
-                <input type="hidden" name="pageNumber" value="1" />
-                <input type="hidden" name="pageSize" value="@currentPageSize" />
+    <form asp-action="Index" method="get" id="filterForm" class="mb-3">
+        <input type="hidden" name="filter" value="@currentFilter" />
+        <input type="hidden" name="pageNumber" value="1" />
+        <input type="hidden" name="pageSize" value="@currentPageSize" />
 
-                <div class="row g-2 align-items-end">
-                    <!-- Search Bar -->
-                    <div class="col-md-4">
-                        <label for="search" class="form-label text-muted small mb-1">Search</label>
-                        <input type="text" name="search" id="search" class="form-control form-control-sm"
-                               placeholder="Search by title or SKU..."
-                               value="@currentSearch" />
-                    </div>
-
-                    <!-- Category Dropdown -->
-                    <div class="col-md-2">
-                        <label for="categoryId" class="form-label text-muted small mb-1">Category</label>
-                        <select name="categoryId" id="categoryId" class="form-select form-select-sm">
-                            <option value="">All Categories</option>
-                            @if (ViewBag.Categories != null)
-                            {
-                                @foreach (SelectListItem item in ViewBag.Categories)
-                                {
-                                    <option value="@item.Value" selected="@item.Selected">@item.Text</option>
-                                }
-                            }
-                        </select>
-                    </div>
-
-                    <!-- Vendor Dropdown -->
-                    <div class="col-md-2">
-                        <label for="vendorId" class="form-label text-muted small mb-1">Vendor</label>
-                        <select name="vendorId" id="vendorId" class="form-select form-select-sm">
-                            <option value="">All Vendors</option>
-                            @if (ViewBag.Vendors != null)
-                            {
-                                @foreach (SelectListItem item in ViewBag.Vendors)
-                                {
-                                    <option value="@item.Value" selected="@item.Selected">@item.Text</option>
-                                }
-                            }
-                        </select>
-                    </div>
-
-                    <!-- Product Type Dropdown -->
-                    <div class="col-md-2">
-                        <label for="productType" class="form-label text-muted small mb-1">Product Type</label>
-                        <select name="productType" id="productType" class="form-select form-select-sm">
-                            <option value="">All Types</option>
-                            @if (ViewBag.ProductTypes != null)
-                            {
-                                @foreach (SelectListItem item in ViewBag.ProductTypes)
-                                {
-                                    <option value="@item.Value" selected="@item.Selected">@item.Text</option>
-                                }
-                            }
-                        </select>
-                    </div>
-
-                    <!-- Stock Status Dropdown -->
-                    <div class="col-md-2">
-                        <label for="stockStatus" class="form-label text-muted small mb-1">Stock</label>
-                        <select name="stockStatus" id="stockStatus" class="form-select form-select-sm">
-                            <option value="">All Stock</option>
-                            <option value="instock" selected="@(currentStockStatus == "instock")">In Stock (&gt;5)</option>
-                            <option value="lowstock" selected="@(currentStockStatus == "lowstock")">Low Stock (1-5)</option>
-                            <option value="outofstock" selected="@(currentStockStatus == "outofstock")">Out of Stock (0)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="row mt-2">
-                    <div class="col-12 d-flex gap-2">
-                        <button type="submit" class="btn btn-dark btn-sm">
-                            <i class="bi bi-search"></i> Search
-                        </button>
-                        @if (hasActiveFilters)
-                        {
-                            <a asp-action="Index"
-                               asp-route-filter="@currentFilter"
-                               asp-route-pageSize="@currentPageSize"
-                               class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-x-circle"></i> Clear Filters
-                            </a>
-                        }
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Status Filter Buttons -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="btn-group" role="group">
-                <a asp-action="Index" asp-route-filter="all" asp-route-pageNumber="1"
-                   asp-route-pageSize="@currentPageSize"
-                   asp-route-search="@currentSearch"
-                   asp-route-categoryId="@currentCategoryId"
-                   asp-route-vendorId="@currentVendorId"
-                   asp-route-productType="@currentProductType"
-                   asp-route-stockStatus="@currentStockStatus"
-                   class="btn btn-sm @(currentFilter == "all" ? "btn-dark" : "btn-outline-secondary text-dark")">
-                    All (@ViewBag.AllCount)
-                </a>
-                <a asp-action="Index" asp-route-filter="published" asp-route-pageNumber="1"
-                   asp-route-pageSize="@currentPageSize"
-                   asp-route-search="@currentSearch"
-                   asp-route-categoryId="@currentCategoryId"
-                   asp-route-vendorId="@currentVendorId"
-                   asp-route-productType="@currentProductType"
-                   asp-route-stockStatus="@currentStockStatus"
-                   class="btn btn-sm @(currentFilter == "published" ? "btn-dark" : "btn-outline-secondary text-dark")">
-                    Published (@ViewBag.PublishedCount)
-                </a>
-                <a asp-action="Index" asp-route-filter="draft" asp-route-pageNumber="1"
-                   asp-route-pageSize="@currentPageSize"
-                   asp-route-search="@currentSearch"
-                   asp-route-categoryId="@currentCategoryId"
-                   asp-route-vendorId="@currentVendorId"
-                   asp-route-productType="@currentProductType"
-                   asp-route-stockStatus="@currentStockStatus"
-                   class="btn btn-sm @(currentFilter == "draft" ? "btn-dark" : "btn-outline-secondary text-dark")">
-                    Draft (@ViewBag.DraftCount)
-                </a>
-                <a asp-action="Index" asp-route-filter="archived" asp-route-pageNumber="1"
-                   asp-route-pageSize="@currentPageSize"
-                   asp-route-search="@currentSearch"
-                   asp-route-categoryId="@currentCategoryId"
-                   asp-route-vendorId="@currentVendorId"
-                   asp-route-productType="@currentProductType"
-                   asp-route-stockStatus="@currentStockStatus"
-                   class="btn btn-sm @(currentFilter == "archived" ? "btn-dark" : "btn-outline-secondary text-dark")">
-                    Archived (@ViewBag.ArchivedCount)
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Results Summary + Page Size Selector -->
-    @if (Model.Any())
-    {
-        <div class="row mb-3 align-items-center">
-            <div class="col-md-6">
-                <p class="text-muted mb-0">
-                    Showing @((Model.PageIndex - 1) * currentPageSize + 1) - @(Math.Min(Model.PageIndex * currentPageSize, Model.TotalCount)) of @Model.TotalCount results
-                </p>
-            </div>
-            <div class="col-md-6 text-end">
-                <form asp-action="Index" method="get" class="d-inline-flex align-items-center">
-                    <input type="hidden" name="filter" value="@currentFilter" />
-                    <input type="hidden" name="pageNumber" value="1" />
-                    <input type="hidden" name="search" value="@currentSearch" />
-                    <input type="hidden" name="categoryId" value="@currentCategoryId" />
-                    <input type="hidden" name="vendorId" value="@currentVendorId" />
-                    <input type="hidden" name="productType" value="@currentProductType" />
-                    <input type="hidden" name="stockStatus" value="@currentStockStatus" />
-
-                    <label for="pageSize" class="me-2 mb-0 text-muted">Show:</label>
-                    <select name="pageSize" id="pageSize" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
-                        <option value="10" selected="@(currentPageSize == 10)">10</option>
-                        <option value="25" selected="@(currentPageSize == 25)">25</option>
-                        <option value="50" selected="@(currentPageSize == 50)">50</option>
-                        <option value="100" selected="@(currentPageSize == 100)">100</option>
-                    </select>
-                    <span class="ms-2 text-muted">per page</span>
-                </form>
-            </div>
-        </div>
-    }
-
-    <!-- Variants Table -->
-    <div class="row">
-        <div class="col-12">
-            @if (!Model.Any())
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <input type="text" name="search" class="cat-input form-control" style="max-width:220px;"
+                   placeholder="Search title or SKU…" value="@currentSearch" />
+            <select name="categoryId" class="cat-input form-select" style="max-width:160px;">
+                <option value="">All Categories</option>
+                @if (ViewBag.Categories != null)
+                {
+                    @foreach (SelectListItem item in ViewBag.Categories)
+                    {
+                        <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                    }
+                }
+            </select>
+            <select name="vendorId" class="cat-input form-select" style="max-width:150px;">
+                <option value="">All Vendors</option>
+                @if (ViewBag.Vendors != null)
+                {
+                    @foreach (SelectListItem item in ViewBag.Vendors)
+                    {
+                        <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                    }
+                }
+            </select>
+            <select name="productType" class="cat-input form-select" style="max-width:150px;">
+                <option value="">All Types</option>
+                @if (ViewBag.ProductTypes != null)
+                {
+                    @foreach (SelectListItem item in ViewBag.ProductTypes)
+                    {
+                        <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                    }
+                }
+            </select>
+            <select name="stockStatus" class="cat-input form-select" style="max-width:140px;">
+                <option value="">All Stock</option>
+                <option value="instock"    selected="@(currentStockStatus == "instock")">In Stock (&gt;5)</option>
+                <option value="lowstock"   selected="@(currentStockStatus == "lowstock")">Low Stock (1–5)</option>
+                <option value="outofstock" selected="@(currentStockStatus == "outofstock")">Out of Stock</option>
+            </select>
+            <button type="submit" class="btn-search-sm">Search</button>
+            @if (hasActiveFilters)
             {
-                <div class="alert alert-secondary">
-                    @if (hasActiveFilters)
-                    {
-                        <span>No products match your search criteria.</span>
-                        <a asp-action="Index"
-                           asp-route-filter="@currentFilter"
-                           asp-route-pageSize="@currentPageSize"
-                           class="alert-link">Clear all filters</a>
-                    }
-                    else
-                    {
-                        <span>No variants found.</span>
-                        <a asp-action="Create" class="alert-link">Create your first product</a>
-                    }
-                </div>
+                <a asp-action="Index" asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                   class="btn-clear-sm">Clear</a>
+            }
+        </div>
+    </form>
+
+    <!-- Status Filter Tabs -->
+    <div class="cat-tabs">
+        <a class="cat-tab @(currentFilter == "all" ? "active" : "")"
+           asp-action="Index" asp-route-filter="all" asp-route-pageNumber="1"
+           asp-route-pageSize="@currentPageSize" asp-route-search="@currentSearch"
+           asp-route-categoryId="@currentCategoryId" asp-route-vendorId="@currentVendorId"
+           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus">
+            All <span class="tab-count">@ViewBag.AllCount</span>
+        </a>
+        <a class="cat-tab @(currentFilter == "published" ? "active" : "")"
+           asp-action="Index" asp-route-filter="published" asp-route-pageNumber="1"
+           asp-route-pageSize="@currentPageSize" asp-route-search="@currentSearch"
+           asp-route-categoryId="@currentCategoryId" asp-route-vendorId="@currentVendorId"
+           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus">
+            Published <span class="tab-count">@ViewBag.PublishedCount</span>
+        </a>
+        <a class="cat-tab @(currentFilter == "draft" ? "active" : "")"
+           asp-action="Index" asp-route-filter="draft" asp-route-pageNumber="1"
+           asp-route-pageSize="@currentPageSize" asp-route-search="@currentSearch"
+           asp-route-categoryId="@currentCategoryId" asp-route-vendorId="@currentVendorId"
+           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus">
+            Draft <span class="tab-count">@ViewBag.DraftCount</span>
+        </a>
+        <a class="cat-tab @(currentFilter == "archived" ? "active" : "")"
+           asp-action="Index" asp-route-filter="archived" asp-route-pageNumber="1"
+           asp-route-pageSize="@currentPageSize" asp-route-search="@currentSearch"
+           asp-route-categoryId="@currentCategoryId" asp-route-vendorId="@currentVendorId"
+           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus">
+            Archived <span class="tab-count">@ViewBag.ArchivedCount</span>
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:3rem; color:#6B7280;">
+            <div style="font-size:1.75rem; margin-bottom:0.6rem;">📦</div>
+            <p style="margin:0 0 0.5rem; font-size:0.9rem;">
+                @if (hasActiveFilters) { <text>No products match your search criteria.</text> }
+                else { <text>No variants found.</text> }
+            </p>
+            @if (hasActiveFilters)
+            {
+                <a asp-action="Index" asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                   style="color:#2563EB; font-size:0.875rem;">Clear all filters</a>
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <a asp-action="Create" style="color:#2563EB; font-size:0.875rem;">Create your first product</a>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- Results summary + page size -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p style="color:#6B7280; font-size:0.8rem; margin:0;">
+                Showing @((Model.PageIndex - 1) * currentPageSize + 1)–@(Math.Min(Model.PageIndex * currentPageSize, Model.TotalCount)) of @Model.TotalCount results
+            </p>
+            <form asp-action="Index" method="get" class="d-inline-flex align-items-center gap-2">
+                <input type="hidden" name="filter" value="@currentFilter" />
+                <input type="hidden" name="pageNumber" value="1" />
+                <input type="hidden" name="search" value="@currentSearch" />
+                <input type="hidden" name="categoryId" value="@currentCategoryId" />
+                <input type="hidden" name="vendorId" value="@currentVendorId" />
+                <input type="hidden" name="productType" value="@currentProductType" />
+                <input type="hidden" name="stockStatus" value="@currentStockStatus" />
+                <label style="font-size:0.8rem; color:#6B7280; margin:0;">Show</label>
+                <select name="pageSize" class="cat-input form-select" style="width:72px; height:32px; padding:0.2rem 0.5rem; font-size:0.8rem;" onchange="this.form.submit()">
+                    <option value="10"  selected="@(currentPageSize == 10)">10</option>
+                    <option value="25"  selected="@(currentPageSize == 25)">25</option>
+                    <option value="50"  selected="@(currentPageSize == 50)">50</option>
+                    <option value="100" selected="@(currentPageSize == 100)">100</option>
+                </select>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="cat-table-card">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Price</th>
+                            <th>Inventory</th>
+                            <th>Status</th>
+                            <th>Vendor</th>
+                            <th>Category</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var variant in Model)
+                        {
                             <tr>
-                                <th>Product Title</th>
-                                <th>SKU</th>
-                                <th>Price</th>
-                                <th>Inventory</th>
-                                <th>Status</th>
-                                <th>Vendor</th>
-                                <th>Category</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var variant in Model)
-                            {
-                                <tr>
-                                    <!-- Product Title + option snippet -->
-                                    <td>
-                                        <a asp-action="Details" asp-route-id="@variant.VariantID"
-                                           class="text-decoration-none text-dark fw-semibold">
-                                            @(variant.Product?.Title ?? variant.SKU)
-                                        </a>
-                                        @{
-                                            var optSnippets = new[]
-                                            {
-                                                variant.Option1Name != null ? $"{variant.Option1Name}: {variant.Option1Value}" : null,
-                                                variant.Option2Name != null ? $"{variant.Option2Name}: {variant.Option2Value}" : null,
-                                            }.Where(s => s != null).ToList();
-                                        }
-                                        @if (optSnippets.Any())
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@variant.VariantID"
+                                       style="color:#111827; font-weight:500; text-decoration:none;">
+                                        @(variant.Product?.Title ?? variant.SKU)
+                                    </a>
+                                    @{
+                                        var opts = new[]
                                         {
-                                            <br />
-                                            <small class="text-muted">@string.Join(" | ", optSnippets)</small>
-                                        }
-                                    </td>
-
-                                    <!-- SKU -->
-                                    <td><code class="text-dark">@variant.SKU</code></td>
-
-                                    <!-- Price -->
-                                    <td>@variant.Price.ToString("C")</td>
-
-                                    <!-- Inventory -->
-                                    <td>
-                                        @if (variant.InventoryQuantity > 5)
-                                        {
-                                            <span class="badge bg-success" style="font-weight:normal;">● @variant.InventoryQuantity in stock</span>
-                                        }
-                                        else if (variant.InventoryQuantity >= 1)
-                                        {
-                                            <span class="badge bg-warning text-dark" style="font-weight:normal;">● @variant.InventoryQuantity left</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger" style="font-weight:normal;">● Out of stock</span>
-                                        }
-                                    </td>
-
-                                    <!-- Status -->
-                                    <td>
-                                        @switch (variant.Status)
-                                        {
-                                            case ProductStatus.Published:
-                                                <span class="badge bg-success">Published</span>
-                                                break;
-                                            case ProductStatus.Draft:
-                                                <span class="badge bg-warning text-dark">Draft</span>
-                                                break;
-                                            case ProductStatus.Unlisted:
-                                                <span class="badge bg-secondary">Unlisted</span>
-                                                break;
-                                            case ProductStatus.Archived:
-                                                <span class="badge bg-danger">Archived</span>
-                                                break;
-                                        }
-                                    </td>
-
-                                    <!-- Vendor -->
-                                    <td>
-                                        <span class="text-muted">@(variant.Product?.Vendor?.VendorName ?? "-")</span>
-                                    </td>
-
-                                    <!-- Category -->
-                                    <td>
-                                        <span class="text-muted">@(variant.Product?.ProductCategory?.CategoryName ?? "-")</span>
-                                    </td>
-
-                                    <!-- Actions -->
-                                    <td style="white-space: nowrap;">
-                                        <a asp-action="Details" asp-route-id="@variant.VariantID"
-                                           class="btn btn-sm btn-dark me-1">
-                                            Details
-                                        </a>
-                                        <a asp-action="Edit" asp-route-id="@variant.VariantID"
-                                           class="btn btn-sm btn-secondary me-1">
-                                            Edit
-                                        </a>
+                                            variant.Option1Name != null ? $"{variant.Option1Name}: {variant.Option1Value}" : null,
+                                            variant.Option2Name != null ? $"{variant.Option2Name}: {variant.Option2Value}" : null,
+                                        }.Where(s => s != null).ToList();
+                                    }
+                                    @if (opts.Any())
+                                    {
+                                        <br /><small style="color:#9CA3AF;">@string.Join(" · ", opts)</small>
+                                    }
+                                </td>
+                                <td><code style="font-size:0.8rem; color:#374151; background:#F3F4F6; padding:2px 6px; border-radius:4px;">@variant.SKU</code></td>
+                                <td style="font-weight:600;">@variant.Price.ToString("C")</td>
+                                <td>
+                                    @if (variant.InventoryQuantity > 5)
+                                    {
+                                        <span class="pill pill-instock">@variant.InventoryQuantity in stock</span>
+                                    }
+                                    else if (variant.InventoryQuantity >= 1)
+                                    {
+                                        <span class="pill pill-lowstock">@variant.InventoryQuantity left</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill pill-outofstock">Out of stock</span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (variant.Status)
+                                    {
+                                        case ProductStatus.Published:
+                                            <span class="pill pill-published">Published</span>
+                                            break;
+                                        case ProductStatus.Draft:
+                                            <span class="pill pill-draft">Draft</span>
+                                            break;
+                                        case ProductStatus.Unlisted:
+                                            <span class="pill pill-unlisted">Unlisted</span>
+                                            break;
+                                        case ProductStatus.Archived:
+                                            <span class="pill pill-archived">Archived</span>
+                                            break;
+                                    }
+                                </td>
+                                <td style="color:#6B7280;">@(variant.Product?.Vendor?.VendorName ?? "—")</td>
+                                <td style="color:#6B7280;">@(variant.Product?.ProductCategory?.CategoryName ?? "—")</td>
+                                <td style="white-space:nowrap;">
+                                    <div class="d-flex gap-1">
+                                        <a asp-action="Details" asp-route-id="@variant.VariantID" class="btn-act-details">Details</a>
+                                        <a asp-action="Edit" asp-route-id="@variant.VariantID" class="btn-act-edit">Edit</a>
                                         @if (variant.Status == ProductStatus.Archived)
                                         {
-                                            <form asp-action="Restore" asp-route-id="@variant.VariantID" method="post" style="display: inline;">
+                                            <form asp-action="Restore" asp-route-id="@variant.VariantID" method="post" style="display:inline;">
                                                 @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Restore</button>
+                                                <button type="submit" class="btn-act-ghost">Restore</button>
                                             </form>
                                         }
                                         else
                                         {
-                                            <a asp-action="Delete" asp-route-id="@variant.VariantID"
-                                               class="btn btn-sm btn-outline-dark">
-                                                Delete
-                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@variant.VariantID" class="btn-act-ghost">Delete</a>
                                         }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- PAGINATION CONTROLS -->
-                <nav aria-label="Page navigation" class="mt-4">
-                    <ul class="pagination justify-content-center">
-                        <!-- Previous Button -->
-                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
-                            <a class="page-link"
-                               asp-action="Index"
-                               asp-route-pageNumber="@(Model.PageIndex - 1)"
-                               asp-route-filter="@currentFilter"
-                               asp-route-pageSize="@currentPageSize"
-                               asp-route-search="@currentSearch"
-                               asp-route-categoryId="@currentCategoryId"
-                               asp-route-vendorId="@currentVendorId"
-                               asp-route-productType="@currentProductType"
-                               asp-route-stockStatus="@currentStockStatus"
-                               aria-label="Previous">
-                                <span aria-hidden="true">&laquo;</span> Previous
-                            </a>
-                        </li>
-
-                        @{
-                            var startPage = Math.Max(1, Model.PageIndex - 2);
-                            var endPage = Math.Min(Model.TotalPages, Model.PageIndex + 2);
+                                    </div>
+                                </td>
+                            </tr>
                         }
-
-                        <!-- First Page + Ellipsis -->
-                        @if (startPage > 1)
-                        {
-                            <li class="page-item">
-                                <a class="page-link"
-                                   asp-action="Index"
-                                   asp-route-pageNumber="1"
-                                   asp-route-filter="@currentFilter"
-                                   asp-route-pageSize="@currentPageSize"
-                                   asp-route-search="@currentSearch"
-                                   asp-route-categoryId="@currentCategoryId"
-                                   asp-route-vendorId="@currentVendorId"
-                                   asp-route-productType="@currentProductType"
-                                   asp-route-stockStatus="@currentStockStatus">
-                                    1
-                                </a>
-                            </li>
-                            @if (startPage > 2)
-                            {
-                                <li class="page-item disabled">
-                                    <span class="page-link">...</span>
-                                </li>
-                            }
-                        }
-
-                        <!-- Page Numbers -->
-                        @for (int i = startPage; i <= endPage; i++)
-                        {
-                            <li class="page-item @(i == Model.PageIndex ? "active" : "")">
-                                <a class="page-link"
-                                   asp-action="Index"
-                                   asp-route-pageNumber="@i"
-                                   asp-route-filter="@currentFilter"
-                                   asp-route-pageSize="@currentPageSize"
-                                   asp-route-search="@currentSearch"
-                                   asp-route-categoryId="@currentCategoryId"
-                                   asp-route-vendorId="@currentVendorId"
-                                   asp-route-productType="@currentProductType"
-                                   asp-route-stockStatus="@currentStockStatus">
-                                    @i
-                                </a>
-                            </li>
-                        }
-
-                        <!-- Ellipsis + Last Page -->
-                        @if (endPage < Model.TotalPages)
-                        {
-                            @if (endPage < Model.TotalPages - 1)
-                            {
-                                <li class="page-item disabled">
-                                    <span class="page-link">...</span>
-                                </li>
-                            }
-                            <li class="page-item">
-                                <a class="page-link"
-                                   asp-action="Index"
-                                   asp-route-pageNumber="@Model.TotalPages"
-                                   asp-route-filter="@currentFilter"
-                                   asp-route-pageSize="@currentPageSize"
-                                   asp-route-search="@currentSearch"
-                                   asp-route-categoryId="@currentCategoryId"
-                                   asp-route-vendorId="@currentVendorId"
-                                   asp-route-productType="@currentProductType"
-                                   asp-route-stockStatus="@currentStockStatus">
-                                    @Model.TotalPages
-                                </a>
-                            </li>
-                        }
-
-                        <!-- Next Button -->
-                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
-                            <a class="page-link"
-                               asp-action="Index"
-                               asp-route-pageNumber="@(Model.PageIndex + 1)"
-                               asp-route-filter="@currentFilter"
-                               asp-route-pageSize="@currentPageSize"
-                               asp-route-search="@currentSearch"
-                               asp-route-categoryId="@currentCategoryId"
-                               asp-route-vendorId="@currentVendorId"
-                               asp-route-productType="@currentProductType"
-                               asp-route-stockStatus="@currentStockStatus"
-                               aria-label="Next">
-                                Next <span aria-hidden="true">&raquo;</span>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-
-                <!-- Page Info -->
-                <div class="text-center text-muted mb-4">
-                    <small>Page @Model.PageIndex of @Model.TotalPages</small>
-                </div>
-            }
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            var startPage = Math.Max(1, Model.PageIndex - 2);
+            var endPage = Math.Min(Model.TotalPages, Model.PageIndex + 2);
+            <div class="pag">
+                <a class="pag-link @(!Model.HasPreviousPage ? "disabled" : "")"
+                   asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)"
+                   asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                   asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                   asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                   asp-route-stockStatus="@currentStockStatus">← Prev</a>
+
+                @if (startPage > 1)
+                {
+                    <a class="pag-link" asp-action="Index" asp-route-pageNumber="1"
+                       asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                       asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                       asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                       asp-route-stockStatus="@currentStockStatus">1</a>
+                    @if (startPage > 2) { <span class="pag-link disabled">…</span> }
+                }
+
+                @for (int i = startPage; i <= endPage; i++)
+                {
+                    <a class="pag-link @(i == Model.PageIndex ? "active" : "")"
+                       asp-action="Index" asp-route-pageNumber="@i"
+                       asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                       asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                       asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                       asp-route-stockStatus="@currentStockStatus">@i</a>
+                }
+
+                @if (endPage < Model.TotalPages)
+                {
+                    @if (endPage < Model.TotalPages - 1) { <span class="pag-link disabled">…</span> }
+                    <a class="pag-link" asp-action="Index" asp-route-pageNumber="@Model.TotalPages"
+                       asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                       asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                       asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                       asp-route-stockStatus="@currentStockStatus">@Model.TotalPages</a>
+                }
+
+                <a class="pag-link @(!Model.HasNextPage ? "disabled" : "")"
+                   asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)"
+                   asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                   asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                   asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                   asp-route-stockStatus="@currentStockStatus">Next →</a>
+            </div>
+            <p style="text-align:center; color:#9CA3AF; font-size:0.78rem; margin-top:0.5rem;">
+                Page @Model.PageIndex of @Model.TotalPages
+            </p>
+        }
+    }
 
 </div>
 
-@section Scripts {
-    @* Pagination styles handled by admin.css *@
-}
+@section Scripts { }
