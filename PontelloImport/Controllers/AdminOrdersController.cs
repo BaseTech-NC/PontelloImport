@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
@@ -6,7 +5,6 @@ using PontelloImport.Models;
 
 namespace PontelloImport.Controllers
 {
-    [Authorize(Roles = "Admin")]
     public class AdminOrdersController : Controller
     {
         private readonly PontelloDbContext _context;

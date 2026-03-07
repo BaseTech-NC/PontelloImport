@@ -18,6 +18,24 @@ namespace PontelloImport.Controllers
             return View();
         }
 
+        public IActionResult EnterDealerPortal()
+        {
+            HttpContext.Session.SetString("DemoRole", "Dealer");
+            return Redirect("/Shop");
+        }
+
+        public IActionResult EnterAdminPortal()
+        {
+            HttpContext.Session.SetString("DemoRole", "Admin");
+            return Redirect("/AdminOrders");
+        }
+
+        public IActionResult ExitPortal()
+        {
+            HttpContext.Session.Remove("DemoRole");
+            return Redirect("/");
+        }
+
         public IActionResult Privacy()
         {
             return View();
