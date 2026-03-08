@@ -47,10 +47,11 @@ namespace PontelloImport.Data
 		public DbSet<ProductAttribute> ProductAttributes { get; set; }
 		public DbSet<Vendor> Vendors { get; set; }
 		public DbSet<ProductCategory> ProductCategories { get; set; }
+        public DbSet<OrderHistory> OrderHistory { get; set; }
 
-		// ===== MODEL CONFIGURATION =====
+        // ===== MODEL CONFIGURATION =====
 
-		protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
 			{
 			base.OnModelCreating(modelBuilder);
 
@@ -242,5 +243,6 @@ namespace PontelloImport.Data
 					}
 				}
 			}
+
 		}
 	}

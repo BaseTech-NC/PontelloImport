@@ -1,0 +1,120 @@
+﻿@using Azure.Core
+@model IEnumerable<PontelloImport.Models.OrderHistory>
+
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>Order History</h2>
+            <p class="text-muted">Review, edit, and update previous orders.</p>
+        </div>
+    </div>
+
+    <!-- Filter options -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <form asp-action="Index" method="get" id="filterForm">
+                <div class="row g-2 align-items-end">
+                    <!-- Search -->
+                    <div class="col-md-4">
+                        <label for="search" class="form-label text-muted small mb-1">Search</label>
+                        <input type="text" name="search" id="search" class="form-control form-control-sm"
+                               placeholder="Search by Order ID"/>
+                    </div>
+
+                    <!-- Filter By Status -->
+                    <div class="col-md-2">
+                        <label for="statusSel" class="form-label text-muted small mb-1">Status:</label>
+                        <select name="statusSel" id="statusSel" class="form-select form-select-sm">
+                            <option value="">All</option>
+                            @foreach (var status in ViewBag.OrderStatus)
+                            {
+                                <option value="@status.Value" selected="@status.Selected">@status.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!--Filter By Date-->
+                    <!-- Start Date -->
+                    <div class="col-md-2">
+                        <label for="startDate" class="form-label text-muted small mb-1">From:</label>
+                        <input type="date" name="startDate" class="form-control" value="@ViewBag.SelectedStartDate" />
+                    </div>
+
+                    <!-- End Date -->
+                    <div class="col-md-2">
+                        <label for="endDate" class="form-label text-muted small mb-1">To:</label>
+                        <input type="date" name="endDate" class="form-control" value="@ViewBag.SelectedEndDate" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-dark btn-sm" style="margin-top:24px;">Filter</button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.OrderId)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.PreviousStatus)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.NewStatus)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ChangeDescription)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ChangedBy)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ChangedDate)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.OrderId)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.PreviousStatus)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.NewStatus)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.ChangeDescription)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.ChangedBy)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.ChangedDate)
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.HistoryId">Edit</a> |
+                        <a asp-action="Details" asp-route-id="@item.HistoryId">Details</a> |
+                        <a asp-action="Delete" asp-route-id="@item.HistoryId">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

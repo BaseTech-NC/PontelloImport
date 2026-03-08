@@ -1,0 +1,56 @@
+﻿@model PontelloImport.Models.OrderHistory
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit</h1>
+
+<h4>OrderHistory</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="HistoryId" />
+            <div class="form-group">
+                <label asp-for="OrderId" class="control-label"></label>
+                <input asp-for="OrderId" class="form-control" />
+                <span asp-validation-for="OrderId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="PreviousStatus" class="control-label"></label>
+                <select asp-for="PreviousStatus" class="form-control"></select>
+                <span asp-validation-for="PreviousStatus" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="NewStatus" class="control-label"></label>
+                <select asp-for="NewStatus" class="form-control"></select>
+                <span asp-validation-for="NewStatus" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ChangeDescription" class="control-label"></label>
+                <input asp-for="ChangeDescription" class="form-control" />
+                <span asp-validation-for="ChangeDescription" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ChangedBy" class="control-label"></label>
+                <input asp-for="ChangedBy" class="form-control" />
+                <span asp-validation-for="ChangedBy" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ChangedDate" class="control-label"></label>
+                <input asp-for="ChangedDate" class="form-control" />
+                <span asp-validation-for="ChangedDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
