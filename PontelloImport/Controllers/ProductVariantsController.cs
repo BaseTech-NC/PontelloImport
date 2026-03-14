@@ -183,49 +183,160 @@ namespace PontelloImport.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(QuickCreateViewModel model)
         {
+            // When HasVariants=true the simple-path fields are not submitted — suppress their required errors
+            if (model.HasVariants)
+            {
+                ModelState.Remove("SKU");
+                ModelState.Remove("Price");
+                ModelState.Remove("InventoryQuantity");
+            }
+
             if (!ModelState.IsValid)
             {
                 await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
                 return View(model);
             }
 
-            // 1. Create and save the Product
+            // Duplicate title check (case-insensitive)
+            var titleLower = model.ProductTitle.Trim().ToLower();
+            if (await _context.Products.AnyAsync(p => p.Title.ToLower() == titleLower))
+            {
+                ModelState.AddModelError("ProductTitle", "A product with this name already exists.");
+                await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
+                return View(model);
+            }
+
+            // Duplicate SKU check — simple path
+            if (!model.HasVariants)
+            {
+                var skuNorm = model.SKU.Trim().ToLower();
+                if (await _context.ProductVariants.AnyAsync(v => v.SKU.ToLower() == skuNorm))
+                {
+                    ModelState.AddModelError("SKU", "This SKU is already in use.");
+                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
+                    return View(model);
+                }
+            }
+
+            var createdBy = User.Identity?.Name ?? "system";
+
+            // 1. Create the Product (shared for both paths)
             var product = new Product
             {
-                Title       = model.ProductTitle,
-                Handle      = GenerateHandle(model.ProductTitle),
-                VendorID    = model.VendorID,
+                Title             = model.ProductTitle,
+                Handle            = GenerateHandle(model.ProductTitle),
+                VendorID          = model.VendorID,
                 ProductCategoryID = model.ProductCategoryID,
                 ProductTypeID     = model.ProductTypeID,
-                Status      = model.Status,
-                CreatedDate = DateTime.UtcNow,
-                CreatedBy   = User.Identity?.Name ?? "system"
+                Status            = model.Status,
+                CreatedDate       = DateTime.UtcNow,
+                CreatedBy         = createdBy
             };
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            // 2. Create the Variant (default or with option)
-            bool hasOption = !string.IsNullOrWhiteSpace(model.Option1Name);
-            var variant = new ProductVariant
+            if (model.HasVariants)
             {
-                ProductID         = product.ProductID,
-                SKU               = model.SKU.Trim().ToUpperInvariant(),
-                Price             = model.Price,
-                InventoryQuantity = model.InventoryQuantity,
-                InventoryPolicy   = "deny",
-                RequiresShipping  = true,
-                IsTaxable         = true,
-                Status            = model.Status,
-                IsDefault         = !hasOption,
-                Option1Name       = hasOption ? model.Option1Name : "Title",
-                Option1Value      = hasOption ? model.Option1Value : "Default Title",
-                CreatedDate       = DateTime.UtcNow,
-                CreatedBy         = User.Identity?.Name ?? "system"
-            };
-            _context.ProductVariants.Add(variant);
-            await _context.SaveChangesAsync();
+                // Multi-variant path
+                // Validate rows are present
+                if (model.Variants == null || !model.Variants.Any())
+                {
+                    ModelState.AddModelError(string.Empty, "At least one variant row is required.");
+                    _context.Products.Remove(product);
+                    await _context.SaveChangesAsync();
+                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
+                    return View(model);
+                }
 
-            TempData["Success"] = $"Product \"{product.Title}\" created.";
+                // Validate no blank SKUs
+                if (model.Variants.Any(v => string.IsNullOrWhiteSpace(v.SKU)))
+                {
+                    ModelState.AddModelError(string.Empty, "All variant rows must have a SKU.");
+                    _context.Products.Remove(product);
+                    await _context.SaveChangesAsync();
+                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
+                    return View(model);
+                }
+
+                // Validate no duplicate SKUs within submitted rows
+                var submittedSkus = model.Variants.Select(v => v.SKU.Trim().ToUpperInvariant()).ToList();
+                if (submittedSkus.Distinct().Count() != submittedSkus.Count)
+                {
+                    ModelState.AddModelError(string.Empty, "Each variant must have a unique SKU.");
+                    _context.Products.Remove(product);
+                    await _context.SaveChangesAsync();
+                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
+                    return View(model);
+                }
+
+                // Validate no SKUs already in the DB
+                var takenSkus = await _context.ProductVariants
+                    .Where(v => submittedSkus.Contains(v.SKU))
+                    .Select(v => v.SKU)
+                    .ToListAsync();
+                if (takenSkus.Any())
+                {
+                    ModelState.AddModelError(string.Empty, $"SKU(s) already in use: {string.Join(", ", takenSkus)}");
+                    _context.Products.Remove(product);
+                    await _context.SaveChangesAsync();
+                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
+                    return View(model);
+                }
+
+                bool isFirst = true;
+                foreach (var row in model.Variants)
+                {
+                    _context.ProductVariants.Add(new ProductVariant
+                    {
+                        ProductID         = product.ProductID,
+                        SKU               = row.SKU.Trim().ToUpperInvariant(),
+                        Price             = row.Price,
+                        InventoryQuantity = row.Qty,
+                        InventoryPolicy   = "deny",
+                        RequiresShipping  = true,
+                        IsTaxable         = true,
+                        Status            = model.Status,
+                        IsDefault         = isFirst,
+                        Option1Name       = model.Option1Name,
+                        Option1Value      = row.Option1Value,
+                        Option2Name       = string.IsNullOrWhiteSpace(model.Option2Name) ? null : model.Option2Name,
+                        Option2Value      = string.IsNullOrWhiteSpace(model.Option2Name) ? null : row.Option2Value,
+                        Option3Name       = string.IsNullOrWhiteSpace(model.Option3Name) ? null : model.Option3Name,
+                        Option3Value      = string.IsNullOrWhiteSpace(model.Option3Name) ? null : row.Option3Value,
+                        CreatedDate       = DateTime.UtcNow,
+                        CreatedBy         = createdBy
+                    });
+                    isFirst = false;
+                }
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"Product \"{product.Title}\" created with {model.Variants.Count} variant(s).";
+            }
+            else
+            {
+                // Simple single-variant path
+                bool hasOption = !string.IsNullOrWhiteSpace(model.Option1Name);
+                _context.ProductVariants.Add(new ProductVariant
+                {
+                    ProductID         = product.ProductID,
+                    SKU               = model.SKU.Trim().ToUpperInvariant(),
+                    Price             = model.Price,
+                    InventoryQuantity = model.InventoryQuantity,
+                    InventoryPolicy   = "deny",
+                    RequiresShipping  = true,
+                    IsTaxable         = true,
+                    Status            = model.Status,
+                    IsDefault         = !hasOption,
+                    Option1Name       = hasOption ? model.Option1Name : "Title",
+                    Option1Value      = hasOption ? model.Option1Value : "Default Title",
+                    CreatedDate       = DateTime.UtcNow,
+                    CreatedBy         = createdBy
+                });
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"Product \"{product.Title}\" created.";
+            }
+
             return RedirectToAction(nameof(Index));
         }
 

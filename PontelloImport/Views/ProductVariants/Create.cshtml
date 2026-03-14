@@ -3,6 +3,8 @@
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Add Product";
+
+    var optionNames = new[] { "Color", "Size", "Material", "Style", "Type", "Weight", "Length", "Diameter" };
 }
 
 <style>
@@ -24,11 +26,12 @@
         font-size: 0.875rem;
         color: #374151;
         letter-spacing: 0.01em;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
-    .create-section-body {
-        padding: 1.25rem;
-    }
+    .create-section-body { padding: 1.25rem; }
 
     .form-label {
         font-size: 0.875rem;
@@ -55,59 +58,53 @@
         color: #6B7280;
     }
 
-    .form-text {
-        font-size: 0.8rem;
-        color: #9CA3AF;
-    }
-
-    .optional-label {
-        font-size: 0.75rem;
-        color: #9CA3AF;
-        font-weight: 400;
-        margin-left: 0.3rem;
-    }
+    .form-text        { font-size: 0.8rem; color: #9CA3AF; }
+    .optional-label   { font-size: 0.75rem; color: #9CA3AF; font-weight: 400; margin-left: 0.3rem; }
 
     .btn-create {
-        background: #111827;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        padding: 0.5rem 1.75rem;
-        cursor: pointer;
-        transition: background 150ms;
+        background: #111827; color: #ffffff; border: none;
+        border-radius: 8px; font-size: 0.875rem; font-weight: 500;
+        padding: 0.5rem 1.75rem; cursor: pointer; transition: background 150ms;
     }
-
     .btn-create:hover { background: #374151; color: #ffffff; }
 
     .btn-cancel-link {
-        color: #6B7280;
-        border: 1px solid #E5E7EB;
-        background: transparent;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        padding: 0.5rem 1.1rem;
-        text-decoration: none;
-        transition: background 150ms;
+        color: #6B7280; border: 1px solid #E5E7EB; background: transparent;
+        border-radius: 8px; font-size: 0.875rem; font-weight: 500;
+        padding: 0.5rem 1.1rem; text-decoration: none; transition: background 150ms;
         display: inline-block;
     }
-
     .btn-cancel-link:hover { background: #F3F4F6; color: #374151; }
 
-    .option-hint {
-        background: #F0F9FF;
-        border: 1px solid #BAE6FD;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        font-size: 0.82rem;
-        color: #0369A1;
-        margin-bottom: 1rem;
+    /* has-variants toggle row */
+    .toggle-row {
+        display: flex; align-items: center; gap: 0.65rem;
+        padding: 0.85rem 1.25rem;
+        background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 12px;
+        margin-bottom: 1.25rem; cursor: pointer; user-select: none;
     }
+    .toggle-row input[type=checkbox] { width: 1rem; height: 1rem; cursor: pointer; accent-color: #2563EB; }
+    .toggle-row .toggle-label  { font-size: 0.875rem; font-weight: 500; color: #374151; margin: 0; }
+    .toggle-row .toggle-hint   { font-size: 0.8rem; color: #9CA3AF; }
+
+    /* option dimension grid */
+    .dim-row {
+        display: grid; grid-template-columns: 160px 1fr;
+        gap: 0.75rem; align-items: end; margin-bottom: 0.75rem;
+    }
+
+    /* variant preview table */
+    .var-table { font-size: 0.82rem; }
+    .var-table th {
+        font-size: 0.71rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.05em; color: #6B7280; background: #F8FAFC;
+        padding: 0.5rem 0.6rem;
+    }
+    .var-table td { vertical-align: middle; padding: 0.35rem 0.6rem; }
+    .var-table .form-control-sm { font-size: 0.82rem; }
 </style>
 
-<div class="container-fluid mt-4" style="max-width: 680px;">
+<div class="container-fluid mt-4" style="max-width: 720px;">
 
     <div class="mb-4">
         <a asp-action="Index" style="color:#6B7280; font-size:0.875rem; text-decoration:none;">← Back to Product Catalogue</a>
@@ -129,10 +126,10 @@
         </div>
     }
 
-    <form asp-action="Create" method="post">
+    <form asp-action="Create" method="post" id="createForm">
         @Html.AntiForgeryToken()
 
-        <!-- SECTION 1: PRODUCT INFO -->
+        <!-- ══ PRODUCT INFO ══════════════════════════════════════════════════ -->
         <div class="create-section">
             <div class="create-section-header">Product Info</div>
             <div class="create-section-body">
@@ -163,12 +160,13 @@
                     <label asp-for="ProductTypeID" class="form-label">
                         Product Type <span class="optional-label">(optional)</span>
                     </label>
-                    <select asp-for="ProductTypeID" class="form-select" asp-items="@(ViewData["ProductTypes"] as SelectList)">
+                    <select asp-for="ProductTypeID" class="form-select"
+                            asp-items="@(ViewData["ProductTypes"] as SelectList)">
                         <option value="">-- None --</option>
                     </select>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-1">
                     <label asp-for="Status" class="form-label">Status <span class="text-danger">*</span></label>
                     <select asp-for="Status" class="form-select">
                         <option value="@ProductStatus.Draft">Draft</option>
@@ -180,83 +178,375 @@
             </div>
         </div>
 
-        <!-- SECTION 2: VARIANT INFO -->
-        <div class="create-section">
+        <!-- ══ VARIANTS TOGGLE ══════════════════════════════════════════════ -->
+        <div class="toggle-row" id="toggleRow">
+            <input type="checkbox" id="hasVariantsCheckbox" @(Model.HasVariants ? "checked" : "") />
+            <span class="toggle-label">This product has variants</span>
+            <span class="toggle-hint">e.g. different sizes, colours, or materials</span>
+        </div>
+        <input type="hidden" name="HasVariants" id="hasVariantsHidden"
+               value="@(Model.HasVariants ? "true" : "false")" />
+
+        <!-- ══ SIMPLE VARIANT (HasVariants = false) ══════════════════════════ -->
+        <div id="simple-section" class="create-section">
             <div class="create-section-header">Variant Info</div>
             <div class="create-section-body">
 
                 <div class="mb-3">
                     <label asp-for="SKU" class="form-label">SKU <span class="text-danger">*</span></label>
-                    <input asp-for="SKU" class="form-control" placeholder="e.g., CRG-3001" />
+                    <input asp-for="SKU" class="form-control" id="simpleSku" placeholder="e.g., CRG-3001" />
                     <span asp-validation-for="SKU" class="text-danger small"></span>
                     <small class="form-text">Format: AA-000 &nbsp;e.g. CRG-3001</small>
                 </div>
 
-                <div class="mb-3">
-                    <label asp-for="Price" class="form-label">Price <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text">$</span>
-                        <input asp-for="Price" type="number" step="0.01" min="0.01" class="form-control" placeholder="0.00" />
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label asp-for="Price" class="form-label">Price <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="Price" type="number" step="0.01" min="0.01"
+                                   class="form-control" placeholder="0.00" />
+                        </div>
+                        <span asp-validation-for="Price" class="text-danger small"></span>
+                        <small class="form-text">CAD</small>
                     </div>
-                    <span asp-validation-for="Price" class="text-danger small"></span>
-                    <small class="form-text">CAD, e.g. 89.99</small>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="InventoryQuantity" class="form-label">Inventory Quantity <span class="text-danger">*</span></label>
-                    <input asp-for="InventoryQuantity" type="number" min="0" class="form-control" placeholder="0" />
-                    <span asp-validation-for="InventoryQuantity" class="text-danger small"></span>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- SECTION 3: OPTION (optional) -->
-        <div class="create-section">
-            <div class="create-section-header">Option <span class="optional-label" style="font-weight:400;">(optional)</span></div>
-            <div class="create-section-body">
-
-                <div class="option-hint">
-                    Leave blank for single-variant products. The variant will automatically be set to "Default Title".
+                    <div class="col-6 mb-3">
+                        <label asp-for="InventoryQuantity" class="form-label">Inventory Qty <span class="text-danger">*</span></label>
+                        <input asp-for="InventoryQuantity" type="number" min="0"
+                               class="form-control" placeholder="0" />
+                        <span asp-validation-for="InventoryQuantity" class="text-danger small"></span>
+                    </div>
                 </div>
 
                 <div class="row">
-                    <div class="col-6 mb-3">
-                        <label asp-for="Option1Name" class="form-label">Option Name</label>
-                        <input asp-for="Option1Name" class="form-control" placeholder="e.g. Color, Size" />
+                    <div class="col-6 mb-1">
+                        <label asp-for="Option1Name" class="form-label">
+                            Option Name <span class="optional-label">(optional)</span>
+                        </label>
+                        <input asp-for="Option1Name" class="form-control" placeholder="e.g. Color" />
                     </div>
-                    <div class="col-6 mb-3">
-                        <label asp-for="Option1Value" class="form-label">Option Value</label>
-                        <input asp-for="Option1Value" class="form-control" placeholder="e.g. Black, Medium" />
+                    <div class="col-6 mb-1">
+                        <label asp-for="Option1Value" class="form-label">
+                            Option Value <span class="optional-label">(optional)</span>
+                        </label>
+                        <input asp-for="Option1Value" class="form-control" placeholder="e.g. Black" />
                     </div>
                 </div>
+                <small class="form-text">Leave blank for a single default variant.</small>
 
             </div>
         </div>
 
-        <!-- Buttons -->
+        <!-- ══ OPTION DIMENSIONS (HasVariants = true) ════════════════════════ -->
+        <div id="variants-section">
+
+            <div class="create-section">
+                <div class="create-section-header">Option Dimensions</div>
+                <div class="create-section-body">
+
+                    <p class="small text-muted mb-3">
+                        Define up to 3 dimensions and enter comma-separated values for each,
+                        then click <strong>Generate Variants</strong>.
+                    </p>
+
+                    @for (int dim = 1; dim <= 3; dim++)
+                    {
+                        var nameField = dim == 1 ? "Option1Name"
+                                      : dim == 2 ? "Option2Name"
+                                      :            "Option3Name";
+                        var savedName = dim == 1 ? Model.Option1Name
+                                      : dim == 2 ? Model.Option2Name
+                                      :            Model.Option3Name;
+
+                        <div class="dim-row">
+                            <div>
+                                <label class="form-label">
+                                    Option @dim
+                                    @if (dim == 1) { <span class="text-danger">*</span> }
+                                    else           { <span class="optional-label">(optional)</span> }
+                                </label>
+                                <select id="opt@(dim)Name" data-fieldname="@nameField"
+                                        class="form-select opt-name-sel">
+                                    <option value="">-- Select --</option>
+                                    @foreach (var n in optionNames)
+                                    {
+                                        if (savedName == n)
+                                        {
+                                            <option value="@n" selected>@n</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@n">@n</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">
+                                    Values
+                                    @if (dim == 1) { <span class="text-danger">*</span> }
+                                    else           { <span class="optional-label">(optional)</span> }
+                                    <span class="optional-label">— comma-separated</span>
+                                </label>
+                                <input type="text" id="opt@(dim)Values" class="form-control"
+                                       placeholder="@(dim == 1 ? "e.g. Red, Blue, Black"
+                                                    : dim == 2 ? "e.g. Small, Medium, Large"
+                                                    :            "e.g. Cotton, Polyester")" />
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm px-3"
+                                onclick="generateVariants()">
+                            ⚡ Generate Variants
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Generated / pre-populated variant rows -->
+            <div id="variant-table-section" class="create-section"
+                 style="display:@(Model.HasVariants && Model.Variants.Any() ? "block" : "none");">
+                <div class="create-section-header">
+                    <span>Variants</span>
+                    <span id="variant-count-lbl" style="font-size:0.8rem; color:#9CA3AF; font-weight:400;">
+                        @(Model.Variants.Any() ? $"({Model.Variants.Count} variants)" : "")
+                    </span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm var-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Option 1</th>
+                                <th>Option 2</th>
+                                <th>Option 3</th>
+                                <th style="min-width:130px;">SKU <span class="text-danger">*</span></th>
+                                <th style="min-width:100px;">Price <span class="text-danger">*</span></th>
+                                <th style="min-width:80px;">Qty</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="variant-rows">
+                            @for (int i = 0; i < Model.Variants.Count; i++)
+                            {
+                                var vr = Model.Variants[i];
+                                <tr>
+                                    <td>@(vr.Option1Value ?? "")</td>
+                                    <td>@(vr.Option2Value ?? "")</td>
+                                    <td>@(vr.Option3Value ?? "")</td>
+                                    <input type="hidden" name="Variants[@i].Option1Value" value="@(vr.Option1Value ?? "")" />
+                                    <input type="hidden" name="Variants[@i].Option2Value" value="@(vr.Option2Value ?? "")" />
+                                    <input type="hidden" name="Variants[@i].Option3Value" value="@(vr.Option3Value ?? "")" />
+                                    <td>
+                                        <input type="text" name="Variants[@i].SKU" value="@vr.SKU"
+                                               class="form-control form-control-sm" placeholder="SKU" />
+                                    </td>
+                                    <td>
+                                        <input type="number" name="Variants[@i].Price"
+                                               value="@vr.Price.ToString("0.00")"
+                                               class="form-control form-control-sm"
+                                               step="0.01" min="0.01" />
+                                    </td>
+                                    <td>
+                                        <input type="number" name="Variants[@i].Qty" value="@vr.Qty"
+                                               class="form-control form-control-sm" min="0" />
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                onclick="removeRow(this)">×</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div><!-- /variants-section -->
+
+        <!-- ══ BUTTONS ══════════════════════════════════════════════════════ -->
         <div class="d-flex justify-content-between mt-3 mb-5">
             <a asp-action="Index" class="btn-cancel-link">Cancel</a>
             <button type="submit" class="btn-create">Save Product</button>
         </div>
 
     </form>
-
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
     <script>
-        // Auto-uppercase SKU as user types
-        const skuInput = document.getElementById('SKU');
-        if (skuInput) {
-            skuInput.addEventListener('input', function () {
-                const pos = this.selectionStart;
-                this.value = this.value.toUpperCase();
-                this.setSelectionRange(pos, pos);
-            });
+    // ── Toggle mode ──────────────────────────────────────────────────────────
+    const cbx    = document.getElementById('hasVariantsCheckbox');
+    const hidden = document.getElementById('hasVariantsHidden');
+
+    document.getElementById('toggleRow').addEventListener('click', function (e) {
+        if (e.target === cbx) return;
+        cbx.checked = !cbx.checked;
+        applyMode(cbx.checked);
+    });
+    cbx.addEventListener('change', () => applyMode(cbx.checked));
+
+    function applyMode(on) {
+        hidden.value = on ? 'true' : 'false';
+        document.getElementById('simple-section').style.display   = on ? 'none'  : 'block';
+        document.getElementById('variants-section').style.display = on ? 'block' : 'none';
+        setDisabled('simple-section',   on);
+        setDisabled('variants-section', !on);
+    }
+
+    function setDisabled(id, disabled) {
+        document.getElementById(id)
+            .querySelectorAll('input:not(#hasVariantsHidden):not(#hasVariantsCheckbox), select, textarea')
+            .forEach(el => { el.disabled = disabled; });
+    }
+
+    applyMode(cbx.checked);   // initialise on load
+
+    // Auto-uppercase SKU (simple path)
+    document.getElementById('simpleSku')?.addEventListener('input', function () {
+        const p = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(p, p);
+    });
+
+    // ── Variant generator ────────────────────────────────────────────────────
+    function parseVals(s) { return s.split(',').map(v => v.trim()).filter(Boolean); }
+
+    function cartesian(arrays) {
+        return arrays.reduce(
+            (acc, cur) => acc.flatMap(a => cur.map(v => [...a, v])),
+            [[]]
+        );
+    }
+
+    // Sync option name selects → hidden fields used for model binding on submit
+    function syncOptionNameHiddens() {
+        for (let d = 1; d <= 3; d++) {
+            const sel = document.getElementById(`opt${d}Name`);
+            if (!sel) continue;
+            const fieldName = sel.dataset.fieldname;
+            let hid = document.getElementById(`hid_opt${d}Name`);
+            if (!hid) {
+                hid = document.createElement('input');
+                hid.type = 'hidden';
+                hid.id   = `hid_opt${d}Name`;
+                document.getElementById('createForm').appendChild(hid);
+            }
+            hid.name  = fieldName;
+            hid.value = sel.value;
         }
+    }
+
+    function generateVariants() {
+        const dims = [], names = [];
+        for (let d = 1; d <= 3; d++) {
+            const nameEl = document.getElementById(`opt${d}Name`);
+            const valEl  = document.getElementById(`opt${d}Values`);
+            const name = nameEl?.value.trim() ?? '';
+            const vals = parseVals(valEl?.value ?? '');
+            if (name && vals.length > 0) { dims.push(vals); names.push(name); }
+        }
+        if (dims.length === 0) {
+            alert('Select at least one option with values.');
+            return;
+        }
+        syncOptionNameHiddens();
+        buildTable(cartesian(dims));
+    }
+
+    function buildTable(combos) {
+        const tbody = document.getElementById('variant-rows');
+        tbody.innerHTML = '';
+
+        combos.forEach((combo, i) => {
+            const tr = document.createElement('tr');
+
+            // Display-only option value cells (3 columns always)
+            for (let j = 0; j < 3; j++) {
+                const c = document.createElement('td');
+                c.textContent = combo[j] ?? '';
+                tr.appendChild(c);
+            }
+
+            // Hidden inputs for model binding
+            for (let j = 0; j < 3; j++) {
+                addHidden(tr, `Variants[${i}].Option${j + 1}Value`, combo[j] ?? '');
+            }
+
+            // SKU input
+            const skuTd = document.createElement('td');
+            const skuIn = mkInput('text', `Variants[${i}].SKU`, '', 'SKU');
+            skuIn.addEventListener('input', function () {
+                const p = this.selectionStart;
+                this.value = this.value.toUpperCase();
+                this.setSelectionRange(p, p);
+            });
+            skuTd.appendChild(skuIn);
+            tr.appendChild(skuTd);
+
+            // Price input
+            const priceTd = document.createElement('td');
+            const priceIn = mkInput('number', `Variants[${i}].Price`, '', '0.00');
+            Object.assign(priceIn, { step: '0.01', min: '0.01' });
+            priceTd.appendChild(priceIn);
+            tr.appendChild(priceTd);
+
+            // Qty input
+            const qtyTd = document.createElement('td');
+            const qtyIn = mkInput('number', `Variants[${i}].Qty`, '0', '0');
+            qtyIn.min = '0';
+            qtyTd.appendChild(qtyIn);
+            tr.appendChild(qtyTd);
+
+            // Remove button
+            const remTd = document.createElement('td');
+            const remBtn = document.createElement('button');
+            remBtn.type = 'button';
+            remBtn.className = 'btn btn-sm btn-outline-danger';
+            remBtn.textContent = '×';
+            remBtn.onclick = () => { tr.remove(); reindex(); refreshCount(); };
+            remTd.appendChild(remBtn);
+            tr.appendChild(remTd);
+
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('variant-table-section').style.display = 'block';
+        setDisabled('variant-table-section', false);
+        refreshCount();
+    }
+
+    function mkInput(type, name, value, placeholder) {
+        const el = document.createElement('input');
+        el.type = type; el.name = name; el.value = value;
+        el.placeholder = placeholder;
+        el.className = 'form-control form-control-sm';
+        return el;
+    }
+
+    function addHidden(parent, name, value) {
+        const h = document.createElement('input');
+        h.type = 'hidden'; h.name = name; h.value = value;
+        parent.appendChild(h);
+    }
+
+    function removeRow(btn) { btn.closest('tr').remove(); reindex(); refreshCount(); }
+
+    function reindex() {
+        document.querySelectorAll('#variant-rows tr').forEach((tr, i) => {
+            tr.querySelectorAll('input[name]').forEach(el => {
+                el.name = el.name.replace(/Variants\[\d+\]/, `Variants[${i}]`);
+            });
+        });
+    }
+
+    function refreshCount() {
+        const n = document.querySelectorAll('#variant-rows tr').length;
+        document.getElementById('variant-count-lbl').textContent =
+            n > 0 ? `(${n} variant${n !== 1 ? 's' : ''})` : '';
+    }
     </script>
 }
