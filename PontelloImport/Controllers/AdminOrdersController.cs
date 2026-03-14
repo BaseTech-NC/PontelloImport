@@ -14,6 +14,11 @@ namespace PontelloImport.Controllers
             _context = context;
         }
 
+        private string CurrentUser =>
+            User.Identity?.Name
+            ?? HttpContext.Session.GetString("DemoRole")
+            ?? "Admin";
+
         // GET: /AdminOrders
         public async Task<IActionResult> Index(string? status, string? search)
         {
@@ -89,7 +94,7 @@ namespace PontelloImport.Controllers
                 VersionNumber = order.VersionNumber,
                 ChangeType = "Confirmed",
                 ChangeDescription = "Order confirmed by Pontello",
-                ChangedBy = User.Identity!.Name!
+                ChangedBy = CurrentUser
             });
 
             await _context.SaveChangesAsync();
@@ -118,7 +123,7 @@ namespace PontelloImport.Controllers
                 VersionNumber = order.VersionNumber,
                 ChangeType = "ActionRequired",
                 ChangeDescription = "Issue flagged — dealer notified",
-                ChangedBy = User.Identity!.Name!
+                ChangedBy = CurrentUser
             });
 
             await _context.SaveChangesAsync();
@@ -147,7 +152,7 @@ namespace PontelloImport.Controllers
                 VersionNumber = order.VersionNumber,
                 ChangeType = "Cancelled",
                 ChangeDescription = "Order cancelled by Pontello",
-                ChangedBy = User.Identity!.Name!
+                ChangedBy = CurrentUser
             });
 
             await _context.SaveChangesAsync();
@@ -180,7 +185,7 @@ namespace PontelloImport.Controllers
                 VersionNumber = order.VersionNumber,
                 ChangeType = "Shipped",
                 ChangeDescription = $"Tracking: {TrackingNumber}",
-                ChangedBy = User.Identity!.Name!
+                ChangedBy = CurrentUser
             });
 
             await _context.SaveChangesAsync();
@@ -209,7 +214,7 @@ namespace PontelloImport.Controllers
                 VersionNumber = order.VersionNumber,
                 ChangeType = "Invoiced",
                 ChangeDescription = "Order invoiced",
-                ChangedBy = User.Identity!.Name!
+                ChangedBy = CurrentUser
             });
 
             await _context.SaveChangesAsync();

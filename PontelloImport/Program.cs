@@ -6,13 +6,16 @@ using PontelloImport.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+// Use absolute paths so SQLite files land in the app root on both local and Azure (D:\home\site\wwwroot)
+var contentRoot = builder.Environment.ContentRootPath;
+var connectionString = $"Data Source={Path.Combine(contentRoot, "ApplicationDatabase.db")}";
+var pontelloConnectionString = $"Data Source={Path.Combine(contentRoot, "PontelloImportDatabase.db")}";
 
 // Register HttpContextAccessor for audit tracking
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddDbContext<PontelloDbContext>(options =>
-    options.UseSqlite(connectionString));
+    options.UseSqlite(pontelloConnectionString));
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
@@ -66,17 +69,26 @@ app.MapRazorPages()
 
 
 // Apply EF migrations, then seed reference/test data
-using (var scope = app.Services.CreateScope())
+try
 {
-    var db = scope.ServiceProvider.GetRequiredService<PontelloDbContext>();
-    db.Database.Migrate();
-    var appDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    appDb.Database.Migrate();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    await SeedAuthAsync(userManager, roleManager);
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<PontelloDbContext>();
+        db.Database.Migrate();
+        var appDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        appDb.Database.Migrate();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        await SeedAuthAsync(userManager, roleManager);
+        PontelloDbInitializer.Seed(app);
+    }
 }
-PontelloDbInitializer.Seed(app);
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Database migration or seeding failed.");
+    throw;
+}
 
 app.Run();
 

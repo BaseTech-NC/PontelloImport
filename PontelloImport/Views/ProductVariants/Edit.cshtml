@@ -1,29 +1,188 @@
-﻿@model PontelloImport.Models.CreateProductViewModel
+@model PontelloImport.Models.CreateProductViewModel
 
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Edit Product";
+}
+
+<style>
+    *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
+
+    .edit-section {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
     }
 
-<div class="container mt-4">
+    .edit-section-header {
+        background: #F8FAFC;
+        border-bottom: 1px solid #E5E7EB;
+        padding: 0.875rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #374151;
+        letter-spacing: 0.01em;
+    }
 
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="h2">Edit Product</h1>
-            <p class="text-muted">Update product details and attributes. Fields marked with <span class="text-danger">*</span> are required.</p>
+    .edit-section-body {
+        padding: 1.25rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.35rem;
+    }
+
+    .form-control, .form-select {
+        font-size: 0.875rem;
+        border-color: #D1D5DB;
+        border-radius: 8px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #2563EB;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .input-group-text {
+        background: #F8FAFC;
+        border-color: #D1D5DB;
+        font-size: 0.875rem;
+        color: #6B7280;
+    }
+
+    .form-text {
+        font-size: 0.8rem;
+        color: #9CA3AF;
+    }
+
+    .btn-save {
+        background: #111827;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1.5rem;
+        cursor: pointer;
+        transition: background 150ms;
+    }
+
+    .btn-save:hover { background: #374151; color: #ffffff; }
+
+    .btn-cancel-link {
+        color: #6B7280;
+        border: 1px solid #E5E7EB;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1.1rem;
+        text-decoration: none;
+        transition: background 150ms;
+        display: inline-block;
+    }
+
+    .btn-cancel-link:hover { background: #F3F4F6; color: #374151; }
+
+    .btn-add-attr {
+        color: #374151;
+        border: 1px dashed #D1D5DB;
+        background: #F9FAFB;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.45rem 1rem;
+        cursor: pointer;
+        transition: background 150ms;
+    }
+
+    .btn-add-attr:hover { background: #F3F4F6; border-color: #9CA3AF; }
+
+    /* Override Bootstrap style for the JS-generated Remove buttons */
+    .attribute-row .btn.btn-outline-dark.btn-sm {
+        color: #6B7280;
+        border-color: #E5E7EB;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        transition: all 150ms;
+    }
+
+    .attribute-row .btn.btn-outline-dark.btn-sm:hover {
+        background: #FEF2F2;
+        border-color: #FECACA;
+        color: #DC2626;
+    }
+
+    .attr-header-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .side-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .side-card-header {
+        background: #F8FAFC;
+        border-bottom: 1px solid #E5E7EB;
+        padding: 0.75rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .side-card-body {
+        padding: 1rem;
+        font-size: 0.85rem;
+    }
+
+    .status-pill {
+        display: inline-block;
+        padding: 0.2em 0.65em;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    .status-draft     { background: #EFF6FF; color: #1D4ED8; }
+    .status-published { background: #F0FDF4; color: #166534; }
+    .status-archived  { background: #F3F4F6; color: #4B5563; }
+</style>
+
+<div class="container-fluid mt-4" style="max-width: 1020px;">
+
+    <div class="mb-4">
+        <a asp-action="Index" style="color:#6B7280; font-size:0.875rem; text-decoration:none;">← Back to Product Catalogue</a>
+    </div>
+
+    <div class="mb-4">
+        <div style="font-size:1.15rem; font-weight:700; color:#111827;">Edit Product</div>
+        <div style="font-size:0.875rem; color:#6B7280; margin-top:0.2rem;">
+            Update product details. Fields marked <span class="text-danger">*</span> are required.
         </div>
     </div>
 
-    <!-- Form -->
     <div class="row">
         <div class="col-md-8">
 
-            <!-- STANDALONE PRODUCT FORM -->
             <div id="standaloneForm">
                 <form asp-action="Edit" method="post">
 
-                    <!-- Hidden fields for IDs -->
                     <input type="hidden" asp-for="Variant.ProductID" />
                     <input type="hidden" asp-for="Variant.VariantID" />
 
@@ -33,14 +192,11 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
 
-                    <!-- CARD 1: BASIC INFORMATION -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-dark text-white">
-                            <h5 class="mb-0">Basic Information</h5>
-                        </div>
-                        <div class="card-body">
+                    <!-- SECTION 1: BASIC INFORMATION -->
+                    <div class="edit-section">
+                        <div class="edit-section-header">Basic Information</div>
+                        <div class="edit-section-body">
 
-                            <!-- Vendor Dropdown -->
                             <div class="mb-3">
                                 <label asp-for="Product.VendorID" class="form-label"></label>
                                 <span class="text-danger">*</span>
@@ -50,7 +206,6 @@
                                 <span asp-validation-for="Product.VendorID" class="text-danger"></span>
                             </div>
 
-                            <!-- Category Dropdown -->
                             <div class="mb-3">
                                 <label asp-for="Product.ProductCategoryID" class="form-label"></label>
                                 <span class="text-danger">*</span>
@@ -60,7 +215,6 @@
                                 <span asp-validation-for="Product.ProductCategoryID" class="text-danger"></span>
                             </div>
 
-                            <!-- Type Field (Hybrid Dropdown) -->
                             <div class="mb-3">
                                 <label asp-for="Product.ProductTypeID" class="form-label">Product Type</label>
                                 <select asp-for="Product.ProductTypeID" class="form-select" id="productTypeDropdown" asp-items="@(ViewData["ProductTypes"] as SelectList)">
@@ -69,14 +223,12 @@
                                 <span asp-validation-for="Product.ProductTypeID" class="text-danger"></span>
                             </div>
 
-                            <!-- Custom type input (hidden by default) -->
                             <div class="mb-3" id="customTypeContainer" style="display: none;">
                                 <label for="customTypeInput" class="form-label">Specify Product Type</label>
                                 <input type="text" class="form-control" id="customTypeInput" placeholder="Enter custom product type" maxlength="100" />
-                                <small class="form-text text-muted">Enter a custom product type</small>
+                                <small class="form-text">Enter a custom product type</small>
                             </div>
 
-                            <!-- Title -->
                             <div class="mb-3">
                                 <label asp-for="Product.Title" class="form-label"></label>
                                 <span class="text-danger">*</span>
@@ -84,41 +236,35 @@
                                 <span asp-validation-for="Product.Title" class="text-danger"></span>
                             </div>
 
-                            <!-- SKU -->
                             <div class="mb-3">
                                 <label asp-for="Variant.SKU" class="form-label"></label>
                                 <span class="text-danger">*</span>
                                 <input asp-for="Variant.SKU" class="form-control" placeholder="e.g., PROD-1001" />
                                 <span asp-validation-for="Variant.SKU" class="text-danger"></span>
-                                <small class="form-text text-muted">Must be unique</small>
+                                <small class="form-text">Must be unique</small>
                             </div>
 
-                            <!-- Description -->
                             <div class="mb-3">
                                 <label asp-for="Product.Description" class="form-label"></label>
                                 <textarea asp-for="Product.Description" class="form-control" rows="4" placeholder="Product description..."></textarea>
                                 <span asp-validation-for="Product.Description" class="text-danger"></span>
                             </div>
 
-                            <!-- Tags -->
                             <div class="mb-3">
                                 <label asp-for="Product.Tags" class="form-label"></label>
                                 <input asp-for="Product.Tags" class="form-control" placeholder="e.g., new, featured, sale" />
                                 <span asp-validation-for="Product.Tags" class="text-danger"></span>
-                                <small class="form-text text-muted">Comma-separated values</small>
+                                <small class="form-text">Comma-separated values</small>
                             </div>
 
                         </div>
                     </div>
 
-                    <!-- CARD 2: PRICING & INVENTORY -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-dark text-white">
-                            <h5 class="mb-0">Pricing & Inventory</h5>
-                        </div>
-                        <div class="card-body">
+                    <!-- SECTION 2: PRICING & INVENTORY -->
+                    <div class="edit-section">
+                        <div class="edit-section-header">Pricing &amp; Inventory</div>
+                        <div class="edit-section-body">
 
-                            <!-- Price -->
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label asp-for="Variant.Price" class="form-label"></label>
@@ -130,7 +276,6 @@
                                     <span asp-validation-for="Variant.Price" class="text-danger"></span>
                                 </div>
 
-                                <!-- Compare At Price -->
                                 <div class="col-md-6 mb-3">
                                     <label asp-for="Variant.CompareAtPrice" class="form-label"></label>
                                     <div class="input-group">
@@ -138,11 +283,10 @@
                                         <input asp-for="Variant.CompareAtPrice" type="number" step="0.01" class="form-control" placeholder="0.00" min="0" />
                                     </div>
                                     <span asp-validation-for="Variant.CompareAtPrice" class="text-danger"></span>
-                                    <small class="form-text text-muted">Original price for showing discounts</small>
+                                    <small class="form-text">Original price for showing discounts</small>
                                 </div>
                             </div>
 
-                            <!-- Inventory Quantity -->
                             <div class="mb-3">
                                 <label asp-for="Variant.InventoryQuantity" class="form-label"></label>
                                 <span class="text-danger">*</span>
@@ -150,7 +294,6 @@
                                 <span asp-validation-for="Variant.InventoryQuantity" class="text-danger"></span>
                             </div>
 
-                            <!-- Inventory Policy -->
                             <div class="mb-3">
                                 <label asp-for="Variant.InventoryPolicy" class="form-label"></label>
                                 <span class="text-danger">*</span>
@@ -165,14 +308,11 @@
                         </div>
                     </div>
 
-                    <!-- CARD 3: SHIPPING & PHYSICAL -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-secondary text-white">
-                            <h5 class="mb-0">Shipping & Physical Properties</h5>
-                        </div>
-                        <div class="card-body">
+                    <!-- SECTION 3: SHIPPING & PHYSICAL -->
+                    <div class="edit-section">
+                        <div class="edit-section-header">Shipping &amp; Physical Properties</div>
+                        <div class="edit-section-body">
 
-                            <!-- Weight -->
                             <div class="mb-3">
                                 <label asp-for="Variant.Weight" class="form-label"></label>
                                 <div class="row">
@@ -189,17 +329,15 @@
                                         </select>
                                     </div>
                                 </div>
-                                <small class="form-text text-muted">Weight is stored in grams. Current value is in grams.</small>
+                                <small class="form-text">Weight is stored in grams. Current value is in grams.</small>
                             </div>
 
-                            <!-- Barcode -->
                             <div class="mb-3">
                                 <label asp-for="Variant.Barcode" class="form-label"></label>
                                 <input asp-for="Variant.Barcode" class="form-control" placeholder="e.g., 123456789012" />
                                 <span asp-validation-for="Variant.Barcode" class="text-danger"></span>
                             </div>
 
-                            <!-- Checkboxes -->
                             <div class="form-check mb-2">
                                 <input asp-for="Variant.RequiresShipping" class="form-check-input" type="checkbox" />
                                 <label asp-for="Variant.RequiresShipping" class="form-check-label"></label>
@@ -213,88 +351,75 @@
                         </div>
                     </div>
 
-                    <!-- CARD 4: ATTRIBUTES -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-secondary text-white">
-                            <h5 class="mb-0">Attributes & Specifications</h5>
-                        </div>
-                        <div class="card-body">
+                    <!-- SECTION 4: ATTRIBUTES -->
+                    <div class="edit-section">
+                        <div class="edit-section-header">Attributes &amp; Specifications</div>
+                        <div class="edit-section-body">
 
-                            <p class="text-muted mb-3">
+                            <p style="font-size:0.875rem; color:#6B7280; margin-bottom:1rem;">
                                 Add attributes to describe this product (e.g., Color, Size, Material).
                             </p>
 
                             <div class="row mb-2 attribute-header" id="attributeHeaderRow">
                                 <div class="col-md-5">
-                                    <span class="form-label fw-semibold">Attribute Name</span>
+                                    <span class="attr-header-label">Attribute Name</span>
                                 </div>
                                 <div class="col-md-5">
-                                    <span class="form-label fw-semibold">Attribute Value</span>
+                                    <span class="attr-header-label">Attribute Value</span>
                                 </div>
                                 <div class="col-md-2"></div>
                             </div>
 
-                            <!-- Attributes Container -->
                             <div id="attributesContainer">
                                 <!-- Existing attributes will be loaded here by JavaScript -->
                             </div>
 
-                            <!-- Add Attribute Button -->
-                            <button type="button" class="btn btn-outline-secondary" id="addAttributeBtn">
+                            <button type="button" class="btn-add-attr" id="addAttributeBtn">
                                 <i class="bi bi-plus-circle"></i> Add Attribute
                             </button>
 
-                            <!-- Hidden field to track attribute count -->
                             <input type="hidden" id="attributeCounter" value="0" />
 
                         </div>
                     </div>
 
-                    <!-- Buttons -->
-                    <div class="d-flex justify-content-between mt-4 mb-4">
-                        <a asp-action="Details" asp-route-id="@Model.Variant.VariantID" class="btn btn-outline-secondary btn-lg">Cancel</a>
-                        <button type="submit" class="btn btn-dark btn-lg">Save Changes</button>
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-3 mb-5">
+                        <a asp-action="Details" asp-route-id="@Model.Variant.VariantID" class="btn-cancel-link">Cancel</a>
+                        <button type="submit" class="btn-save">Save Changes</button>
                     </div>
 
                 </form>
             </div>
-            <!-- END STANDALONE FORM -->
 
         </div>
 
         <!-- Side Panel -->
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0">Current Status</h6>
-                </div>
-                <div class="card-body">
-                    <dl class="mb-0">
-                        <dt>Status:</dt>
-                        <dd>
-                            @switch (Model.Variant.Status)
-                                {
-                                case ProductStatus.Draft:
-                                <span class="badge bg-info">Draft</span>
-                                break;
-                                case ProductStatus.Published:
-                                <span class="badge bg-success">Published</span>
-                                break;
-                                case ProductStatus.Archived:
-                                <span class="badge bg-secondary">Archived</span>
-                                break;
-                                }
-                        </dd>
-                    </dl>
+
+            <div class="side-card">
+                <div class="side-card-header">Current Status</div>
+                <div class="side-card-body">
+                    <div style="font-size:0.8rem; color:#6B7280; margin-bottom:0.4rem;">Status</div>
+                    @switch (Model.Variant.Status)
+                    {
+                        case ProductStatus.Draft:
+                            <span class="status-pill status-draft">Draft</span>
+                            break;
+                        case ProductStatus.Published:
+                            <span class="status-pill status-published">Published</span>
+                            break;
+                        case ProductStatus.Archived:
+                            <span class="status-pill status-archived">Archived</span>
+                            break;
+                    }
                 </div>
             </div>
 
-            <div class="card mt-3">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0">Tips</h6>
-                </div>
-                <div class="card-body">
-                    <ul class="mb-0 small">
+            <div class="side-card">
+                <div class="side-card-header">Tips</div>
+                <div class="side-card-body">
+                    <ul style="margin:0; padding-left:1.1rem; color:#4B5563; line-height:1.8; font-size:0.85rem;">
                         <li>Changes are saved immediately</li>
                         <li>Handle is auto-generated from Title</li>
                         <li>SKU must remain unique</li>
@@ -302,15 +427,16 @@
                     </ul>
                 </div>
             </div>
+
         </div>
     </div>
 
 </div>
 
-    @section Scripts {
-        @{
+@section Scripts {
+    @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
-        }
+    }
 
     <style>
         .field-validation-error {
@@ -736,4 +862,4 @@
             }
         })();
     </script>
-    }
+}
