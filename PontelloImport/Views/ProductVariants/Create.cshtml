@@ -76,22 +76,38 @@
     }
     .btn-cancel-link:hover { background: #F3F4F6; color: #374151; }
 
-    /* has-variants toggle row */
-    .toggle-row {
-        display: flex; align-items: center; gap: 0.65rem;
-        padding: 0.85rem 1.25rem;
-        background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 12px;
-        margin-bottom: 1.25rem; cursor: pointer; user-select: none;
+    /* product type radio cards */
+    .type-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.65rem;
+        padding: 0.7rem 1rem;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        cursor: pointer;
+        user-select: none;
+        background: #fff;
+        transition: border-color 150ms, background 150ms;
+        margin-bottom: 0.5rem;
     }
-    .toggle-row input[type=checkbox] { width: 1rem; height: 1rem; cursor: pointer; accent-color: #2563EB; }
-    .toggle-row .toggle-label  { font-size: 0.875rem; font-weight: 500; color: #374151; margin: 0; }
-    .toggle-row .toggle-hint   { font-size: 0.8rem; color: #9CA3AF; }
+    .type-option.selected {
+        border-color: #2563EB;
+        background: #EFF6FF;
+    }
+    .type-option input[type=radio] {
+        margin-top: 0.18rem;
+        accent-color: #2563EB;
+        cursor: pointer;
+    }
+    .type-option-title { font-size: 0.875rem; font-weight: 600; color: #111827; }
+    .type-option-hint  { font-size: 0.8rem; color: #9CA3AF; }
 
     /* option dimension grid */
     .dim-row {
         display: grid; grid-template-columns: 160px 1fr;
-        gap: 0.75rem; align-items: end; margin-bottom: 0.75rem;
+        gap: 0.75rem; align-items: start; margin-bottom: 0.75rem;
     }
+    .dim-error { font-size: 0.8rem; color: #DC2626; margin-top: 0.25rem; }
 
     /* variant preview table */
     .var-table { font-size: 0.82rem; }
@@ -102,6 +118,11 @@
     }
     .var-table td { vertical-align: middle; padding: 0.35rem 0.6rem; }
     .var-table .form-control-sm { font-size: 0.82rem; }
+
+    /* spec rows */
+    .spec-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .spec-row .spec-label-col { flex: 1 1 40%; }
+    .spec-row .spec-value-col { flex: 2 1 55%; }
 </style>
 
 <div class="container-fluid mt-4" style="max-width: 720px;">
@@ -117,17 +138,18 @@
         </div>
     </div>
 
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
-            <strong>Please fix the errors below:</strong>
-            <div asp-validation-summary="All" class="mt-1 mb-0 small"></div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
     <form asp-action="Create" method="post" id="createForm">
         @Html.AntiForgeryToken()
+
+        <!-- ══ VALIDATION SUMMARY ════════════════════════════════════════════ -->
+        @if (!ViewData.ModelState.IsValid &&
+             ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
+        {
+            <div class="alert alert-danger mb-3">
+                <strong>Please fix the following errors:</strong>
+                <div asp-validation-summary="All" class="mt-1 mb-0 small"></div>
+            </div>
+        }
 
         <!-- ══ PRODUCT INFO ══════════════════════════════════════════════════ -->
         <div class="create-section">
@@ -138,6 +160,7 @@
                     <label asp-for="ProductTitle" class="form-label">Product Title <span class="text-danger">*</span></label>
                     <input asp-for="ProductTitle" class="form-control" placeholder="e.g., Safety Helmet Full-Face" autofocus />
                     <span asp-validation-for="ProductTitle" class="text-danger small"></span>
+                    <span id="title-ajax-msg" class="small"></span>
                 </div>
 
                 <div class="mb-3">
@@ -164,6 +187,7 @@
                             asp-items="@(ViewData["ProductTypes"] as SelectList)">
                         <option value="">-- None --</option>
                     </select>
+                    <span asp-validation-for="ProductTypeID" class="text-danger small"></span>
                 </div>
 
                 <div class="mb-1">
@@ -173,29 +197,93 @@
                         <option value="@ProductStatus.Published">Published</option>
                         <option value="@ProductStatus.Unlisted">Unlisted</option>
                     </select>
+                    <span asp-validation-for="Status" class="text-danger small"></span>
                 </div>
 
             </div>
         </div>
 
-        <!-- ══ VARIANTS TOGGLE ══════════════════════════════════════════════ -->
-        <div class="toggle-row" id="toggleRow">
-            <input type="checkbox" id="hasVariantsCheckbox" @(Model.HasVariants ? "checked" : "") />
-            <span class="toggle-label">This product has variants</span>
-            <span class="toggle-hint">e.g. different sizes, colours, or materials</span>
+        <!-- ══ SPECIFICATIONS (Task 3) ═══════════════════════════════════════ -->
+        <div class="create-section">
+            <div class="create-section-header">Specifications</div>
+            <div class="create-section-body">
+                <p class="small text-muted mb-3">
+                    Optional. Add technical details like Model Year, Material, Thread Size, Fitment, etc.
+                </p>
+
+                <div id="spec-rows">
+                    @for (int i = 0; i < Model.Specifications.Count; i++)
+                    {
+                        var spec = Model.Specifications[i];
+                        <div class="spec-row">
+                            <div class="spec-label-col">
+                                <input type="text" name="Specifications[@i].Label"
+                                       value="@spec.Label"
+                                       class="form-control form-control-sm"
+                                       placeholder="e.g. Model Year" />
+                            </div>
+                            <div class="spec-value-col">
+                                <input type="text" name="Specifications[@i].Value"
+                                       value="@spec.Value"
+                                       class="form-control form-control-sm"
+                                       placeholder="e.g. 2023" />
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm px-2"
+                                    onclick="removeSpecRow(this)">×</button>
+                        </div>
+                    }
+                </div>
+
+                <div id="spec-limit-msg" class="text-danger small mt-1" style="display:none">
+                    Maximum 10 specifications allowed.
+                </div>
+
+                <button type="button" id="addSpecBtn"
+                        class="btn btn-outline-secondary btn-sm mt-2"
+                        onclick="addSpecRow()">
+                    + Add Specification
+                </button>
+            </div>
         </div>
-        <input type="hidden" name="HasVariants" id="hasVariantsHidden"
-               value="@(Model.HasVariants ? "true" : "false")" />
+
+        <!-- ══ PRODUCT TYPE TOGGLE (Task 5 — radio buttons) ════════════════ -->
+        <div class="create-section mb-3">
+            <div class="create-section-body pb-2">
+                <div class="mb-2" style="font-size:0.875rem; font-weight:600; color:#374151;">Product Type</div>
+
+                <label class="type-option @(!Model.HasVariants ? "selected" : "")" for="simpleProduct">
+                    <input type="radio" name="HasVariants" id="simpleProduct" value="false"
+                           @Html.Raw(!Model.HasVariants ? "checked" : "")
+                           onchange="applyMode(false)" />
+                    <div>
+                        <div class="type-option-title">Simple Product</div>
+                        <div class="type-option-hint">One SKU, no options</div>
+                    </div>
+                </label>
+
+                <label class="type-option @(Model.HasVariants ? "selected" : "")" for="productWithVariants">
+                    <input type="radio" name="HasVariants" id="productWithVariants" value="true"
+                           @Html.Raw(Model.HasVariants ? "checked" : "")
+                           onchange="applyMode(true)" />
+                    <div>
+                        <div class="type-option-title">Product with Variants</div>
+                        <div class="type-option-hint">Multiple SKUs by option (Color, Size, etc.)</div>
+                    </div>
+                </label>
+            </div>
+        </div>
 
         <!-- ══ SIMPLE VARIANT (HasVariants = false) ══════════════════════════ -->
         <div id="simple-section" class="create-section">
-            <div class="create-section-header">Variant Info</div>
+            <div class="create-section-header">Listing Details</div>
             <div class="create-section-body">
+                <p class="small text-muted mb-3">Price, stock, and identifier for this product.</p>
 
                 <div class="mb-3">
                     <label asp-for="SKU" class="form-label">SKU <span class="text-danger">*</span></label>
                     <input asp-for="SKU" class="form-control" id="simpleSku" placeholder="e.g., CRG-3001" />
                     <span asp-validation-for="SKU" class="text-danger small"></span>
+                    <span id="sku-ajax-msg" class="small"></span>
                     <small class="form-text">Format: AA-000 &nbsp;e.g. CRG-3001</small>
                 </div>
 
@@ -211,28 +299,42 @@
                         <small class="form-text">CAD</small>
                     </div>
                     <div class="col-6 mb-3">
-                        <label asp-for="InventoryQuantity" class="form-label">Inventory Qty <span class="text-danger">*</span></label>
+                        <label asp-for="InventoryQuantity" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
                         <input asp-for="InventoryQuantity" type="number" min="0"
                                class="form-control" placeholder="0" />
                         <span asp-validation-for="InventoryQuantity" class="text-danger small"></span>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-6 mb-1">
-                        <label asp-for="Option1Name" class="form-label">
-                            Option Name <span class="optional-label">(optional)</span>
-                        </label>
-                        <input asp-for="Option1Name" class="form-control" placeholder="e.g. Color" />
+                <div class="mt-3 pt-3" style="border-top:1px solid #E5E7EB;">
+                    <div class="mb-1" style="font-size:0.875rem; font-weight:500; color:#374151;">
+                        Option <span class="optional-label">(optional)</span>
                     </div>
-                    <div class="col-6 mb-1">
-                        <label asp-for="Option1Value" class="form-label">
-                            Option Value <span class="optional-label">(optional)</span>
-                        </label>
-                        <input asp-for="Option1Value" class="form-control" placeholder="e.g. Black" />
+                    <p class="small text-muted mb-2">
+                        Does this product come in a specific option right now, even if it's the only one?
+                        e.g. Size = Small. This makes it easy to add more options later.
+                    </p>
+                    <div class="row">
+                        <div class="col-6 mb-1">
+                            <label asp-for="SimpleOptionName" class="form-label">Option</label>
+                            <select asp-for="SimpleOptionName" class="form-select" id="SimpleOptionName"
+                                    onchange="onSimpleOptionNameChange()">
+                                <option value="">-- None --</option>
+                                @foreach (var n in optionNames)
+                                {
+                                    <option value="@n">@n</option>
+                                }
+                            </select>
+                            <span asp-validation-for="SimpleOptionName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-6 mb-1">
+                            <label asp-for="SimpleOptionValue" class="form-label">Value</label>
+                            <input asp-for="SimpleOptionValue" class="form-control" id="SimpleOptionValue"
+                                   placeholder="e.g. Small" />
+                            <span asp-validation-for="SimpleOptionValue" class="text-danger small"></span>
+                        </div>
                     </div>
                 </div>
-                <small class="form-text">Leave blank for a single default variant.</small>
 
             </div>
         </div>
@@ -296,11 +398,15 @@
                         </div>
                     }
 
+                    <!-- Hidden fields for model binding — kept inside variants-section so setDisabled works -->
+                    <div id="opt-name-hiddens"></div>
+
                     <div class="mt-2">
                         <button type="button" class="btn btn-outline-primary btn-sm px-3"
                                 onclick="generateVariants()">
-                            ⚡ Generate Variants
+                            Generate Variants
                         </button>
+                        <span id="gen-error" class="text-danger small ms-2" style="display:none"></span>
                     </div>
 
                 </div>
@@ -312,19 +418,19 @@
                 <div class="create-section-header">
                     <span>Variants</span>
                     <span id="variant-count-lbl" style="font-size:0.8rem; color:#9CA3AF; font-weight:400;">
-                        @(Model.Variants.Any() ? $"({Model.Variants.Count} variants)" : "")
+                        @(Model.Variants.Any() ? $"({Model.Variants.Count} variant{(Model.Variants.Count != 1 ? "s" : "")})" : "")
                     </span>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm var-table mb-0">
                         <thead>
-                            <tr>
-                                <th>Option 1</th>
-                                <th>Option 2</th>
-                                <th>Option 3</th>
+                            <tr id="variant-header-row">
+                                <th id="th-opt1">@(Model.Option1Name ?? "Option 1")</th>
+                                <th id="th-opt2">@(Model.Option2Name ?? "Option 2")</th>
+                                <th id="th-opt3">@(Model.Option3Name ?? "Option 3")</th>
                                 <th style="min-width:130px;">SKU <span class="text-danger">*</span></th>
                                 <th style="min-width:100px;">Price <span class="text-danger">*</span></th>
-                                <th style="min-width:80px;">Qty</th>
+                                <th style="min-width:80px;">Stock Qty</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -378,32 +484,50 @@
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
     <script>
-    // ── Toggle mode ──────────────────────────────────────────────────────────
-    const cbx    = document.getElementById('hasVariantsCheckbox');
-    const hidden = document.getElementById('hasVariantsHidden');
-
-    document.getElementById('toggleRow').addEventListener('click', function (e) {
-        if (e.target === cbx) return;
-        cbx.checked = !cbx.checked;
-        applyMode(cbx.checked);
-    });
-    cbx.addEventListener('change', () => applyMode(cbx.checked));
-
+    // ── Radio button toggle ───────────────────────────────────────────────────
     function applyMode(on) {
-        hidden.value = on ? 'true' : 'false';
         document.getElementById('simple-section').style.display   = on ? 'none'  : 'block';
         document.getElementById('variants-section').style.display = on ? 'block' : 'none';
         setDisabled('simple-section',   on);
         setDisabled('variants-section', !on);
+
+        if (!on) {
+            // Re-apply conditional disable for simple option value after setDisabled re-enables everything
+            initSimpleOptionValueState();
+        }
+
+        // Update radio card styling
+        document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
+        var activeFor = on ? 'productWithVariants' : 'simpleProduct';
+        var lbl = document.querySelector('label[for="' + activeFor + '"]');
+        if (lbl) lbl.classList.add('selected');
     }
 
     function setDisabled(id, disabled) {
         document.getElementById(id)
-            .querySelectorAll('input:not(#hasVariantsHidden):not(#hasVariantsCheckbox), select, textarea')
+            .querySelectorAll('input, select, textarea, button')
             .forEach(el => { el.disabled = disabled; });
     }
 
-    applyMode(cbx.checked);   // initialise on load
+    // ── Task 4: Simple option value disable logic ─────────────────────────────
+    function initSimpleOptionValueState() {
+        const nameEl = document.getElementById('SimpleOptionName');
+        const valEl  = document.getElementById('SimpleOptionValue');
+        if (nameEl && valEl) {
+            valEl.disabled = !nameEl.value;
+        }
+    }
+
+    function onSimpleOptionNameChange() {
+        const nameEl = document.getElementById('SimpleOptionName');
+        const valEl  = document.getElementById('SimpleOptionValue');
+        if (!nameEl || !valEl) return;
+        valEl.disabled = !nameEl.value;
+        if (!nameEl.value) valEl.value = '';
+    }
+
+    // Initialise on load
+    applyMode(@(Model.HasVariants ? "true" : "false"));
 
     // Auto-uppercase SKU (simple path)
     document.getElementById('simpleSku')?.addEventListener('input', function () {
@@ -412,7 +536,46 @@
         this.setSelectionRange(p, p);
     });
 
-    // ── Variant generator ────────────────────────────────────────────────────
+    // ── Task 4: Prevent duplicate option dimension selection ─────────────────
+    function updateOptionSelects() {
+        const sels = ['opt1Name', 'opt2Name', 'opt3Name']
+            .map(id => document.getElementById(id))
+            .filter(Boolean);
+
+        sels.forEach((sel, idx) => {
+            const otherVals = sels
+                .filter((_, i) => i !== idx)
+                .map(s => s.value)
+                .filter(v => v !== '');
+
+            Array.from(sel.options).forEach(opt => {
+                if (opt.value === '') return; // always keep blank option enabled
+                opt.disabled = otherVals.includes(opt.value);
+            });
+        });
+
+        updateVariantHeaders();
+    }
+
+    document.querySelectorAll('.opt-name-sel').forEach(sel => {
+        sel.addEventListener('change', updateOptionSelects);
+    });
+
+    // ── Task 5: Dynamic variant table column headers ──────────────────────────
+    function updateVariantHeaders() {
+        const opt1 = document.getElementById('opt1Name')?.value || 'Option 1';
+        const opt2 = document.getElementById('opt2Name')?.value || 'Option 2';
+        const opt3 = document.getElementById('opt3Name')?.value || 'Option 3';
+
+        const th1 = document.getElementById('th-opt1');
+        const th2 = document.getElementById('th-opt2');
+        const th3 = document.getElementById('th-opt3');
+        if (th1) th1.textContent = opt1;
+        if (th2) th2.textContent = opt2;
+        if (th3) th3.textContent = opt3;
+    }
+
+    // ── Variant generator ─────────────────────────────────────────────────────
     function parseVals(s) { return s.split(',').map(v => v.trim()).filter(Boolean); }
 
     function cartesian(arrays) {
@@ -422,39 +585,76 @@
         );
     }
 
-    // Sync option name selects → hidden fields used for model binding on submit
+    // Sync option name selects -> hidden fields inside variants-section
     function syncOptionNameHiddens() {
+        const container = document.getElementById('opt-name-hiddens');
+        container.innerHTML = ''; // clear and rebuild each time
         for (let d = 1; d <= 3; d++) {
             const sel = document.getElementById(`opt${d}Name`);
-            if (!sel) continue;
-            const fieldName = sel.dataset.fieldname;
-            let hid = document.getElementById(`hid_opt${d}Name`);
-            if (!hid) {
-                hid = document.createElement('input');
-                hid.type = 'hidden';
-                hid.id   = `hid_opt${d}Name`;
-                document.getElementById('createForm').appendChild(hid);
-            }
-            hid.name  = fieldName;
+            if (!sel || !sel.value) continue;
+            const hid = document.createElement('input');
+            hid.type  = 'hidden';
+            hid.name  = sel.dataset.fieldname;
             hid.value = sel.value;
+            container.appendChild(hid);
         }
     }
 
     function generateVariants() {
+        // Clear previous inline errors
+        document.querySelectorAll('.dim-error').forEach(el => el.remove());
+        document.getElementById('gen-error').style.display = 'none';
+
         const dims = [], names = [];
+        let hasError = false;
+        const namesSeen = new Set();
+
         for (let d = 1; d <= 3; d++) {
             const nameEl = document.getElementById(`opt${d}Name`);
             const valEl  = document.getElementById(`opt${d}Values`);
-            const name = nameEl?.value.trim() ?? '';
-            const vals = parseVals(valEl?.value ?? '');
-            if (name && vals.length > 0) { dims.push(vals); names.push(name); }
+            const name   = nameEl?.value.trim() ?? '';
+            const rawVal = valEl?.value.trim() ?? '';
+            const vals   = parseVals(rawVal);
+
+            if (!name) continue;
+
+            // Task 4: duplicate option name check
+            if (namesSeen.has(name)) {
+                showDimError(nameEl.closest('div'), `"${name}" is already selected for another option.`);
+                hasError = true;
+            } else {
+                namesSeen.add(name);
+            }
+
+            // Task 6.8: option name selected but no values entered
+            if (vals.length === 0) {
+                showDimError(valEl.closest('div'), `Enter at least one value for ${name}.`);
+                hasError = true;
+                continue;
+            }
+
+            dims.push(vals);
+            names.push(name);
         }
-        if (dims.length === 0) {
-            alert('Select at least one option with values.');
+
+        if (dims.length === 0 && !hasError) {
+            document.getElementById('gen-error').textContent = 'Select at least one option with values.';
+            document.getElementById('gen-error').style.display = 'inline';
             return;
         }
+
+        if (hasError) return;
+
         syncOptionNameHiddens();
         buildTable(cartesian(dims));
+        updateVariantHeaders();
+    }
+
+    function showDimError(container, msg) {
+        const err = document.createElement('div');
+        err.className = 'dim-error';
+        err.textContent = msg;
+        container.appendChild(err);
     }
 
     function buildTable(combos) {
@@ -464,7 +664,7 @@
         combos.forEach((combo, i) => {
             const tr = document.createElement('tr');
 
-            // Display-only option value cells (3 columns always)
+            // Display-only option value cells (3 columns)
             for (let j = 0; j < 3; j++) {
                 const c = document.createElement('td');
                 c.textContent = combo[j] ?? '';
@@ -548,5 +748,114 @@
         document.getElementById('variant-count-lbl').textContent =
             n > 0 ? `(${n} variant${n !== 1 ? 's' : ''})` : '';
     }
+
+    // ── Task 3: Specification row management ──────────────────────────────────
+    var specCount = @(Model.Specifications.Count);
+
+    function addSpecRow() {
+        if (specCount >= 10) {
+            document.getElementById('spec-limit-msg').style.display = 'block';
+            return;
+        }
+        const idx = specCount;
+        const row = document.createElement('div');
+        row.className = 'spec-row';
+        row.innerHTML =
+            `<div class="spec-label-col">
+                <input type="text" name="Specifications[${idx}].Label"
+                       class="form-control form-control-sm" placeholder="e.g. Model Year" />
+             </div>
+             <div class="spec-value-col">
+                <input type="text" name="Specifications[${idx}].Value"
+                       class="form-control form-control-sm" placeholder="e.g. 2023" />
+             </div>
+             <button type="button" class="btn btn-outline-danger btn-sm px-2"
+                     onclick="removeSpecRow(this)">×</button>`;
+        document.getElementById('spec-rows').appendChild(row);
+        specCount++;
+        updateSpecLimit();
+    }
+
+    function removeSpecRow(btn) {
+        btn.closest('.spec-row').remove();
+        reindexSpecs();
+        updateSpecLimit();
+    }
+
+    function reindexSpecs() {
+        specCount = 0;
+        document.querySelectorAll('#spec-rows .spec-row').forEach((row, i) => {
+            row.querySelectorAll('input[name]').forEach(el => {
+                el.name = el.name.replace(/Specifications\[\d+\]/, `Specifications[${i}]`);
+            });
+            specCount++;
+        });
+    }
+
+    function updateSpecLimit() {
+        const count = document.querySelectorAll('#spec-rows .spec-row').length;
+        const atLimit = count >= 10;
+        document.getElementById('spec-limit-msg').style.display = atLimit ? 'block' : 'none';
+        document.getElementById('addSpecBtn').disabled = atLimit;
+        specCount = count;
+    }
+
+    // Initialise option selects (disable already-selected options in sibling selects)
+    updateOptionSelects();
+
+    // ── Task 2: Real-time AJAX uniqueness checks ──────────────────────────────
+    function setAjaxFeedback(feedbackId, available, takenMsg) {
+        let el = document.getElementById(feedbackId);
+        if (!el) return;
+        if (!available) {
+            el.className = 'text-danger small d-block';
+            el.textContent = takenMsg;
+        } else {
+            el.textContent = '';
+        }
+    }
+
+    // Title field — blur check
+    document.getElementById('ProductTitle')?.addEventListener('blur', async function () {
+        const val = this.value.trim();
+        if (!val) { setAjaxFeedback('title-ajax-msg', true, ''); return; }
+        try {
+            const res  = await fetch('/ProductVariants/CheckTitle?title=' + encodeURIComponent(val));
+            const data = await res.json();
+            setAjaxFeedback('title-ajax-msg', data.available,
+                'This product name is already taken.');
+        } catch {}
+    });
+
+    // SKU field (simple path) — blur check
+    document.getElementById('SKU')?.addEventListener('blur', async function () {
+        const val = this.value.trim();
+        if (!val) { setAjaxFeedback('sku-ajax-msg', true, ''); return; }
+        try {
+            const res  = await fetch('/ProductVariants/CheckSku?sku=' + encodeURIComponent(val));
+            const data = await res.json();
+            setAjaxFeedback('sku-ajax-msg', data.available,
+                'This SKU is already in use.');
+        } catch {}
+    });
+
+    // Variant table SKU inputs — event delegation (blur doesn't bubble, use capture)
+    document.getElementById('variant-rows')?.addEventListener('blur', async function (e) {
+        if (!e.target.matches('input[name$=".SKU"]')) return;
+        const val = e.target.value.trim();
+        // Remove previous inline feedback for this cell
+        e.target.parentElement.querySelectorAll('.var-sku-feedback').forEach(el => el.remove());
+        if (!val) return;
+        try {
+            const res  = await fetch('/ProductVariants/CheckSku?sku=' + encodeURIComponent(val));
+            const data = await res.json();
+            if (!data.available) {
+                const span = document.createElement('span');
+                span.className = 'text-danger small d-block var-sku-feedback';
+                span.textContent = 'SKU already in use.';
+                e.target.parentElement.appendChild(span);
+            }
+        } catch {}
+    }, true); // capture=true because blur doesn't bubble
     </script>
 }

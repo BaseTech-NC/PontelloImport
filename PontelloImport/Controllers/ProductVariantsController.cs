@@ -183,7 +183,32 @@ namespace PontelloImport.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(QuickCreateViewModel model)
         {
-            // When HasVariants=true the simple-path fields are not submitted — suppress their required errors
+            // ── 1. Trim all string inputs ──────────────────────────────────────────
+            model.ProductTitle = model.ProductTitle?.Trim() ?? "";
+            model.SKU          = model.SKU?.Trim() ?? "";
+            model.SimpleOptionName  = string.IsNullOrWhiteSpace(model.SimpleOptionName)  ? null : model.SimpleOptionName.Trim();
+            model.SimpleOptionValue = string.IsNullOrWhiteSpace(model.SimpleOptionValue) ? null : model.SimpleOptionValue.Trim();
+            model.Option1Name  = string.IsNullOrWhiteSpace(model.Option1Name) ? null : model.Option1Name.Trim();
+            model.Option2Name  = string.IsNullOrWhiteSpace(model.Option2Name) ? null : model.Option2Name.Trim();
+            model.Option3Name  = string.IsNullOrWhiteSpace(model.Option3Name) ? null : model.Option3Name.Trim();
+
+            if (model.Variants != null)
+                foreach (var v in model.Variants)
+                {
+                    v.SKU          = v.SKU?.Trim() ?? "";
+                    v.Option1Value = string.IsNullOrWhiteSpace(v.Option1Value) ? null : v.Option1Value.Trim();
+                    v.Option2Value = string.IsNullOrWhiteSpace(v.Option2Value) ? null : v.Option2Value.Trim();
+                    v.Option3Value = string.IsNullOrWhiteSpace(v.Option3Value) ? null : v.Option3Value.Trim();
+                }
+
+            if (model.Specifications != null)
+                foreach (var s in model.Specifications)
+                {
+                    s.Label = s.Label?.Trim() ?? "";
+                    s.Value = s.Value?.Trim() ?? "";
+                }
+
+            // ── 2. Suppress Required errors for the inactive path ──────────────────
             if (model.HasVariants)
             {
                 ModelState.Remove("SKU");
@@ -191,36 +216,146 @@ namespace PontelloImport.Controllers
                 ModelState.Remove("InventoryQuantity");
             }
 
+            // ── 3. Business-rule validation (title/SKU duplicates, price, inventory) ──
+
+            // Title duplicate — case-insensitive via EF.Functions.Like
+            var trimmedTitle = model.ProductTitle;
+            if (!string.IsNullOrWhiteSpace(trimmedTitle))
+            {
+                if (await _context.Products.AnyAsync(p => EF.Functions.Like(p.Title, trimmedTitle)))
+                    ModelState.AddModelError("ProductTitle",
+                        "A product with this name already exists. Use a different title.");
+            }
+
+            if (!model.HasVariants)
+            {
+                // SKU duplicate — simple path, case-insensitive via EF.Functions.Like
+                var trimmedSku = model.SKU;
+                if (!string.IsNullOrWhiteSpace(trimmedSku))
+                {
+                    if (await _context.ProductVariants.AnyAsync(v => EF.Functions.Like(v.SKU, trimmedSku)))
+                        ModelState.AddModelError("SKU",
+                            "This SKU is already taken. Each product needs a unique SKU.");
+                }
+
+                // Price > 0
+                if (model.Price <= 0)
+                    ModelState.AddModelError("Price", "Price must be greater than zero.");
+
+                // Negative inventory
+                if (model.InventoryQuantity < 0)
+                    ModelState.AddModelError("InventoryQuantity", "Stock quantity cannot be negative.");
+
+                // Simple option: name selected but value blank
+                if (!string.IsNullOrWhiteSpace(model.SimpleOptionName) && string.IsNullOrWhiteSpace(model.SimpleOptionValue))
+                    ModelState.AddModelError("SimpleOptionValue",
+                        "Enter a value for the selected option, or set Option to None.");
+            }
+            else
+            {
+                // HasVariants = true
+                if (model.Variants == null || !model.Variants.Any())
+                {
+                    ModelState.AddModelError("", "Add at least one variant before saving.");
+                }
+                else
+                {
+                    // Per-row validations
+                    for (int i = 0; i < model.Variants.Count; i++)
+                    {
+                        var row = model.Variants[i];
+
+                        if (string.IsNullOrWhiteSpace(row.SKU))
+                            ModelState.AddModelError($"Variants[{i}].SKU",
+                                "SKU is required for each variant.");
+
+                        if (row.Price <= 0)
+                            ModelState.AddModelError($"Variants[{i}].Price",
+                                "Price must be greater than zero.");
+
+                        if (row.Qty < 0)
+                            ModelState.AddModelError($"Variants[{i}].Qty",
+                                "Stock quantity cannot be negative.");
+                    }
+
+                    // Intra-submission duplicate SKUs — flag ALL rows, not just first
+                    var skuGroups = model.Variants
+                        .Select((v, i) => new { Sku = v.SKU.ToUpperInvariant(), Index = i })
+                        .Where(x => !string.IsNullOrWhiteSpace(x.Sku))
+                        .GroupBy(x => x.Sku)
+                        .Where(g => g.Count() > 1);
+
+                    foreach (var group in skuGroups)
+                        foreach (var item in group)
+                            ModelState.AddModelError($"Variants[{item.Index}].SKU",
+                                "This SKU is already used in another row.");
+
+                    // DB duplicate SKUs — collect ALL, not just first
+                    var nonBlankSkus = model.Variants
+                        .Select((v, i) => new { Sku = v.SKU.ToUpperInvariant(), Index = i })
+                        .Where(x => !string.IsNullOrWhiteSpace(x.Sku))
+                        .ToList();
+
+                    if (nonBlankSkus.Any())
+                    {
+                        var skuList   = nonBlankSkus.Select(x => x.Sku).Distinct().ToList();
+                        var takenSkus = await _context.ProductVariants
+                            .Where(v => skuList.Contains(v.SKU))
+                            .Select(v => v.SKU)
+                            .ToListAsync();
+
+                        foreach (var item in nonBlankSkus)
+                            if (takenSkus.Contains(item.Sku))
+                                ModelState.AddModelError($"Variants[{item.Index}].SKU",
+                                    "This SKU is already taken. Each product needs a unique SKU.");
+                    }
+
+                    // Option name set but no variant carries a value for it
+                    if (!string.IsNullOrWhiteSpace(model.Option1Name) &&
+                        !model.Variants.Any(v => !string.IsNullOrWhiteSpace(v.Option1Value)))
+                        ModelState.AddModelError("",
+                            $"Option '{model.Option1Name}' has no values. Add at least one value or remove the option.");
+
+                    if (!string.IsNullOrWhiteSpace(model.Option2Name) &&
+                        !model.Variants.Any(v => !string.IsNullOrWhiteSpace(v.Option2Value)))
+                        ModelState.AddModelError("",
+                            $"Option '{model.Option2Name}' has no values. Add at least one value or remove the option.");
+
+                    if (!string.IsNullOrWhiteSpace(model.Option3Name) &&
+                        !model.Variants.Any(v => !string.IsNullOrWhiteSpace(v.Option3Value)))
+                        ModelState.AddModelError("",
+                            $"Option '{model.Option3Name}' has no values. Add at least one value or remove the option.");
+                }
+            }
+
+            // Specification validation — blank Label with non-blank Value
+            if (model.Specifications != null)
+            {
+                bool addedSpecError = false;
+                foreach (var spec in model.Specifications)
+                {
+                    if (!string.IsNullOrWhiteSpace(spec.Value) && string.IsNullOrWhiteSpace(spec.Label))
+                    {
+                        if (!addedSpecError)
+                        {
+                            ModelState.AddModelError("",
+                                "Each specification needs a label. Remove the row or add a label.");
+                            addedSpecError = true;
+                        }
+                    }
+                }
+            }
+
+            // ── 4. Return early if any validation failed ───────────────────────────
             if (!ModelState.IsValid)
             {
                 await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
                 return View(model);
             }
 
-            // Duplicate title check (case-insensitive)
-            var titleLower = model.ProductTitle.Trim().ToLower();
-            if (await _context.Products.AnyAsync(p => p.Title.ToLower() == titleLower))
-            {
-                ModelState.AddModelError("ProductTitle", "A product with this name already exists.");
-                await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
-                return View(model);
-            }
-
-            // Duplicate SKU check — simple path
-            if (!model.HasVariants)
-            {
-                var skuNorm = model.SKU.Trim().ToLower();
-                if (await _context.ProductVariants.AnyAsync(v => v.SKU.ToLower() == skuNorm))
-                {
-                    ModelState.AddModelError("SKU", "This SKU is already in use.");
-                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
-                    return View(model);
-                }
-            }
-
+            // ── 5. Save product ────────────────────────────────────────────────────
             var createdBy = User.Identity?.Name ?? "system";
 
-            // 1. Create the Product (shared for both paths)
             var product = new Product
             {
                 Title             = model.ProductTitle,
@@ -237,59 +372,13 @@ namespace PontelloImport.Controllers
 
             if (model.HasVariants)
             {
-                // Multi-variant path
-                // Validate rows are present
-                if (model.Variants == null || !model.Variants.Any())
-                {
-                    ModelState.AddModelError(string.Empty, "At least one variant row is required.");
-                    _context.Products.Remove(product);
-                    await _context.SaveChangesAsync();
-                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
-                    return View(model);
-                }
-
-                // Validate no blank SKUs
-                if (model.Variants.Any(v => string.IsNullOrWhiteSpace(v.SKU)))
-                {
-                    ModelState.AddModelError(string.Empty, "All variant rows must have a SKU.");
-                    _context.Products.Remove(product);
-                    await _context.SaveChangesAsync();
-                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
-                    return View(model);
-                }
-
-                // Validate no duplicate SKUs within submitted rows
-                var submittedSkus = model.Variants.Select(v => v.SKU.Trim().ToUpperInvariant()).ToList();
-                if (submittedSkus.Distinct().Count() != submittedSkus.Count)
-                {
-                    ModelState.AddModelError(string.Empty, "Each variant must have a unique SKU.");
-                    _context.Products.Remove(product);
-                    await _context.SaveChangesAsync();
-                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
-                    return View(model);
-                }
-
-                // Validate no SKUs already in the DB
-                var takenSkus = await _context.ProductVariants
-                    .Where(v => submittedSkus.Contains(v.SKU))
-                    .Select(v => v.SKU)
-                    .ToListAsync();
-                if (takenSkus.Any())
-                {
-                    ModelState.AddModelError(string.Empty, $"SKU(s) already in use: {string.Join(", ", takenSkus)}");
-                    _context.Products.Remove(product);
-                    await _context.SaveChangesAsync();
-                    await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
-                    return View(model);
-                }
-
                 bool isFirst = true;
-                foreach (var row in model.Variants)
+                foreach (var row in model.Variants!)
                 {
                     _context.ProductVariants.Add(new ProductVariant
                     {
                         ProductID         = product.ProductID,
-                        SKU               = row.SKU.Trim().ToUpperInvariant(),
+                        SKU               = row.SKU.ToUpperInvariant(),
                         Price             = row.Price,
                         InventoryQuantity = row.Qty,
                         InventoryPolicy   = "deny",
@@ -297,7 +386,7 @@ namespace PontelloImport.Controllers
                         IsTaxable         = true,
                         Status            = model.Status,
                         IsDefault         = isFirst,
-                        Option1Name       = model.Option1Name,
+                        Option1Name       = string.IsNullOrWhiteSpace(model.Option1Name) ? null : model.Option1Name,
                         Option1Value      = row.Option1Value,
                         Option2Name       = string.IsNullOrWhiteSpace(model.Option2Name) ? null : model.Option2Name,
                         Option2Value      = string.IsNullOrWhiteSpace(model.Option2Name) ? null : row.Option2Value,
@@ -309,17 +398,16 @@ namespace PontelloImport.Controllers
                     isFirst = false;
                 }
                 await _context.SaveChangesAsync();
-
                 TempData["Success"] = $"Product \"{product.Title}\" created with {model.Variants.Count} variant(s).";
             }
             else
             {
-                // Simple single-variant path
-                bool hasOption = !string.IsNullOrWhiteSpace(model.Option1Name);
+                bool hasOption = !string.IsNullOrWhiteSpace(model.SimpleOptionName) &&
+                                 !string.IsNullOrWhiteSpace(model.SimpleOptionValue);
                 _context.ProductVariants.Add(new ProductVariant
                 {
                     ProductID         = product.ProductID,
-                    SKU               = model.SKU.Trim().ToUpperInvariant(),
+                    SKU               = model.SKU.ToUpperInvariant(),
                     Price             = model.Price,
                     InventoryQuantity = model.InventoryQuantity,
                     InventoryPolicy   = "deny",
@@ -327,14 +415,37 @@ namespace PontelloImport.Controllers
                     IsTaxable         = true,
                     Status            = model.Status,
                     IsDefault         = !hasOption,
-                    Option1Name       = hasOption ? model.Option1Name : "Title",
-                    Option1Value      = hasOption ? model.Option1Value : "Default Title",
+                    Option1Name       = hasOption ? model.SimpleOptionName : "Title",
+                    Option1Value      = hasOption ? model.SimpleOptionValue : "Default Title",
                     CreatedDate       = DateTime.UtcNow,
                     CreatedBy         = createdBy
                 });
                 await _context.SaveChangesAsync();
-
                 TempData["Success"] = $"Product \"{product.Title}\" created.";
+            }
+
+            // ── 6. Save specifications ─────────────────────────────────────────────
+            if (model.Specifications != null)
+            {
+                var validSpecs = model.Specifications
+                    .Where(s => !string.IsNullOrWhiteSpace(s.Label))
+                    .ToList();
+
+                if (validSpecs.Any())
+                {
+                    int order = 0;
+                    foreach (var spec in validSpecs)
+                    {
+                        _context.ProductSpecifications.Add(new ProductSpecification
+                        {
+                            ProductID    = product.ProductID,
+                            Name         = spec.Label,
+                            Value        = spec.Value,
+                            DisplayOrder = order++
+                        });
+                    }
+                    await _context.SaveChangesAsync();
+                }
             }
 
             return RedirectToAction(nameof(Index));
@@ -480,24 +591,27 @@ namespace PontelloImport.Controllers
         // ===================================================================
 
         [HttpGet]
-        public async Task<IActionResult> CheckSku(string sku, int? variantId)
+        public async Task<IActionResult> CheckSku(string sku)
         {
             if (string.IsNullOrWhiteSpace(sku))
-            {
-                return Json(new { isAvailable = true });
-            }
+                return Json(new { available = true });
 
             var exists = await _context.ProductVariants
-                .AnyAsync(v => v.SKU == sku && v.VariantID != (variantId ?? 0));
+                .AnyAsync(v => EF.Functions.Like(v.SKU, sku.Trim()));
 
-            return Json(new { isAvailable = !exists });
+            return Json(new { available = !exists });
         }
 
         [HttpGet]
-        public IActionResult CheckTitle(string title, int? variantId)
+        public async Task<IActionResult> CheckTitle(string title)
         {
-            // Title lives on Product in V3, not on variant — always available at variant level
-            return Json(new { isAvailable = true });
+            if (string.IsNullOrWhiteSpace(title))
+                return Json(new { available = true });
+
+            var exists = await _context.Products
+                .AnyAsync(p => EF.Functions.Like(p.Title, title.Trim()));
+
+            return Json(new { available = !exists });
         }
 
         // ===================================================================

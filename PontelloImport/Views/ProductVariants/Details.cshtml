@@ -268,6 +268,35 @@
         </div>
     }
 
+    <!-- Product Specifications -->
+    @if (Model.Product?.ProductSpecifications != null && Model.Product.ProductSpecifications.Any())
+    {
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Product Specifications</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 35%;">Label</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var spec in Model.Product.ProductSpecifications.OrderBy(s => s.DisplayOrder))
+                        {
+                            <tr>
+                                <td class="fw-semibold">@spec.Name</td>
+                                <td>@spec.Value</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
     <!-- Audit Information -->
     <div class="card mb-4">
         <div class="card-header bg-dark text-white">

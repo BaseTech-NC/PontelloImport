@@ -46,17 +46,20 @@ namespace PontelloImport.Models
         [Range(0, int.MaxValue, ErrorMessage = "Inventory quantity cannot be negative.")]
         public int InventoryQuantity { get; set; } = 0;
 
-        // Single-option support (simple path only)
+        // Single-option for simple path (dropdown-based)
         [MaxLength(100)]
-        public string? Option1Name { get; set; }
+        public string? SimpleOptionName { get; set; }   // e.g. "Size"
 
         [MaxLength(100)]
-        public string? Option1Value { get; set; }
+        public string? SimpleOptionValue { get; set; }  // e.g. "Small"
 
         // ── Multi-variant path (HasVariants = true) ─────────────────────────
         public bool HasVariants { get; set; } = false;
 
         // Option dimension names (product-level — same across all variants)
+        [MaxLength(100)]
+        public string? Option1Name { get; set; }
+
         [MaxLength(100)]
         public string? Option2Name { get; set; }
 
@@ -65,6 +68,9 @@ namespace PontelloImport.Models
 
         // One row per generated variant combination
         public List<VariantRowViewModel> Variants { get; set; } = new List<VariantRowViewModel>();
+
+        // Optional product specifications (Model Year, Material, Thread Size, etc.)
+        public List<SpecificationRowViewModel> Specifications { get; set; } = new();
     }
 
     // One row in the generated variants table
@@ -85,5 +91,12 @@ namespace PontelloImport.Models
 
         [MaxLength(100)]
         public string? Option3Value { get; set; }
+    }
+
+    // One row in the Specifications dynamic list
+    public class SpecificationRowViewModel
+    {
+        public string Label { get; set; } = "";   // e.g. "Model Year"
+        public string Value { get; set; } = "";   // e.g. "2023"
     }
 }
