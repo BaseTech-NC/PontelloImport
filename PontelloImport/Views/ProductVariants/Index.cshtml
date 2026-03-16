@@ -11,6 +11,13 @@
     var currentVendorId = ViewBag.CurrentVendorId as int?;
     var currentProductType = ViewBag.CurrentProductType as string ?? "";
     var currentStockStatus = ViewBag.CurrentStockStatus as string ?? "";
+    var currentSortBy  = ViewData["SortBy"]  as string ?? "created";
+    var currentSortDir = ViewData["SortDir"] as string ?? "desc";
+    var nextSortDir    = ViewData["NextDir"] as string ?? "asc";
+    // Helper: direction for a sort link (toggles if active column, else defaults to asc)
+    string SD(string col) => currentSortBy == col ? nextSortDir : "asc";
+    // Helper: indicator icon for a column header
+    string SI(string col) => currentSortBy == col ? (currentSortDir == "asc" ? "▲" : "▼") : "⇅";
     var hasActiveFilters = !string.IsNullOrEmpty(currentSearch) ||
                           currentCategoryId.HasValue ||
                           currentVendorId.HasValue ||
@@ -246,6 +253,8 @@
         <input type="hidden" name="filter" value="@currentFilter" />
         <input type="hidden" name="pageNumber" value="1" />
         <input type="hidden" name="pageSize" value="@currentPageSize" />
+        <input type="hidden" name="sortBy" value="@currentSortBy" />
+        <input type="hidden" name="sortDir" value="@currentSortDir" />
 
         <div class="d-flex gap-2 flex-wrap align-items-center">
             <input type="text" name="search" class="cat-input form-control" style="max-width:220px;"
@@ -290,6 +299,7 @@
             @if (hasActiveFilters)
             {
                 <a asp-action="Index" asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                   asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir"
                    class="btn-clear-sm">Clear</a>
             }
         </div>
@@ -301,28 +311,32 @@
            asp-action="Index" asp-route-filter="all" asp-route-pageNumber="1"
            asp-route-pageSize="@currentPageSize" asp-route-search="@currentSearch"
            asp-route-categoryId="@currentCategoryId" asp-route-vendorId="@currentVendorId"
-           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus">
+           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus"
+           asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">
             All <span class="tab-count">@ViewBag.AllCount</span>
         </a>
         <a class="cat-tab @(currentFilter == "published" ? "active" : "")"
            asp-action="Index" asp-route-filter="published" asp-route-pageNumber="1"
            asp-route-pageSize="@currentPageSize" asp-route-search="@currentSearch"
            asp-route-categoryId="@currentCategoryId" asp-route-vendorId="@currentVendorId"
-           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus">
+           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus"
+           asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">
             Published <span class="tab-count">@ViewBag.PublishedCount</span>
         </a>
         <a class="cat-tab @(currentFilter == "draft" ? "active" : "")"
            asp-action="Index" asp-route-filter="draft" asp-route-pageNumber="1"
            asp-route-pageSize="@currentPageSize" asp-route-search="@currentSearch"
            asp-route-categoryId="@currentCategoryId" asp-route-vendorId="@currentVendorId"
-           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus">
+           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus"
+           asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">
             Draft <span class="tab-count">@ViewBag.DraftCount</span>
         </a>
         <a class="cat-tab @(currentFilter == "archived" ? "active" : "")"
            asp-action="Index" asp-route-filter="archived" asp-route-pageNumber="1"
            asp-route-pageSize="@currentPageSize" asp-route-search="@currentSearch"
            asp-route-categoryId="@currentCategoryId" asp-route-vendorId="@currentVendorId"
-           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus">
+           asp-route-productType="@currentProductType" asp-route-stockStatus="@currentStockStatus"
+           asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">
             Archived <span class="tab-count">@ViewBag.ArchivedCount</span>
         </a>
     </div>
@@ -338,6 +352,7 @@
             @if (hasActiveFilters)
             {
                 <a asp-action="Index" asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
+                   asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir"
                    style="color:#2563EB; font-size:0.875rem;">Clear all filters</a>
             }
             else
@@ -361,6 +376,8 @@
                 <input type="hidden" name="vendorId" value="@currentVendorId" />
                 <input type="hidden" name="productType" value="@currentProductType" />
                 <input type="hidden" name="stockStatus" value="@currentStockStatus" />
+                <input type="hidden" name="sortBy" value="@currentSortBy" />
+                <input type="hidden" name="sortDir" value="@currentSortDir" />
                 <label style="font-size:0.8rem; color:#6B7280; margin:0;">Show</label>
                 <select name="pageSize" class="cat-input form-select" style="width:72px; height:32px; padding:0.2rem 0.5rem; font-size:0.8rem;" onchange="this.form.submit()">
                     <option value="10"  selected="@(currentPageSize == 10)">10</option>
@@ -377,11 +394,47 @@
                 <table class="table mb-0">
                     <thead>
                         <tr>
-                            <th>Product</th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortBy="title" asp-route-sortDir="@SD("title")"
+                                   asp-route-filter="@currentFilter" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                                   asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                                   asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                                   asp-route-stockStatus="@currentStockStatus"
+                                   class="text-decoration-none" style="color:inherit;">
+                                    Product <span class="@(currentSortBy=="title"?"":"text-muted")">@SI("title")</span>
+                                </a>
+                            </th>
                             <th>SKU</th>
-                            <th>Price</th>
-                            <th>Inventory</th>
-                            <th>Status</th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortBy="price" asp-route-sortDir="@SD("price")"
+                                   asp-route-filter="@currentFilter" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                                   asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                                   asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                                   asp-route-stockStatus="@currentStockStatus"
+                                   class="text-decoration-none" style="color:inherit;">
+                                    Price <span class="@(currentSortBy=="price"?"":"text-muted")">@SI("price")</span>
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortBy="stock" asp-route-sortDir="@SD("stock")"
+                                   asp-route-filter="@currentFilter" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                                   asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                                   asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                                   asp-route-stockStatus="@currentStockStatus"
+                                   class="text-decoration-none" style="color:inherit;">
+                                    Inventory <span class="@(currentSortBy=="stock"?"":"text-muted")">@SI("stock")</span>
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortBy="status" asp-route-sortDir="@SD("status")"
+                                   asp-route-filter="@currentFilter" asp-route-pageNumber="1" asp-route-pageSize="@currentPageSize"
+                                   asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
+                                   asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
+                                   asp-route-stockStatus="@currentStockStatus"
+                                   class="text-decoration-none" style="color:inherit;">
+                                    Status <span class="@(currentSortBy=="status"?"":"text-muted")">@SI("status")</span>
+                                </a>
+                            </th>
                             <th>Vendor</th>
                             <th>Category</th>
                             <th></th>
@@ -392,7 +445,7 @@
                         {
                             <tr>
                                 <td>
-                                    <a asp-action="Details" asp-route-id="@variant.VariantID"
+                                    <a asp-action="Details" asp-route-id="@variant.Product!.ProductID"
                                        style="color:#111827; font-weight:500; text-decoration:none;">
                                         @(variant.Product?.Title ?? variant.SKU)
                                     </a>
@@ -445,8 +498,8 @@
                                 <td style="color:#6B7280;">@(variant.Product?.ProductCategory?.CategoryName ?? "—")</td>
                                 <td style="white-space:nowrap;">
                                     <div class="d-flex gap-1">
-                                        <a asp-action="Details" asp-route-id="@variant.VariantID" class="btn-act-details">Details</a>
-                                        <a asp-action="Edit" asp-route-id="@variant.VariantID" class="btn-act-edit">Edit</a>
+                                        <a asp-action="Details" asp-route-id="@variant.Product!.ProductID" class="btn-act-details">Details</a>
+                                        <a asp-action="Edit" asp-route-id="@variant.Product!.ProductID" class="btn-act-edit">Edit</a>
                                         @if (variant.Status == ProductStatus.Archived)
                                         {
                                             <form asp-action="Restore" asp-route-id="@variant.VariantID" method="post" style="display:inline;">
@@ -478,7 +531,8 @@
                    asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
                    asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
                    asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
-                   asp-route-stockStatus="@currentStockStatus">← Prev</a>
+                   asp-route-stockStatus="@currentStockStatus"
+                   asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">← Prev</a>
 
                 @if (startPage > 1)
                 {
@@ -486,7 +540,8 @@
                        asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
                        asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
                        asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
-                       asp-route-stockStatus="@currentStockStatus">1</a>
+                       asp-route-stockStatus="@currentStockStatus"
+                       asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">1</a>
                     @if (startPage > 2) { <span class="pag-link disabled">…</span> }
                 }
 
@@ -497,7 +552,8 @@
                        asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
                        asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
                        asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
-                       asp-route-stockStatus="@currentStockStatus">@i</a>
+                       asp-route-stockStatus="@currentStockStatus"
+                       asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">@i</a>
                 }
 
                 @if (endPage < Model.TotalPages)
@@ -507,7 +563,8 @@
                        asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
                        asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
                        asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
-                       asp-route-stockStatus="@currentStockStatus">@Model.TotalPages</a>
+                       asp-route-stockStatus="@currentStockStatus"
+                       asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">@Model.TotalPages</a>
                 }
 
                 <a class="pag-link @(!Model.HasNextPage ? "disabled" : "")"
@@ -515,7 +572,8 @@
                    asp-route-filter="@currentFilter" asp-route-pageSize="@currentPageSize"
                    asp-route-search="@currentSearch" asp-route-categoryId="@currentCategoryId"
                    asp-route-vendorId="@currentVendorId" asp-route-productType="@currentProductType"
-                   asp-route-stockStatus="@currentStockStatus">Next →</a>
+                   asp-route-stockStatus="@currentStockStatus"
+                   asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">Next →</a>
             </div>
             <p style="text-align:center; color:#9CA3AF; font-size:0.78rem; margin-top:0.5rem;">
                 Page @Model.PageIndex of @Model.TotalPages

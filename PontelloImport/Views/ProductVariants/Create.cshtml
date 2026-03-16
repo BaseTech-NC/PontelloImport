@@ -190,6 +190,14 @@
                     <span asp-validation-for="ProductTypeID" class="text-danger small"></span>
                 </div>
 
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">
+                        Description <span class="optional-label">(optional)</span>
+                    </label>
+                    <textarea asp-for="Description" class="form-control" rows="3"
+                              placeholder="Product description..."></textarea>
+                </div>
+
                 <div class="mb-1">
                     <label asp-for="Status" class="form-label">Status <span class="text-danger">*</span></label>
                     <select asp-for="Status" class="form-select">
@@ -287,8 +295,21 @@
                     <small class="form-text">Format: AA-000 &nbsp;e.g. CRG-3001</small>
                 </div>
 
+                <div class="mb-3">
+                    <label asp-for="Barcode" class="form-label">
+                        Barcode (UPC / EAN) <span class="optional-label">(optional)</span>
+                    </label>
+                    <input asp-for="Barcode" class="form-control" id="simpleBarcode"
+                           placeholder="e.g. 12345678901234"
+                           pattern="[0-9]{8,14}"
+                           title="Barcode must be 8–14 digits" />
+                    <span asp-validation-for="Barcode" class="text-danger small"></span>
+                    <span id="barcode-ajax-msg" class="small"></span>
+                    <small class="form-text">Optional. 8–14 digit numeric barcode.</small>
+                </div>
+
                 <div class="row">
-                    <div class="col-6 mb-3">
+                    <div class="col-4 mb-3">
                         <label asp-for="Price" class="form-label">Price <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
@@ -298,7 +319,18 @@
                         <span asp-validation-for="Price" class="text-danger small"></span>
                         <small class="form-text">CAD</small>
                     </div>
-                    <div class="col-6 mb-3">
+                    <div class="col-4 mb-3">
+                        <label asp-for="CostPrice" class="form-label">
+                            Your Cost <span class="optional-label">(not shown to dealers)</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="CostPrice" type="number" step="0.01" min="0"
+                                   class="form-control" placeholder="0.00" />
+                        </div>
+                        <span asp-validation-for="CostPrice" class="text-danger small"></span>
+                    </div>
+                    <div class="col-4 mb-3">
                         <label asp-for="InventoryQuantity" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
                         <input asp-for="InventoryQuantity" type="number" min="0"
                                class="form-control" placeholder="0" />
@@ -430,7 +462,9 @@
                                 <th id="th-opt3">@(Model.Option3Name ?? "Option 3")</th>
                                 <th style="min-width:130px;">SKU <span class="text-danger">*</span></th>
                                 <th style="min-width:100px;">Price <span class="text-danger">*</span></th>
+                                <th style="min-width:100px;">Your Cost</th>
                                 <th style="min-width:80px;">Stock Qty</th>
+                                <th style="min-width:110px;">Barcode</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -456,8 +490,19 @@
                                                step="0.01" min="0.01" />
                                     </td>
                                     <td>
+                                        <input type="number" name="Variants[@i].CostPrice"
+                                               value="@(vr.CostPrice.HasValue ? vr.CostPrice.Value.ToString("0.00") : "")"
+                                               class="form-control form-control-sm"
+                                               step="0.01" min="0" placeholder="0.00" />
+                                    </td>
+                                    <td>
                                         <input type="number" name="Variants[@i].Qty" value="@vr.Qty"
                                                class="form-control form-control-sm" min="0" />
+                                    </td>
+                                    <td>
+                                        <input type="text" name="Variants[@i].Barcode" value="@(vr.Barcode ?? "")"
+                                               class="form-control form-control-sm" placeholder="Barcode"
+                                               pattern="[0-9]{8,14}" title="8–14 digits" />
                                     </td>
                                     <td>
                                         <button type="button" class="btn btn-sm btn-outline-danger"
@@ -479,6 +524,19 @@
         </div>
 
     </form>
+
+    <!-- Dev autofill toast -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999;">
+        <div id="autofill-toast" class="toast align-items-center text-bg-dark border-0" role="alert"
+             aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" style="font-size:0.8rem;"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 @section Scripts {
@@ -694,12 +752,27 @@
             priceTd.appendChild(priceIn);
             tr.appendChild(priceTd);
 
+            // Cost Price input
+            const costTd = document.createElement('td');
+            const costIn = mkInput('number', `Variants[${i}].CostPrice`, '', '0.00');
+            Object.assign(costIn, { step: '0.01', min: '0' });
+            costTd.appendChild(costIn);
+            tr.appendChild(costTd);
+
             // Qty input
             const qtyTd = document.createElement('td');
             const qtyIn = mkInput('number', `Variants[${i}].Qty`, '0', '0');
             qtyIn.min = '0';
             qtyTd.appendChild(qtyIn);
             tr.appendChild(qtyTd);
+
+            // Barcode input
+            const barcodeTd = document.createElement('td');
+            const barcodeIn = mkInput('text', `Variants[${i}].Barcode`, '', 'Barcode');
+            barcodeIn.pattern = '[0-9]{8,14}';
+            barcodeIn.title   = '8–14 digits';
+            barcodeTd.appendChild(barcodeIn);
+            tr.appendChild(barcodeTd);
 
             // Remove button
             const remTd = document.createElement('td');
@@ -839,6 +912,25 @@
         } catch {}
     });
 
+    // Simple-path barcode — blur check (format + uniqueness)
+    document.getElementById('simpleBarcode')?.addEventListener('blur', async function () {
+        const val = this.value.trim();
+        const msgEl = document.getElementById('barcode-ajax-msg');
+        if (!msgEl) return;
+        if (!val) { msgEl.textContent = ''; return; }
+        if (!/^[0-9]{8,14}$/.test(val)) {
+            msgEl.className = 'text-danger small d-block';
+            msgEl.textContent = 'Barcode must be 8–14 digits.';
+            return;
+        }
+        try {
+            const res  = await fetch('/ProductVariants/CheckBarcode?barcode=' + encodeURIComponent(val));
+            const data = await res.json();
+            setAjaxFeedback('barcode-ajax-msg', data.available,
+                'This barcode is already assigned to another product.');
+        } catch {}
+    });
+
     // Variant table SKU inputs — event delegation (blur doesn't bubble, use capture)
     document.getElementById('variant-rows')?.addEventListener('blur', async function (e) {
         if (!e.target.matches('input[name$=".SKU"]')) return;
@@ -857,5 +949,142 @@
             }
         } catch {}
     }, true); // capture=true because blur doesn't bubble
+
+    // Variant table Barcode inputs — event delegation (capture phase)
+    document.getElementById('variant-rows')?.addEventListener('blur', async function (e) {
+        if (!e.target.matches('input[name$=".Barcode"]')) return;
+        const val = e.target.value.trim();
+        e.target.parentElement.querySelectorAll('.var-barcode-feedback').forEach(el => el.remove());
+        if (!val) return;
+        if (!/^[0-9]{8,14}$/.test(val)) {
+            const span = document.createElement('span');
+            span.className = 'text-danger small d-block var-barcode-feedback';
+            span.textContent = 'Barcode must be 8–14 digits.';
+            e.target.parentElement.appendChild(span);
+            return;
+        }
+        try {
+            const res  = await fetch('/ProductVariants/CheckBarcode?barcode=' + encodeURIComponent(val));
+            const data = await res.json();
+            if (!data.available) {
+                const span = document.createElement('span');
+                span.className = 'text-danger small d-block var-barcode-feedback';
+                span.textContent = 'Barcode already assigned to another product.';
+                e.target.parentElement.appendChild(span);
+            }
+        } catch {}
+    }, true);
+
+    // ── Dev autofill shortcut (Ctrl+`) ────────────────────────────────────────
+    document.addEventListener('keydown', function (e) {
+        if (!e.ctrlKey || e.key !== '`') return;
+        e.preventDefault();
+
+        const productNames = [
+            "CRG Road Rebel Chassis",
+            "OTK Tony Kart Front Axle",
+            "Vortex ROK GP Engine",
+            "MG Yellow Tire Set",
+            "Bridgestone YLP Slick",
+            "Tillett T11 Tuff Seat",
+            "Sniper Kart Laser Kit",
+            "Fastech Brake Caliper",
+            "Douglas DWT Wheel Set",
+            "Alfano Pro 2T Transponder",
+            "Birel ART RY30 Spindle",
+            "Rotax Max Evo Carburetor",
+            "Haase Winner Frame",
+            "Top Kart USA Fulcrum X",
+            "Praga Dragon Evo Nose",
+            "Maranello RT Side Pod",
+            "SwissKart Chain Sprocket",
+            "BRP Can-Am Clutch Kit",
+            "Mojo D5 Race Tire",
+            "Iame X30 Ignition Coil"
+        ];
+
+        const suffix    = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const baseName  = productNames[Math.floor(Math.random() * productNames.length)];
+        const initials  = baseName.split(' ').map(w => w[0]).join('').substring(0, 4).toUpperCase();
+        const skuVal    = initials + '-' + suffix;
+        const isVariant = document.querySelector('input[name="HasVariants"]:checked')?.value === 'true';
+
+        function randomOption(sel, placeholderVal) {
+            const opts = Array.from(sel.options).filter(o => o.value !== placeholderVal && !o.disabled);
+            if (opts.length) sel.value = opts[Math.floor(Math.random() * opts.length)].value;
+        }
+        function randPrice(min, max) { return (Math.random() * (max - min) + min).toFixed(2); }
+        function randInt(min, max)   { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        // Common fields
+        const titleEl = document.getElementById('ProductTitle');
+        if (titleEl) titleEl.value = `${baseName} ${suffix}`;
+
+        const vendorSel = document.querySelector('select[name="VendorID"]');
+        if (vendorSel) randomOption(vendorSel, '0');
+
+        const catSel = document.querySelector('select[name="ProductCategoryID"]');
+        if (catSel) randomOption(catSel, '0');
+
+        const statusSel = document.querySelector('select[name="Status"]');
+        if (statusSel) {
+            const pub = Array.from(statusSel.options).find(o => o.text.trim() === 'Published');
+            if (pub) statusSel.value = pub.value;
+        }
+
+        if (!isVariant) {
+            // ── Simple path ──
+            const skuEl = document.getElementById('simpleSku');
+            if (skuEl) skuEl.value = skuVal;
+
+            const priceEl = document.querySelector('#simple-section input[name="Price"]');
+            if (priceEl) priceEl.value = randPrice(9.99, 299.99);
+
+            const qtyEl = document.querySelector('#simple-section input[name="InventoryQuantity"]');
+            if (qtyEl) qtyEl.value = randInt(5, 100);
+
+            // SimpleOptionName — leave as "-- None --" (keep it simple)
+
+            // Fire AJAX blur checks
+            if (titleEl) titleEl.dispatchEvent(new Event('blur'));
+            if (skuEl)   skuEl.dispatchEvent(new Event('blur'));
+        } else {
+            // ── Variant path ──
+            const opt1Sel = document.getElementById('opt1Name');
+            const opt1Val = document.getElementById('opt1Values');
+            if (opt1Sel) { opt1Sel.value = 'Color'; opt1Sel.dispatchEvent(new Event('change')); }
+            if (opt1Val) opt1Val.value = 'Red, Blue';
+
+            const opt2Sel = document.getElementById('opt2Name');
+            const opt2Val = document.getElementById('opt2Values');
+            if (opt2Sel) { opt2Sel.value = 'Size'; opt2Sel.dispatchEvent(new Event('change')); }
+            if (opt2Val) opt2Val.value = 'S, M';
+
+            const opt3Sel = document.getElementById('opt3Name');
+            const opt3Val = document.getElementById('opt3Values');
+            if (opt3Sel) { opt3Sel.value = ''; opt3Sel.dispatchEvent(new Event('change')); }
+            if (opt3Val) opt3Val.value = '';
+
+            generateVariants();
+
+            document.querySelectorAll('#variant-rows tr').forEach((tr, i) => {
+                const skuIn   = tr.querySelector('input[name$=".SKU"]');
+                const priceIn = tr.querySelector('input[name$=".Price"]');
+                const qtyIn   = tr.querySelector('input[name$=".Qty"]');
+                if (skuIn)   skuIn.value   = `${skuVal}-${i + 1}`;
+                if (priceIn) priceIn.value = randPrice(19.99, 149.99);
+                if (qtyIn)   qtyIn.value   = randInt(5, 50);
+            });
+
+            if (titleEl) titleEl.dispatchEvent(new Event('blur'));
+        }
+
+        // Show confirmation toast
+        const toastEl = document.getElementById('autofill-toast');
+        if (toastEl && typeof bootstrap !== 'undefined') {
+            toastEl.querySelector('.toast-body').textContent = `Autofill: ${baseName} [${suffix}]`;
+            new bootstrap.Toast(toastEl, { delay: 2000, autohide: true }).show();
+        }
+    });
     </script>
 }

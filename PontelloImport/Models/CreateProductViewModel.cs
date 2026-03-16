@@ -24,6 +24,8 @@ namespace PontelloImport.Models
         [MaxLength(255)]
         public string ProductTitle { get; set; } = string.Empty;
 
+        public string? Description { get; set; }
+
         [Required(ErrorMessage = "Please select a vendor.")]
         [Range(1, int.MaxValue, ErrorMessage = "Please select a vendor.")]
         public int VendorID { get; set; }
@@ -43,8 +45,13 @@ namespace PontelloImport.Models
         [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0.")]
         public decimal Price { get; set; }
 
+        public decimal? CostPrice { get; set; }
+
         [Range(0, int.MaxValue, ErrorMessage = "Inventory quantity cannot be negative.")]
         public int InventoryQuantity { get; set; } = 0;
+
+        [MaxLength(100)]
+        public string? Barcode { get; set; }  // Optional UPC/EAN — simple path only
 
         // Single-option for simple path (dropdown-based)
         [MaxLength(100)]
@@ -79,7 +86,12 @@ namespace PontelloImport.Models
         [MaxLength(100)]
         public string SKU { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string? Barcode { get; set; }
+
         public decimal Price { get; set; }
+
+        public decimal? CostPrice { get; set; }
 
         public int Qty { get; set; }
 
@@ -98,5 +110,113 @@ namespace PontelloImport.Models
     {
         public string Label { get; set; } = "";   // e.g. "Model Year"
         public string Value { get; set; } = "";   // e.g. "2023"
+    }
+
+    // ── Edit view models ────────────────────────────────────────────────────────
+
+    public class EditProductViewModel
+    {
+        public int ProductID { get; set; }
+
+        [Required(ErrorMessage = "Product title is required.")]
+        [MaxLength(255)]
+        public string Title { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        [Required(ErrorMessage = "Please select a vendor.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a vendor.")]
+        public int VendorID { get; set; }
+
+        [Required(ErrorMessage = "Please select a category.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a category.")]
+        public int ProductCategoryID { get; set; }
+
+        public int? ProductTypeID { get; set; }
+
+        public ProductStatus Status { get; set; } = ProductStatus.Draft;
+
+        // Determines which section renders — round-trips via hidden input
+        public bool IsSimpleProduct { get; set; }
+
+        // ── Simple product path ─────────────────────────────────────────────
+        public int SimpleVariantID { get; set; }
+
+        [MaxLength(100)]
+        public string SKU { get; set; } = string.Empty;
+
+        public decimal Price { get; set; }
+
+        public decimal? CostPrice { get; set; }
+
+        public decimal? CompareAtPrice { get; set; }
+
+        public int InventoryQuantity { get; set; }
+
+        public decimal? Weight { get; set; }
+
+        [MaxLength(100)]
+        public string? Barcode { get; set; }
+
+        [MaxLength(100)]
+        public string? SimpleOptionName { get; set; }
+
+        [MaxLength(100)]
+        public string? SimpleOptionValue { get; set; }
+
+        // ── Variant product path ────────────────────────────────────────────
+        [MaxLength(100)]
+        public string? Option1Name { get; set; }
+
+        [MaxLength(100)]
+        public string? Option2Name { get; set; }
+
+        [MaxLength(100)]
+        public string? Option3Name { get; set; }
+
+        // Which variant is set as default — bound from radio button group
+        public int DefaultVariantID { get; set; }
+
+        public List<EditVariantRowViewModel> Variants { get; set; } = new();
+
+        // ── Specifications ──────────────────────────────────────────────────
+        public List<EditSpecificationRowViewModel> Specifications { get; set; } = new();
+    }
+
+    public class EditVariantRowViewModel
+    {
+        public int VariantID { get; set; }
+
+        [MaxLength(100)]
+        public string SKU { get; set; } = string.Empty;
+
+        public decimal Price { get; set; }
+
+        public decimal? CostPrice { get; set; }
+
+        public int InventoryQuantity { get; set; }
+
+        [MaxLength(100)]
+        public string? Barcode { get; set; }
+
+        [MaxLength(100)]
+        public string? Option1Value { get; set; }
+
+        [MaxLength(100)]
+        public string? Option2Value { get; set; }
+
+        [MaxLength(100)]
+        public string? Option3Value { get; set; }
+
+        // Set true when user clicks Archive on this row
+        public bool IsArchived { get; set; }
+    }
+
+    public class EditSpecificationRowViewModel
+    {
+        public int SpecID { get; set; }          // 0 = new
+        public string Label { get; set; } = "";
+        public string Value { get; set; } = "";
+        public int DisplayOrder { get; set; }
     }
 }
