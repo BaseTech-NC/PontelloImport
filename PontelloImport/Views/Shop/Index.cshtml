@@ -134,7 +134,7 @@
 <!-- Header -->
 <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
     <div>
-        <h2 style="font-weight: 600; color: #111827; font-size: 1.4rem; margin-bottom: 0.15rem;">Product Catalog</h2>
+        <h2 style="font-weight: 600; color: #111827; font-size: 1.4rem; margin-bottom: 0.15rem;">Browse Products</h2>
         <p style="color: #6B7280; font-size: 0.875rem; margin: 0;">Browse and order from our full range of motorsports components.</p>
     </div>
     <a asp-controller="Shop" asp-action="Cart" class="btn-cart">
@@ -183,6 +183,10 @@ else
             var minPrice = prices.Any() ? prices.Min() : 0m;
             var maxPrice = prices.Any() ? prices.Max() : 0m;
             var variantCount = product.ProductVariants.Count;
+            var firstVariant = product.ProductVariants.FirstOrDefault();
+            var isSimple = firstVariant?.Option1Name == "Title";
+            var defaultVariant = product.ProductVariants.FirstOrDefault(v => v.IsDefault) ?? firstVariant;
+            var isSimpleOrSingle = isSimple || variantCount == 1;
 
             <div class="col">
                 <div class="product-card">
@@ -199,12 +203,29 @@ else
                             {
                                 @($"${minPrice:F2} – ${maxPrice:F2}")
                             }
-                            @if (variantCount > 1)
+                            @if (variantCount > 1 && !isSimple)
                             {
                                 <span style="color:#6B7280; font-weight:400; font-size:0.8rem;" class="ms-1">@variantCount variants</span>
                             }
                         </p>
-                        <a asp-action="Product" asp-route-id="@product.ProductID" class="btn-view-product">View Product</a>
+                        @if (isSimpleOrSingle && defaultVariant != null)
+                        {
+                            <div class="d-flex gap-2">
+                                <form asp-controller="Shop" asp-action="AddToCart" method="post" class="flex-grow-1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="productVariantId" value="@defaultVariant.VariantID" />
+                                    <input type="hidden" name="quantity" value="1" />
+                                    <input type="hidden" name="returnUrl" value="/Shop" />
+                                    <button type="submit" class="btn-view-product">Add to Cart</button>
+                                </form>
+                                <a asp-action="Product" asp-route-id="@product.ProductID"
+                                   class="btn-cart" style="white-space:nowrap;">View Product</a>
+                            </div>
+                        }
+                        else
+                        {
+                            <a asp-action="Product" asp-route-id="@product.ProductID" class="btn-view-product">View Product &amp; Options</a>
+                        }
                     </div>
                 </div>
             </div>

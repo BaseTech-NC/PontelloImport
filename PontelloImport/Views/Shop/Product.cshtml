@@ -3,7 +3,8 @@
 @{
     ViewData["Title"] = Model.Title;
     var variants = Model.ProductVariants.ToList();
-    var hasMultipleVariants = variants.Count > 1;
+    var isSimpleProduct = variants.Any() && variants[0].Option1Name == "Title";
+    var hasMultipleVariants = !isSimpleProduct && variants.Count > 1;
     var defaultVariant = variants.FirstOrDefault(v => v.IsDefault) ?? variants.FirstOrDefault();
 }
 
@@ -129,7 +130,7 @@
     string BuildVariantLabel(PontelloImport.Models.ProductVariant v)
     {
         var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(v.Option1Value)) parts.Add(v.Option1Value!);
+        if (!string.IsNullOrWhiteSpace(v.Option1Value) && v.Option1Name != "Title") parts.Add(v.Option1Value!);
         if (!string.IsNullOrWhiteSpace(v.Option2Value)) parts.Add(v.Option2Value!);
         if (!string.IsNullOrWhiteSpace(v.Option3Value)) parts.Add(v.Option3Value!);
         if (!string.IsNullOrWhiteSpace(v.Option4Value)) parts.Add(v.Option4Value!);
@@ -147,7 +148,7 @@
     List<(string, string)> GetOptionPairs(PontelloImport.Models.ProductVariant v)
     {
         var list = new List<(string, string)>();
-        if (!string.IsNullOrWhiteSpace(v.Option1Name) && !string.IsNullOrWhiteSpace(v.Option1Value))
+        if (!string.IsNullOrWhiteSpace(v.Option1Name) && !string.IsNullOrWhiteSpace(v.Option1Value) && v.Option1Name != "Title")
             list.Add((v.Option1Name!, v.Option1Value!));
         if (!string.IsNullOrWhiteSpace(v.Option2Name) && !string.IsNullOrWhiteSpace(v.Option2Value))
             list.Add((v.Option2Name!, v.Option2Value!));

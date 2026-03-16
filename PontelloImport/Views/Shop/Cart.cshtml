@@ -39,10 +39,10 @@ else
                     var variant = item.ProductVariant;
                     var product = variant?.Product;
                     var lineTotal = item.Quantity * (variant?.Price ?? 0m);
-
                     var variantLabel = BuildVariantLabel(variant);
+                    var unitPriceStr = (variant?.Price ?? 0m).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
 
-                    <tr>
+                    <tr data-item-id="@item.CartItemID">
                         <td>
                             @if (product != null)
                             {
@@ -57,27 +57,26 @@ else
                             }
                         </td>
                         <td>
-                            <span class="d-block">@variantLabel</span>
+                            @if (!string.IsNullOrEmpty(variantLabel) && variantLabel != "—")
+                            {
+                                <span class="d-block">@variantLabel</span>
+                            }
                             <span class="text-muted small">SKU: @(variant?.SKU ?? "—")</span>
                         </td>
                         <td class="text-end">$@(variant?.Price.ToString("F2") ?? "0.00")</td>
                         <td class="text-center">
-                            <form asp-action="UpdateCart" method="post" class="d-flex align-items-center gap-1 justify-content-center">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="cartItemId" value="@item.CartItemID" />
-                                <input type="number" name="quantity" value="@item.Quantity"
-                                       min="0" class="form-control form-control-sm text-center"
-                                       style="width: 65px;" />
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">Update</button>
-                            </form>
+                            <input type="number" class="form-control form-control-sm text-center qty-input"
+                                   data-item-id="@item.CartItemID"
+                                   data-unit-price="@unitPriceStr"
+                                   value="@item.Quantity" min="0" style="width: 65px; margin: 0 auto;" />
+                            <small id="save-status-@item.CartItemID" class="text-muted" style="font-size:0.7rem; display:block;"></small>
                         </td>
-                        <td class="text-end fw-semibold">$@lineTotal.ToString("F2")</td>
+                        <td class="text-end fw-semibold" id="line-@item.CartItemID">$@lineTotal.ToString("F2")</td>
                         <td class="text-end">
-                            <form asp-action="RemoveFromCart" method="post">
+                            <form asp-action="RemoveFromCart" method="post" class="remove-form d-inline">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="cartItemId" value="@item.CartItemID" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('Remove this item?')">Remove</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
                             </form>
                         </td>
                     </tr>
@@ -86,7 +85,7 @@ else
             <tfoot>
                 <tr>
                     <td colspan="4" class="text-end fw-bold fs-5">Subtotal</td>
-                    <td class="text-end fw-bold fs-5">$@subtotal.ToString("F2")</td>
+                    <td class="text-end fw-bold fs-5" id="cart-subtotal">$@subtotal.ToString("F2")</td>
                     <td></td>
                 </tr>
             </tfoot>
@@ -106,11 +105,100 @@ else
     {
         if (v == null) return "—";
         var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(v.Option1Value)) parts.Add(v.Option1Value!);
+        if (!string.IsNullOrWhiteSpace(v.Option1Value) && v.Option1Name != "Title") parts.Add(v.Option1Value!);
         if (!string.IsNullOrWhiteSpace(v.Option2Value)) parts.Add(v.Option2Value!);
         if (!string.IsNullOrWhiteSpace(v.Option3Value)) parts.Add(v.Option3Value!);
         if (!string.IsNullOrWhiteSpace(v.Option4Value)) parts.Add(v.Option4Value!);
         if (!string.IsNullOrWhiteSpace(v.Option5Value)) parts.Add(v.Option5Value!);
-        return parts.Any() ? string.Join(" / ", parts) : v.SKU;
+        return parts.Any() ? string.Join(" / ", parts) : "";
+    }
+}
+
+@section Scripts {
+    @if (items.Any())
+    {
+        <script>
+        (function () {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+            document.querySelectorAll('.qty-input').forEach(function (input) {
+                input.addEventListener('change', function () {
+                    var itemId = this.dataset.itemId;
+                    var qty = parseInt(this.value, 10);
+                    if (isNaN(qty) || qty < 0) { this.value = this.defaultValue; return; }
+                    var unitPrice = parseFloat(this.dataset.unitPrice) || 0;
+                    var prevQty = this.defaultValue;
+                    var row = document.querySelector('tr[data-item-id="' + itemId + '"]');
+                    var saveMsg = document.getElementById('save-status-' + itemId);
+
+                    var url = qty === 0 ? '/Shop/RemoveFromCart' : '/Shop/UpdateCart';
+                    var body = new URLSearchParams();
+                    body.append('cartItemId', itemId);
+                    if (qty > 0) body.append('quantity', qty);
+                    body.append('__RequestVerificationToken', token);
+
+                    this.disabled = true;
+                    if (saveMsg) saveMsg.textContent = 'Saving…';
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.success) {
+                            if (qty === 0 || data.removed) {
+                                row && row.remove();
+                            } else {
+                                var lineEl = document.getElementById('line-' + itemId);
+                                if (lineEl) lineEl.textContent = '$' + (qty * unitPrice).toFixed(2);
+                                input.defaultValue = qty;
+                            }
+                            var subtotalEl = document.getElementById('cart-subtotal');
+                            if (subtotalEl) subtotalEl.textContent = '$' + parseFloat(data.cartTotal).toFixed(2);
+                            if (document.querySelectorAll('tbody tr[data-item-id]').length === 0) location.reload();
+                        } else {
+                            input.value = prevQty;
+                            if (saveMsg) saveMsg.textContent = 'Error';
+                        }
+                    })
+                    .catch(function () {
+                        input.value = prevQty;
+                        if (saveMsg) saveMsg.textContent = 'Error';
+                    })
+                    .finally(function () {
+                        input.disabled = false;
+                        if (saveMsg) setTimeout(function () { saveMsg.textContent = ''; }, 1500);
+                    });
+                });
+            });
+
+            document.querySelectorAll('.remove-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    if (!confirm('Remove this item?')) return;
+                    var itemId = form.querySelector('[name="cartItemId"]').value;
+                    var row = document.querySelector('tr[data-item-id="' + itemId + '"]');
+                    var body = new URLSearchParams(new FormData(form));
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.success) {
+                            row && row.remove();
+                            var subtotalEl = document.getElementById('cart-subtotal');
+                            if (subtotalEl) subtotalEl.textContent = '$' + parseFloat(data.cartTotal).toFixed(2);
+                            if (document.querySelectorAll('tbody tr[data-item-id]').length === 0) location.reload();
+                        }
+                    });
+                });
+            });
+        })();
+        </script>
     }
 }

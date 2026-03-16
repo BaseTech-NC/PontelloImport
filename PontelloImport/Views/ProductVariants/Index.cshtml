@@ -452,7 +452,7 @@
                                     @{
                                         var opts = new[]
                                         {
-                                            variant.Option1Name != null ? $"{variant.Option1Name}: {variant.Option1Value}" : null,
+                                            variant.Option1Name != null && variant.Option1Name != "Title" ? $"{variant.Option1Name}: {variant.Option1Value}" : null,
                                             variant.Option2Name != null ? $"{variant.Option2Name}: {variant.Option2Value}" : null,
                                         }.Where(s => s != null).ToList();
                                     }
@@ -509,7 +509,7 @@
                                         }
                                         else
                                         {
-                                            <a asp-action="Delete" asp-route-id="@variant.VariantID" class="btn-act-ghost">Delete</a>
+                                            <a asp-action="Delete" asp-route-id="@variant.VariantID" class="btn-act-ghost">Archive</a>
                                         }
                                     </div>
                                 </td>

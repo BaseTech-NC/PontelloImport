@@ -37,7 +37,7 @@ namespace PontelloImport.Controllers
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(p => p.Title.Contains(search));
+                query = query.Where(p => p.Title.ToLower().Contains(search.ToLower()));
 
             if (categoryId.HasValue)
                 query = query.Where(p => p.ProductCategoryID == categoryId.Value);
@@ -66,7 +66,7 @@ namespace PontelloImport.Controllers
         // POST: /Shop/AddToCart
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddToCart(int productVariantId, int quantity)
+        public async Task<IActionResult> AddToCart(int productVariantId, int quantity, string? returnUrl)
         {
             if (quantity <= 0) quantity = 1;
 
@@ -100,6 +100,8 @@ namespace PontelloImport.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Item added to cart.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
             return RedirectToAction(nameof(Cart));
         }
 
@@ -120,15 +122,33 @@ namespace PontelloImport.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateCart(int cartItemId, int quantity)
         {
-            var item = await _context.CartItems.FindAsync(cartItemId);
-            if (item != null)
-            {
-                if (quantity <= 0)
-                    _context.CartItems.Remove(item);
-                else
-                    item.Quantity = quantity;
+            bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+            var item = await _context.CartItems
+                .Include(ci => ci.ProductVariant)
+                .FirstOrDefaultAsync(ci => ci.CartItemID == cartItemId);
 
-                await _context.SaveChangesAsync();
+            if (item == null)
+            {
+                if (isAjax) return Json(new { success = false, error = "Item not found" });
+                return RedirectToAction(nameof(Cart));
+            }
+
+            decimal unitPrice = item.ProductVariant?.Price ?? 0m;
+            if (quantity <= 0)
+                _context.CartItems.Remove(item);
+            else
+                item.Quantity = quantity;
+
+            await _context.SaveChangesAsync();
+
+            if (isAjax)
+            {
+                var cart = await _context.Carts
+                    .Include(c => c.CartItems).ThenInclude(ci => ci.ProductVariant)
+                    .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                var cartTotal = cart?.CartItems.Sum(ci => ci.Quantity * (ci.ProductVariant?.Price ?? 0m)) ?? 0m;
+                var lineTotal = quantity <= 0 ? 0m : Math.Round(quantity * unitPrice, 2);
+                return Json(new { success = true, lineTotal = lineTotal.ToString("F2"), cartTotal = cartTotal.ToString("F2"), removed = quantity <= 0 });
             }
 
             return RedirectToAction(nameof(Cart));
@@ -139,11 +159,21 @@ namespace PontelloImport.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveFromCart(int cartItemId)
         {
+            bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
             var item = await _context.CartItems.FindAsync(cartItemId);
             if (item != null)
             {
                 _context.CartItems.Remove(item);
                 await _context.SaveChangesAsync();
+            }
+
+            if (isAjax)
+            {
+                var cart = await _context.Carts
+                    .Include(c => c.CartItems).ThenInclude(ci => ci.ProductVariant)
+                    .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                var cartTotal = cart?.CartItems.Sum(ci => ci.Quantity * (ci.ProductVariant?.Price ?? 0m)) ?? 0m;
+                return Json(new { success = true, cartTotal = cartTotal.ToString("F2") });
             }
 
             return RedirectToAction(nameof(Cart));

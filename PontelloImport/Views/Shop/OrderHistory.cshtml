@@ -22,7 +22,7 @@ else
         <table class="table align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>PO Number</th>
+                    <th>Order #</th>
                     <th>Date</th>
                     <th>Status</th>
                     <th class="text-center">Items</th>
@@ -55,12 +55,12 @@ else
     {
         var (cssClass, label) = status switch
         {
-            "Submitted"      => ("badge bg-primary", "Submitted"),
+            "Submitted"      => ("badge bg-primary", "Received by Pontello"),
             "Confirmed"      => ("badge bg-success", "Confirmed"),
             "Shipped"        => ("badge", "Shipped"),
             "Invoiced"       => ("badge bg-info text-dark", "Invoiced"),
             "Cancelled"      => ("badge bg-danger", "Cancelled"),
-            "ActionRequired" => ("badge bg-warning text-dark", "Action Required"),
+            "ActionRequired" => ("badge bg-warning text-dark", "Action Required — Please Contact Us"),
             _                => ("badge bg-secondary", status)
         };
 

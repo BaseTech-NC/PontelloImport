@@ -13,6 +13,13 @@
     </ol>
 </nav>
 
+@if (Model.Status == "ActionRequired")
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Action Required</strong> — There is an issue with your order. Please contact us to resolve it before processing can continue.
+    </div>
+}
+
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="card mb-4">
@@ -106,7 +113,7 @@
             <div class="card-header fw-semibold">Order Details</div>
             <div class="card-body">
                 <dl class="row mb-0">
-                    <dt class="col-5">PO Number</dt>
+                    <dt class="col-5">Order #</dt>
                     <dd class="col-7 fw-semibold">@Model.PONumber</dd>
 
                     <dt class="col-5">Date</dt>
@@ -142,12 +149,12 @@
     {
         var (cssClass, label) = status switch
         {
-            "Submitted"      => ("badge bg-primary", "Submitted"),
+            "Submitted"      => ("badge bg-primary", "Received by Pontello"),
             "Confirmed"      => ("badge bg-success", "Confirmed"),
             "Shipped"        => ("badge", "Shipped"),
             "Invoiced"       => ("badge bg-info text-dark", "Invoiced"),
             "Cancelled"      => ("badge bg-danger", "Cancelled"),
-            "ActionRequired" => ("badge bg-warning text-dark", "Action Required"),
+            "ActionRequired" => ("badge bg-warning text-dark", "Action Required — Please Contact Us"),
             _                => ("badge bg-secondary", status)
         };
         var style = status == "Shipped" ? " style=\"background:#6f42c1\"" : "";
