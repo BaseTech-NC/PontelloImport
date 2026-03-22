@@ -88,7 +88,7 @@ namespace PontelloImport.Controllers
             }
             else
             {
-                cart.CartItems.Add(new CartItem
+                cart.CartItems.Add(existingItem = new CartItem
                 {
                     CartID = cart.CartID,
                     ProductVariantID = productVariantId,
@@ -99,7 +99,19 @@ namespace PontelloImport.Controllers
             cart.ModifiedDate = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Item added to cart.";
+            var product = await _context.ProductVariants
+                .Where(i => i.VariantID == productVariantId)
+                .FirstOrDefaultAsync();
+
+            if (product != null && existingItem.Quantity > product.InventoryQuantity)
+            {
+                TempData["Warning"] = $"Only {product.InventoryQuantity} units available for selected item variant — your order will proceed but Pontello will contact you.";
+            }
+            else
+            {
+                TempData["Success"] = "Item added to cart.";
+            }
+
             return RedirectToAction(nameof(Cart));
         }
 
@@ -129,6 +141,16 @@ namespace PontelloImport.Controllers
                     item.Quantity = quantity;
 
                 await _context.SaveChangesAsync();
+
+                var product = await _context.ProductVariants
+                    .Where(i => i.VariantID == item.ProductVariantID)
+                    .Include(i => i.Product)
+                    .FirstOrDefaultAsync();
+
+                if (product != null && item.Quantity > product.InventoryQuantity)
+                {
+                    TempData["Warning"] = $"Only {product.InventoryQuantity} units available for {product.Product.Title} — your order will proceed but Pontello will contact you.";
+                }
             }
 
             return RedirectToAction(nameof(Cart));
@@ -170,6 +192,29 @@ namespace PontelloImport.Controllers
                 .FirstOrDefaultAsync(d => d.DealerID == HardcodedDealerID);
 
             ViewBag.Dealer = dealer;
+
+            var flaggedItems = cart.CartItems
+                .Where(i => i.ProductVariant.InventoryQuantity < i.Quantity)
+                .Select(i => new CartItem
+                {
+                    CartItemID = i.CartItemID,
+                    Cart = i.Cart,
+                    ProductVariantID = i.ProductVariantID,
+                    ProductVariant = i.ProductVariant
+                })
+                .ToList();
+
+            if (flaggedItems != null && flaggedItems.Count > 0)
+            {
+                string warning = "";
+                foreach(CartItem item in flaggedItems)
+                {
+                    warning += $"Only {item.ProductVariant.InventoryQuantity} units available for {item.ProductVariant.Product.Title}.\n\n";
+                }
+                warning += "Your order will proceed but Pontello will contact you.";
+                TempData["Warning"] = warning;
+            }
+
             return View(cart);
         }
 
