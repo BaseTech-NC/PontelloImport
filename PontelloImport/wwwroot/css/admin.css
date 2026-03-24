@@ -154,6 +154,11 @@
     border-color: var(--pi-blue);
     color: var(--pi-blue-dark);
 }
+.alert-warning {
+    background-color: #ebb749;
+    border-color: var(--pi-amber);
+    color: #eb8934;
+}
 .alert-danger {
     background-color: #FDEAEA;
     border-color: var(--pi-red);

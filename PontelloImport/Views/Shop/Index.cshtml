@@ -187,10 +187,22 @@ else
             var isSimple = firstVariant?.Option1Name == "Title";
             var defaultVariant = product.ProductVariants.FirstOrDefault(v => v.IsDefault) ?? firstVariant;
             var isSimpleOrSingle = isSimple || variantCount == 1;
+            var totalInventoryCount = 0;
+            foreach (var pv in product.ProductVariants)
+            {
+                totalInventoryCount += pv.InventoryQuantity;
+            }
 
             <div class="col">
                 <div class="product-card">
-                    <p class="product-title">@product.Title</p>
+                    @if (totalInventoryCount <= 10)
+                    {
+                        <p class="product-title">@product.Title (📦Low)</p>
+                    }
+                    else
+                    {
+                        <p class="product-title">@product.Title</p>
+                    }
                     <p class="product-meta">@(product.Vendor?.VendorName ?? "—")</p>
                     <p class="product-meta mb-3">@(product.ProductCategory?.CategoryName ?? "—")</p>
                     <div class="mt-auto">
