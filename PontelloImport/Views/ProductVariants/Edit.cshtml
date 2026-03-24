@@ -54,11 +54,11 @@
         background: #F8FAFC;
         border-color: #D1D5DB;
         font-size: 0.875rem;
-        color: #6B7280;
+        color: #4B5563;
     }
 
-    .form-text        { font-size: 0.8rem; color: #9CA3AF; }
-    .optional-label   { font-size: 0.75rem; color: #9CA3AF; font-weight: 400; margin-left: 0.3rem; }
+    .form-text        { font-size: 0.8rem; color: #4B5563; }
+    .optional-label   { font-size: 0.75rem; color: #4B5563; font-weight: 400; margin-left: 0.3rem; }
 
     .btn-save {
         background: #111827; color: #ffffff; border: none;
@@ -75,7 +75,7 @@
     .btn-save-view:hover { background: #1D4ED8; color: #ffffff; }
 
     .btn-cancel-link {
-        color: #6B7280; border: 1px solid #E5E7EB; background: transparent;
+        color: #4B5563; border: 1px solid #E5E7EB; background: transparent;
         border-radius: 8px; font-size: 0.875rem; font-weight: 500;
         padding: 0.5rem 1.1rem; text-decoration: none; transition: background 150ms;
         display: inline-block;
@@ -91,7 +91,7 @@
     .var-table { font-size: 0.82rem; }
     .var-table th {
         font-size: 0.71rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.05em; color: #6B7280; background: #F8FAFC;
+        letter-spacing: 0.05em; color: #4B5563; background: #F8FAFC;
         padding: 0.5rem 0.6rem;
     }
     .var-table td { vertical-align: middle; padding: 0.35rem 0.6rem; }
@@ -110,20 +110,20 @@
 <div class="container-fluid mt-4" style="max-width: 760px;">
 
     <div class="mb-4">
-        <a asp-action="Index" style="color:#6B7280; font-size:0.875rem; text-decoration:none;">← Back to Product Catalogue</a>
+        <a asp-action="Index" style="color:#4B5563; font-size:0.875rem; text-decoration:none;">← Back to Product Catalogue</a>
     </div>
 
     <div class="mb-4">
-        <div style="font-size:1.15rem; font-weight:700; color:#111827;">Edit Product</div>
-        <div style="font-size:0.875rem; color:#6B7280; margin-top:0.2rem;">
+        <h1 style="font-size:1.15rem; font-weight:700; color:#111827; margin:0;">Edit Product</h1>
+        <div style="font-size:0.875rem; color:#4B5563; margin-top:0.2rem;">
             Fields marked <span class="text-danger">*</span> are required.
             @if (Model.IsSimpleProduct)
             {
-                <span class="ms-2" style="color:#9CA3AF;">Simple product</span>
+                <span class="ms-2" style="color:#4B5563;">Simple product</span>
             }
             else
             {
-                <span class="ms-2" style="color:#9CA3AF;">Product with variants</span>
+                <span class="ms-2" style="color:#4B5563;">Product with variants</span>
             }
         </div>
     </div>
@@ -204,16 +204,6 @@
                     <span asp-validation-for="ProductTypeID" class="text-danger small"></span>
                 </div>
 
-                <div class="mb-0">
-                    <label asp-for="Status" class="form-label">Status <span class="text-danger">*</span></label>
-                    <select asp-for="Status" class="form-select">
-                        <option value="@ProductStatus.Draft">Draft</option>
-                        <option value="@ProductStatus.Published">Published</option>
-                        <option value="@ProductStatus.Unlisted">Unlisted</option>
-                    </select>
-                    <span asp-validation-for="Status" class="text-danger small"></span>
-                </div>
-
             </div>
         </div>
 
@@ -234,13 +224,15 @@
                                 <input type="text" name="Specifications[@i].Label"
                                        value="@spec.Label"
                                        class="form-control form-control-sm"
-                                       placeholder="e.g. Model Year" />
+                                       placeholder="e.g. Model Year"
+                                       aria-label="Specification label" />
                             </div>
                             <div class="spec-value-col">
                                 <input type="text" name="Specifications[@i].Value"
                                        value="@spec.Value"
                                        class="form-control form-control-sm"
-                                       placeholder="e.g. 2023" />
+                                       placeholder="e.g. 2023"
+                                       aria-label="Specification value" />
                             </div>
                             <button type="button" class="btn btn-outline-danger btn-sm px-2"
                                     onclick="removeSpecRow(this)">×</button>
@@ -410,7 +402,7 @@
             <div class="create-section">
                 <div class="create-section-header">
                     <span>Variants</span>
-                    <span style="font-size:0.8rem; color:#9CA3AF; font-weight:400;">
+                    <span style="font-size:0.8rem; color:#4B5563; font-weight:400;">
                         @Model.Variants.Count variant@(Model.Variants.Count != 1 ? "s" : "")
                     </span>
                 </div>
@@ -455,32 +447,37 @@
                                         <input type="text" name="Variants[@i].SKU" value="@row.SKU"
                                                class="form-control form-control-sm var-sku-input"
                                                data-variant-id="@row.VariantID"
-                                               placeholder="SKU" />
+                                               placeholder="SKU"
+                                               aria-label="SKU for variant @(i + 1)" />
                                         <span class="text-danger small" id="sku-err-@i"></span>
                                     </td>
                                     <td>
                                         <input type="number" name="Variants[@i].Price"
                                                value="@row.Price.ToString("0.00")"
                                                class="form-control form-control-sm"
-                                               step="0.01" min="0.01" />
+                                               step="0.01" min="0.01"
+                                               aria-label="Price for variant @(i + 1)" />
                                     </td>
                                     <td>
                                         <input type="number" name="Variants[@i].CostPrice"
                                                value="@(row.CostPrice.HasValue ? row.CostPrice.Value.ToString("0.00") : "")"
                                                class="form-control form-control-sm"
-                                               step="0.01" min="0" placeholder="0.00" />
+                                               step="0.01" min="0" placeholder="0.00"
+                                               aria-label="Cost for variant @(i + 1)" />
                                     </td>
                                     <td>
                                         <input type="number" name="Variants[@i].InventoryQuantity"
                                                value="@row.InventoryQuantity"
-                                               class="form-control form-control-sm" min="0" />
+                                               class="form-control form-control-sm" min="0"
+                                               aria-label="Stock quantity for variant @(i + 1)" />
                                     </td>
                                     <td>
                                         <input type="text" name="Variants[@i].Barcode"
                                                value="@(row.Barcode ?? "")"
                                                class="form-control form-control-sm"
                                                placeholder="Barcode"
-                                               pattern="[0-9]{8,14}" title="8–14 digits" />
+                                               pattern="[0-9]{8,14}" title="8–14 digits"
+                                               aria-label="Barcode for variant @(i + 1)" />
                                     </td>
                                     <td class="text-center">
                                         <input type="radio" name="DefaultVariantID"
@@ -519,9 +516,20 @@
         <!-- ══ BUTTONS ══════════════════════════════════════════════════════ -->
         <div class="d-flex justify-content-between align-items-center mt-3 mb-5">
             <a asp-action="Details" asp-route-id="@Model.ProductID" class="btn-cancel-link">← Back to Product</a>
-            <div class="d-flex gap-2">
-                <button type="submit" name="saveAction" value="" class="btn-save">Save Changes</button>
-            </div>
+            @if (Model.Status == ProductStatus.Published)
+            {
+                <div class="d-flex gap-2">
+                    <button type="submit" name="saveAction" value="publish" class="btn btn-dark">Save Changes</button>
+                    <button type="submit" name="saveAction" value="unpublish" class="btn btn-outline-secondary">Unpublish</button>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex gap-2">
+                    <button type="submit" name="saveAction" value="publish" class="btn btn-dark">Publish</button>
+                    <button type="submit" name="saveAction" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
+                </div>
+            }
         </div>
 
     </form>
@@ -756,27 +764,31 @@
             +   '<input type="hidden" name="Variants[' + idx + '].VariantID" value="0" />'
             +   '<input type="hidden" id="varIsArchived_' + idx + '" name="Variants[' + idx + '].IsArchived" value="false" />'
             +   '<input type="text" name="Variants[' + idx + '].SKU" value="" '
-            +     'class="form-control form-control-sm" placeholder="SKU" style="text-transform:uppercase;" />'
+            +     'class="form-control form-control-sm" placeholder="SKU" style="text-transform:uppercase;" '
+            +     'aria-label="SKU for variant ' + (idx + 1) + '" />'
             +   '<span class="text-danger small" id="sku-err-' + idx + '"></span>'
             + '</td>'
             + '<td>'
             +   '<div class="input-group input-group-sm">'
             +     '<span class="input-group-text">$</span>'
             +     '<input type="number" name="Variants[' + idx + '].Price" value="" '
-            +       'class="form-control form-control-sm" step="0.01" min="0.01" placeholder="0.00" />'
+            +       'class="form-control form-control-sm" step="0.01" min="0.01" placeholder="0.00" '
+            +       'aria-label="Price for variant ' + (idx + 1) + '" />'
             +   '</div>'
             + '</td>'
             + '<td>'
             +   '<div class="input-group input-group-sm">'
             +     '<span class="input-group-text">$</span>'
             +     '<input type="number" name="Variants[' + idx + '].CostPrice" value="" '
-            +       'class="form-control form-control-sm" step="0.01" min="0" placeholder="0.00" />'
+            +       'class="form-control form-control-sm" step="0.01" min="0" placeholder="0.00" '
+            +       'aria-label="Cost for variant ' + (idx + 1) + '" />'
             +   '</div>'
             + '</td>'
             + '<td><input type="number" name="Variants[' + idx + '].InventoryQuantity" value="0" '
-            +   'class="form-control form-control-sm" min="0" /></td>'
+            +   'class="form-control form-control-sm" min="0" aria-label="Stock quantity for variant ' + (idx + 1) + '" /></td>'
             + '<td><input type="text" name="Variants[' + idx + '].Barcode" value="" '
-            +   'class="form-control form-control-sm" placeholder="Barcode" pattern="[0-9]{8,14}" title="8–14 digits" /></td>'
+            +   'class="form-control form-control-sm" placeholder="Barcode" pattern="[0-9]{8,14}" title="8–14 digits" '
+            +   'aria-label="Barcode for variant ' + (idx + 1) + '" /></td>'
             + '<td></td>'
             + '<td><button type="button" class="btn btn-sm btn-outline-secondary" '
             +   'onclick="removeNewVariantRow(this,' + idx + ')">Remove</button></td>'
@@ -873,11 +885,13 @@
         row.innerHTML = `
             <div class="spec-label-col">
                 <input type="text" name="Specifications[${idx}].Label"
-                       class="form-control form-control-sm" placeholder="e.g. Model Year" />
+                       class="form-control form-control-sm" placeholder="e.g. Model Year"
+                       aria-label="Specification label" />
             </div>
             <div class="spec-value-col">
                 <input type="text" name="Specifications[${idx}].Value"
-                       class="form-control form-control-sm" placeholder="e.g. 2023" />
+                       class="form-control form-control-sm" placeholder="e.g. 2023"
+                       aria-label="Specification value" />
             </div>
             <button type="button" class="btn btn-outline-danger btn-sm px-2"
                     onclick="removeSpecRow(this)">×</button>

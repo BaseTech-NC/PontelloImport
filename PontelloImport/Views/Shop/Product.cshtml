@@ -6,7 +6,20 @@
     var isSimpleProduct = variants.Any() && variants[0].Option1Name == "Title";
     var hasMultipleVariants = !isSimpleProduct && variants.Count > 1;
     var defaultVariant = variants.FirstOrDefault(v => v.IsDefault) ?? variants.FirstOrDefault();
+    var hasDescription = !string.IsNullOrWhiteSpace(Model.Description);
+    var hasSpecs = Model.ProductSpecifications.Any();
 }
+
+<style>
+    .product-price-display { font-size: 1.75rem; font-weight: 700; color: #111827; }
+    .stock-badge-in    { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: #F0FDF4; color: #15803D; }
+    .stock-badge-low   { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: #FFF7ED; color: #92400E; }
+    .stock-badge-out   { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: #FEF2F2; color: #B91C1C; }
+    .product-desc { color: #374151; line-height: 1.7; font-size: 0.95rem; }
+    .spec-table th { font-size: 0.82rem; font-weight: 500; color: #6B7280; width: 40%; background: transparent; border-color: #F3F4F6; }
+    .spec-table td { font-size: 0.875rem; color: #111827; border-color: #F3F4F6; }
+    .product-card { background: #ffffff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 1.5rem; }
+</style>
 
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
@@ -16,31 +29,36 @@
 </nav>
 
 <div class="row g-4">
-    <div class="col-md-7">
-        <h1 class="h2">@Model.Title</h1>
-        <p class="text-muted mb-1">
-            <strong>Vendor:</strong> @(Model.Vendor?.VendorName ?? "—")
-            &nbsp;|&nbsp;
-            <strong>Category:</strong> @(Model.ProductCategory?.CategoryName ?? "—")
+
+    <!-- ── Left column: content ─────────────────────────────────────────── -->
+    <div class="col-lg-7">
+
+        <h1 class="h3 fw-bold mb-1" style="color:#111827;">@Model.Title</h1>
+        <p class="text-muted mb-3" style="font-size:0.875rem;">
+            @(Model.Vendor?.VendorName ?? "—")
+            @if (Model.ProductCategory != null)
+            {
+                <span class="mx-1">·</span>@Model.ProductCategory.CategoryName
+            }
         </p>
 
-        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        @if (hasDescription)
         {
-            <div class="mt-3">
-                <p>@Model.Description</p>
+            <div class="product-desc mb-4">
+                @Model.Description
             </div>
         }
 
-        @if (Model.ProductSpecifications.Any())
+        @if (hasSpecs)
         {
-            <div class="mt-4">
-                <h5>Specifications</h5>
-                <table class="table table-sm table-bordered">
+            <div class="mb-4">
+                <h6 class="fw-semibold mb-2" style="color:#374151; font-size:0.875rem; text-transform:uppercase; letter-spacing:0.04em;">Specifications</h6>
+                <table class="table table-sm spec-table">
                     <tbody>
                         @foreach (var spec in Model.ProductSpecifications)
                         {
                             <tr>
-                                <th class="w-40 bg-light">@spec.Name</th>
+                                <th>@spec.Name</th>
                                 <td>@spec.Value</td>
                             </tr>
                         }
@@ -48,82 +66,123 @@
                 </table>
             </div>
         }
+
+        @if (!hasDescription && !hasSpecs)
+        {
+            <div class="bg-light rounded p-5 text-center text-muted">
+                <div class="fs-1 mb-2">📦</div>
+                @if (Model.ProductCategory != null)
+                {
+                    <div class="fw-medium mb-1">@Model.ProductCategory.CategoryName</div>
+                }
+                @if (Model.Vendor != null)
+                {
+                    <div class="small">by @Model.Vendor.VendorName</div>
+                }
+            </div>
+        }
+
     </div>
 
-    <div class="col-md-5">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <form asp-action="AddToCart" method="post">
-                    @Html.AntiForgeryToken()
+    <!-- ── Right column: buy panel ──────────────────────────────────────── -->
+    <div class="col-lg-5">
+        <div class="product-card">
+            <form asp-action="AddToCart" method="post">
+                @Html.AntiForgeryToken()
 
-                    @if (hasMultipleVariants)
+                <!-- Price display -->
+                <div class="product-price-display mb-1" id="variantPrice">
+                    $@(defaultVariant?.Price.ToString("F2") ?? "0.00")
+                </div>
+                <p class="text-muted small mb-3" id="variantSku">SKU: @(defaultVariant?.SKU ?? "")</p>
+
+                <!-- Variant selector (multi-variant) -->
+                @if (hasMultipleVariants)
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:0.875rem;">Select Option</label>
+                        <select id="variantSelect" name="productVariantId" class="form-select">
+                            @foreach (var v in variants)
+                            {
+                                var label = BuildVariantLabel(v);
+                                <option value="@v.VariantID"
+                                        data-price="@v.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"
+                                        data-sku="@v.SKU"
+                                        data-stock="@v.InventoryQuantity"
+                                        data-options="@BuildOptionsJson(v)"
+                                        selected="@(v.VariantID == defaultVariant?.VariantID)">
+                                    @label — $@v.Price.ToString("F2")
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div id="variantOptions" class="mb-3"></div>
+                }
+                else if (defaultVariant != null)
+                {
+                    <input type="hidden" name="productVariantId" value="@defaultVariant.VariantID" />
+
+                    var opts = GetOptionPairs(defaultVariant);
+                    if (opts.Any())
                     {
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Select Variant</label>
-                            <select id="variantSelect" name="productVariantId" class="form-select">
-                                @foreach (var v in variants)
+                            <table class="table table-sm table-borderless mb-0">
+                                @foreach (var (name, val) in opts)
                                 {
-                                    var label = BuildVariantLabel(v);
-                                    <option value="@v.VariantID"
-                                            data-price="@v.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"
-                                            data-sku="@v.SKU"
-                                            data-options="@BuildOptionsJson(v)"
-                                            selected="@(v.VariantID == defaultVariant?.VariantID)">
-                                        @label — $@v.Price.ToString("F2")
-                                    </option>
+                                    <tr>
+                                        <th class="ps-0 text-muted" style="font-size:0.82rem; width:40%;">@name</th>
+                                        <td style="font-size:0.875rem;">@val</td>
+                                    </tr>
                                 }
-                            </select>
+                            </table>
                         </div>
-
-                        <div id="variantOptions" class="mb-3"></div>
                     }
-                    else if (defaultVariant != null)
+                }
+
+                <!-- Stock indicator -->
+                @{
+                    var stockQty = defaultVariant?.InventoryQuantity ?? 0;
+                }
+                <div class="mb-3" id="stockIndicator">
+                    @if (stockQty > 10)
                     {
-                        <input type="hidden" name="productVariantId" value="@defaultVariant.VariantID" />
+                        <span class="stock-badge-in">In Stock</span>
                     }
-
-                    <div class="mb-3">
-                        <p class="fs-4 fw-bold text-dark" id="variantPrice">
-                            $@(defaultVariant?.Price.ToString("F2") ?? "0.00")
-                        </p>
-                        <p class="text-muted small" id="variantSku">SKU: @(defaultVariant?.SKU ?? "")</p>
-                    </div>
-
-                    @if (!hasMultipleVariants && defaultVariant != null)
+                    else if (stockQty >= 1)
                     {
-                        var opts = GetOptionPairs(defaultVariant);
-                        @if (opts.Any())
-                        {
-                            <div class="mb-3">
-                                <table class="table table-sm table-borderless mb-0">
-                                    @foreach (var (name, val) in opts)
-                                    {
-                                        <tr>
-                                            <th class="ps-0 text-muted small w-40">@name</th>
-                                            <td class="small">@val</td>
-                                        </tr>
-                                    }
-                                </table>
-                            </div>
-                        }
+                        <span class="stock-badge-low">Low Stock (@stockQty left)</span>
                     }
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Quantity</label>
-                        <input type="number" name="quantity" class="form-control" value="1" min="1" style="max-width: 100px;" />
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">Add to Cart</button>
-                </form>
-
-                <div class="mt-3 text-center">
-                    <a asp-action="Cart" class="text-decoration-none text-muted small">View Cart</a>
-                    &nbsp;·&nbsp;
-                    <a asp-action="Index" class="text-decoration-none text-muted small">Continue Shopping</a>
+                    else
+                    {
+                        <span class="stock-badge-out">Out of Stock</span>
+                    }
                 </div>
+
+                <!-- Quantity -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size:0.875rem;">Quantity</label>
+                    <input type="number" name="quantity" id="qtyInput" class="form-control"
+                           value="1" min="1" style="max-width:100px;"
+                           @(stockQty == 0 ? "disabled" : "") />
+                </div>
+
+                <!-- Add to Cart -->
+                <button type="submit" id="addToCartBtn"
+                        class="btn btn-primary w-100 btn-lg"
+                        @(stockQty == 0 ? "disabled" : "")>
+                    @(stockQty == 0 ? "Out of Stock" : "Add to Cart")
+                </button>
+
+            </form>
+
+            <div class="mt-3 text-center" style="border-top:1px solid #F3F4F6; padding-top:0.75rem;">
+                <a asp-action="Cart" class="text-decoration-none text-muted small">View Cart</a>
+                &nbsp;·&nbsp;
+                <a asp-action="Index" class="text-decoration-none text-muted small">Continue Shopping</a>
             </div>
         </div>
     </div>
+
 </div>
 
 @functions {
@@ -168,42 +227,53 @@
     @if (hasMultipleVariants)
     {
         <script>
-            (function () {
-                var select = document.getElementById('variantSelect');
-                var priceEl = document.getElementById('variantPrice');
-                var skuEl = document.getElementById('variantSku');
-                var optionsEl = document.getElementById('variantOptions');
+        (function () {
+            var select   = document.getElementById('variantSelect');
+            var priceEl  = document.getElementById('variantPrice');
+            var skuEl    = document.getElementById('variantSku');
+            var optionsEl = document.getElementById('variantOptions');
+            var stockEl  = document.getElementById('stockIndicator');
+            var qtyEl    = document.getElementById('qtyInput');
+            var addBtn   = document.getElementById('addToCartBtn');
 
-                function updateVariant() {
-                    var opt = select.options[select.selectedIndex];
-                    priceEl.textContent = '$' + opt.getAttribute('data-price');
-                    skuEl.textContent = 'SKU: ' + opt.getAttribute('data-sku');
+            function stockHtml(qty) {
+                if (qty > 10) return '<span class="stock-badge-in">In Stock</span>';
+                if (qty >= 1) return '<span class="stock-badge-low">Low Stock (' + qty + ' left)</span>';
+                return '<span class="stock-badge-out">Out of Stock</span>';
+            }
 
-                    var optionsJson = opt.getAttribute('data-options');
-                    try {
-                        var options = JSON.parse(optionsJson);
-                        if (options.length > 0) {
-                            var html = '<table class="table table-sm table-borderless mb-0"><tbody>';
-                            options.forEach(function (o) {
-                                html += '<tr><th class="ps-0 text-muted small w-40">' + escHtml(o.name) + '</th><td class="small">' + escHtml(o.value) + '</td></tr>';
-                            });
-                            html += '</tbody></table>';
-                            optionsEl.innerHTML = html;
-                        } else {
-                            optionsEl.innerHTML = '';
-                        }
-                    } catch (e) {
-                        optionsEl.innerHTML = '';
-                    }
-                }
+            function updateVariant() {
+                var opt = select.options[select.selectedIndex];
+                priceEl.textContent = '$' + opt.getAttribute('data-price');
+                skuEl.textContent   = 'SKU: ' + opt.getAttribute('data-sku');
+                var qty = parseInt(opt.getAttribute('data-stock') || '0', 10);
+                stockEl.innerHTML   = stockHtml(qty);
+                var outOfStock = qty === 0;
+                qtyEl.disabled  = outOfStock;
+                addBtn.disabled = outOfStock;
+                addBtn.textContent = outOfStock ? 'Out of Stock' : 'Add to Cart';
 
-                function escHtml(s) {
-                    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                }
+                var optionsJson = opt.getAttribute('data-options');
+                try {
+                    var options = JSON.parse(optionsJson);
+                    if (options.length > 0) {
+                        var html = '<table class="table table-sm table-borderless mb-0"><tbody>';
+                        options.forEach(function (o) {
+                            html += '<tr><th class="ps-0 text-muted" style="font-size:0.82rem;width:40%;">' + escHtml(o.name) + '</th><td style="font-size:0.875rem;">' + escHtml(o.value) + '</td></tr>';
+                        });
+                        html += '</tbody></table>';
+                        optionsEl.innerHTML = html;
+                    } else { optionsEl.innerHTML = ''; }
+                } catch (e) { optionsEl.innerHTML = ''; }
+            }
 
-                select.addEventListener('change', updateVariant);
-                updateVariant();
-            })();
+            function escHtml(s) {
+                return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+
+            select.addEventListener('change', updateVariant);
+            updateVariant();
+        })();
         </script>
     }
 }

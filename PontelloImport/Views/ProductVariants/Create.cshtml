@@ -55,11 +55,11 @@
         background: #F8FAFC;
         border-color: #D1D5DB;
         font-size: 0.875rem;
-        color: #6B7280;
+        color: #4B5563;
     }
 
-    .form-text        { font-size: 0.8rem; color: #9CA3AF; }
-    .optional-label   { font-size: 0.75rem; color: #9CA3AF; font-weight: 400; margin-left: 0.3rem; }
+    .form-text        { font-size: 0.8rem; color: #4B5563; }
+    .optional-label   { font-size: 0.75rem; color: #4B5563; font-weight: 400; margin-left: 0.3rem; }
 
     .btn-create {
         background: #111827; color: #ffffff; border: none;
@@ -69,7 +69,7 @@
     .btn-create:hover { background: #374151; color: #ffffff; }
 
     .btn-cancel-link {
-        color: #6B7280; border: 1px solid #E5E7EB; background: transparent;
+        color: #4B5563; border: 1px solid #E5E7EB; background: transparent;
         border-radius: 8px; font-size: 0.875rem; font-weight: 500;
         padding: 0.5rem 1.1rem; text-decoration: none; transition: background 150ms;
         display: inline-block;
@@ -100,7 +100,7 @@
         cursor: pointer;
     }
     .type-option-title { font-size: 0.875rem; font-weight: 600; color: #111827; }
-    .type-option-hint  { font-size: 0.8rem; color: #9CA3AF; }
+    .type-option-hint  { font-size: 0.8rem; color: #4B5563; }
 
     /* option dimension grid */
     .dim-row {
@@ -113,7 +113,7 @@
     .var-table { font-size: 0.82rem; }
     .var-table th {
         font-size: 0.71rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.05em; color: #6B7280; background: #F8FAFC;
+        letter-spacing: 0.05em; color: #4B5563; background: #F8FAFC;
         padding: 0.5rem 0.6rem;
     }
     .var-table td { vertical-align: middle; padding: 0.35rem 0.6rem; }
@@ -128,12 +128,12 @@
 <div class="container-fluid mt-4" style="max-width: 720px;">
 
     <div class="mb-4">
-        <a asp-action="Index" style="color:#6B7280; font-size:0.875rem; text-decoration:none;">← Back to Product Catalogue</a>
+        <a asp-action="Index" style="color:#4B5563; font-size:0.875rem; text-decoration:none;">← Back to Product Catalogue</a>
     </div>
 
     <div class="mb-4">
-        <div style="font-size:1.15rem; font-weight:700; color:#111827;">Add Product</div>
-        <div style="font-size:0.875rem; color:#6B7280; margin-top:0.2rem;">
+        <h1 style="font-size:1.15rem; font-weight:700; color:#111827; margin:0;">Add Product</h1>
+        <div style="font-size:0.875rem; color:#4B5563; margin-top:0.2rem;">
             Fields marked <span class="text-danger">*</span> are required.
         </div>
     </div>
@@ -165,18 +165,32 @@
 
                 <div class="mb-3">
                     <label asp-for="VendorID" class="form-label">Vendor <span class="text-danger">*</span></label>
-                    <select asp-for="VendorID" class="form-select" asp-items="ViewBag.VendorID">
-                        <option value="0">-- Select Vendor --</option>
-                    </select>
-                    <span asp-validation-for="VendorID" class="text-danger small"></span>
+                    <div class="d-flex gap-2 align-items-start">
+                        <div class="flex-grow-1">
+                            <select asp-for="VendorID" id="vendorSelect" class="form-select" asp-items="ViewBag.VendorID">
+                                <option value="0">-- Select Vendor --</option>
+                            </select>
+                            <span asp-validation-for="VendorID" class="text-danger small"></span>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mt-1"
+                                data-bs-toggle="modal" data-bs-target="#addVendorModal"
+                                title="Add new vendor">+</button>
+                    </div>
                 </div>
 
                 <div class="mb-3">
                     <label asp-for="ProductCategoryID" class="form-label">Category <span class="text-danger">*</span></label>
-                    <select asp-for="ProductCategoryID" class="form-select" asp-items="ViewBag.ProductCategoryID">
-                        <option value="0">-- Select Category --</option>
-                    </select>
-                    <span asp-validation-for="ProductCategoryID" class="text-danger small"></span>
+                    <div class="d-flex gap-2 align-items-start">
+                        <div class="flex-grow-1">
+                            <select asp-for="ProductCategoryID" id="categorySelect" class="form-select" asp-items="ViewBag.ProductCategoryID">
+                                <option value="0">-- Select Category --</option>
+                            </select>
+                            <span asp-validation-for="ProductCategoryID" class="text-danger small"></span>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mt-1"
+                                data-bs-toggle="modal" data-bs-target="#addCategoryModal"
+                                title="Add new category">+</button>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -196,16 +210,6 @@
                     </label>
                     <textarea asp-for="Description" class="form-control" rows="3"
                               placeholder="Product description..."></textarea>
-                </div>
-
-                <div class="mb-1">
-                    <label asp-for="Status" class="form-label">Status <span class="text-danger">*</span></label>
-                    <select asp-for="Status" class="form-select">
-                        <option value="@ProductStatus.Draft">Draft</option>
-                        <option value="@ProductStatus.Published">Published</option>
-                        <option value="@ProductStatus.Unlisted">Unlisted</option>
-                    </select>
-                    <span asp-validation-for="Status" class="text-danger small"></span>
                 </div>
 
             </div>
@@ -228,13 +232,15 @@
                                 <input type="text" name="Specifications[@i].Label"
                                        value="@spec.Label"
                                        class="form-control form-control-sm"
-                                       placeholder="e.g. Model Year" />
+                                       placeholder="e.g. Model Year"
+                                       aria-label="Specification label" />
                             </div>
                             <div class="spec-value-col">
                                 <input type="text" name="Specifications[@i].Value"
                                        value="@spec.Value"
                                        class="form-control form-control-sm"
-                                       placeholder="e.g. 2023" />
+                                       placeholder="e.g. 2023"
+                                       aria-label="Specification value" />
                             </div>
                             <button type="button" class="btn btn-outline-danger btn-sm px-2"
                                     onclick="removeSpecRow(this)">×</button>
@@ -449,7 +455,7 @@
                  style="display:@(Model.HasVariants && Model.Variants.Any() ? "block" : "none");">
                 <div class="create-section-header">
                     <span>Variants</span>
-                    <span id="variant-count-lbl" style="font-size:0.8rem; color:#9CA3AF; font-weight:400;">
+                    <span id="variant-count-lbl" style="font-size:0.8rem; color:#4B5563; font-weight:400;">
                         @(Model.Variants.Any() ? $"({Model.Variants.Count} variant{(Model.Variants.Count != 1 ? "s" : "")})" : "")
                     </span>
                 </div>
@@ -481,28 +487,33 @@
                                     <input type="hidden" name="Variants[@i].Option3Value" value="@(vr.Option3Value ?? "")" />
                                     <td>
                                         <input type="text" name="Variants[@i].SKU" value="@vr.SKU"
-                                               class="form-control form-control-sm" placeholder="SKU" />
+                                               class="form-control form-control-sm" placeholder="SKU"
+                                               aria-label="SKU for variant @(i + 1)" />
                                     </td>
                                     <td>
                                         <input type="number" name="Variants[@i].Price"
                                                value="@vr.Price.ToString("0.00")"
                                                class="form-control form-control-sm"
-                                               step="0.01" min="0.01" />
+                                               step="0.01" min="0.01"
+                                               aria-label="Price for variant @(i + 1)" />
                                     </td>
                                     <td>
                                         <input type="number" name="Variants[@i].CostPrice"
                                                value="@(vr.CostPrice.HasValue ? vr.CostPrice.Value.ToString("0.00") : "")"
                                                class="form-control form-control-sm"
-                                               step="0.01" min="0" placeholder="0.00" />
+                                               step="0.01" min="0" placeholder="0.00"
+                                               aria-label="Cost for variant @(i + 1)" />
                                     </td>
                                     <td>
                                         <input type="number" name="Variants[@i].Qty" value="@vr.Qty"
-                                               class="form-control form-control-sm" min="0" />
+                                               class="form-control form-control-sm" min="0"
+                                               aria-label="Stock quantity for variant @(i + 1)" />
                                     </td>
                                     <td>
                                         <input type="text" name="Variants[@i].Barcode" value="@(vr.Barcode ?? "")"
                                                class="form-control form-control-sm" placeholder="Barcode"
-                                               pattern="[0-9]{8,14}" title="8–14 digits" />
+                                               pattern="[0-9]{8,14}" title="8–14 digits"
+                                               aria-label="Barcode for variant @(i + 1)" />
                                     </td>
                                     <td>
                                         <button type="button" class="btn btn-sm btn-outline-danger"
@@ -520,7 +531,10 @@
         <!-- ══ BUTTONS ══════════════════════════════════════════════════════ -->
         <div class="d-flex justify-content-between mt-3 mb-5">
             <a asp-action="Index" class="btn-cancel-link">Cancel</a>
-            <button type="submit" class="btn-create">Save Product</button>
+            <div class="d-flex gap-2">
+                <button type="submit" name="saveAction" value="publish" class="btn btn-dark">Publish</button>
+                <button type="submit" name="saveAction" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
+            </div>
         </div>
 
     </form>
@@ -537,6 +551,50 @@
         </div>
     </div>
 
+</div>
+
+<!-- ── Quick-add Category Modal ──────────────────────────────────────────── -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2 px-3">
+                <h6 class="modal-title" id="addCategoryModalLabel">Add Category</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-3 py-2">
+                <label for="newCategoryName" class="form-label" style="font-size:0.875rem;">Category Name</label>
+                <input type="text" id="newCategoryName" class="form-control form-control-sm"
+                       placeholder="e.g. Fuel Additives" autocomplete="off" />
+                <div id="newCategoryError" class="text-danger small mt-1" style="display:none;"></div>
+            </div>
+            <div class="modal-footer py-2 px-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-dark btn-sm" id="saveCategoryBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Quick-add Vendor Modal ─────────────────────────────────────────────── -->
+<div class="modal fade" id="addVendorModal" tabindex="-1" aria-labelledby="addVendorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2 px-3">
+                <h6 class="modal-title" id="addVendorModalLabel">Add Vendor</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-3 py-2">
+                <label for="newVendorName" class="form-label" style="font-size:0.875rem;">Vendor Name</label>
+                <input type="text" id="newVendorName" class="form-control form-control-sm"
+                       placeholder="e.g. Pontello Racing Supplies" autocomplete="off" />
+                <div id="newVendorError" class="text-danger small mt-1" style="display:none;"></div>
+            </div>
+            <div class="modal-footer py-2 px-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-dark btn-sm" id="saveVendorBtn">Save</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -737,6 +795,7 @@
             // SKU input
             const skuTd = document.createElement('td');
             const skuIn = mkInput('text', `Variants[${i}].SKU`, '', 'SKU');
+            skuIn.setAttribute('aria-label', `SKU for variant ${i + 1}`);
             skuIn.addEventListener('input', function () {
                 const p = this.selectionStart;
                 this.value = this.value.toUpperCase();
@@ -749,6 +808,7 @@
             const priceTd = document.createElement('td');
             const priceIn = mkInput('number', `Variants[${i}].Price`, '', '0.00');
             Object.assign(priceIn, { step: '0.01', min: '0.01' });
+            priceIn.setAttribute('aria-label', `Price for variant ${i + 1}`);
             priceTd.appendChild(priceIn);
             tr.appendChild(priceTd);
 
@@ -756,6 +816,7 @@
             const costTd = document.createElement('td');
             const costIn = mkInput('number', `Variants[${i}].CostPrice`, '', '0.00');
             Object.assign(costIn, { step: '0.01', min: '0' });
+            costIn.setAttribute('aria-label', `Cost for variant ${i + 1}`);
             costTd.appendChild(costIn);
             tr.appendChild(costTd);
 
@@ -763,6 +824,7 @@
             const qtyTd = document.createElement('td');
             const qtyIn = mkInput('number', `Variants[${i}].Qty`, '0', '0');
             qtyIn.min = '0';
+            qtyIn.setAttribute('aria-label', `Stock quantity for variant ${i + 1}`);
             qtyTd.appendChild(qtyIn);
             tr.appendChild(qtyTd);
 
@@ -771,6 +833,7 @@
             const barcodeIn = mkInput('text', `Variants[${i}].Barcode`, '', 'Barcode');
             barcodeIn.pattern = '[0-9]{8,14}';
             barcodeIn.title   = '8–14 digits';
+            barcodeIn.setAttribute('aria-label', `Barcode for variant ${i + 1}`);
             barcodeTd.appendChild(barcodeIn);
             tr.appendChild(barcodeTd);
 
@@ -836,11 +899,13 @@
         row.innerHTML =
             `<div class="spec-label-col">
                 <input type="text" name="Specifications[${idx}].Label"
-                       class="form-control form-control-sm" placeholder="e.g. Model Year" />
+                       class="form-control form-control-sm" placeholder="e.g. Model Year"
+                       aria-label="Specification label" />
              </div>
              <div class="spec-value-col">
                 <input type="text" name="Specifications[${idx}].Value"
-                       class="form-control form-control-sm" placeholder="e.g. 2023" />
+                       class="form-control form-control-sm" placeholder="e.g. 2023"
+                       aria-label="Specification value" />
              </div>
              <button type="button" class="btn btn-outline-danger btn-sm px-2"
                      onclick="removeSpecRow(this)">×</button>`;
@@ -975,6 +1040,79 @@
         } catch {}
     }, true);
 
+    // ── Dev hint ──────────────────────────────────────────────────────────────
+    (function () {
+        const hint = document.createElement('div');
+        hint.style.cssText = 'position:fixed;bottom:12px;right:12px;background:rgba(17,24,39,0.75);color:#e5e7eb;font-size:0.72rem;padding:5px 10px;border-radius:6px;z-index:9000;pointer-events:none;';
+        hint.textContent = 'Ctrl+\` random fill  |  Ctrl+D demo scenario (Liquid Gold)';
+        document.body.appendChild(hint);
+    })();
+
+    // ── Demo scenario autofill (Ctrl+D) — Liquid Gold ────────────────────────
+    document.addEventListener('keydown', function (e) {
+        if (!e.ctrlKey || e.key !== 'd') return;
+        e.preventDefault();
+
+        // 1. Force Simple Product mode
+        const simpleRadio = document.getElementById('simpleProduct');
+        if (simpleRadio && !simpleRadio.checked) {
+            simpleRadio.checked = true;
+            applyMode(false);
+        }
+
+        // 2. Title
+        const titleEl = document.getElementById('ProductTitle');
+        if (titleEl) titleEl.value = 'Liquid Gold Fuel Supplement';
+
+        // 3. Description
+        const descEl = document.getElementById('Description');
+        if (descEl) descEl.value = 'High-performance fuel additive for go-kart and karting engines. Improves combustion efficiency and engine longevity.';
+
+        // 4. Vendor — first real option
+        const vendorSel = document.querySelector('select[name="VendorID"]');
+        if (vendorSel) {
+            const first = Array.from(vendorSel.options).find(o => o.value !== '0' && o.value !== '');
+            if (first) vendorSel.value = first.value;
+        }
+
+        // 5. Category — first real option
+        const catSel = document.querySelector('select[name="ProductCategoryID"]');
+        if (catSel) {
+            const first = Array.from(catSel.options).find(o => o.value !== '0' && o.value !== '');
+            if (first) catSel.value = first.value;
+        }
+
+        // 6. SKU
+        const skuEl = document.getElementById('simpleSku');
+        if (skuEl) skuEl.value = 'LG-FUEL-001';
+
+        // 7. Price
+        const priceEl = document.querySelector('#simple-section input[name="Price"]');
+        if (priceEl) priceEl.value = '34.99';
+
+        // 8. Your Cost
+        const costEl = document.querySelector('#simple-section input[name="CostPrice"]');
+        if (costEl) costEl.value = '18.00';
+
+        // 9. Stock Quantity
+        const qtyEl = document.querySelector('#simple-section input[name="InventoryQuantity"]');
+        if (qtyEl) qtyEl.value = '50';
+
+        // 10. Option — leave as None
+        const optNameEl = document.getElementById('SimpleOptionName');
+        if (optNameEl) { optNameEl.value = ''; onSimpleOptionNameChange(); }
+
+        // 11. Trigger AJAX title check
+        if (titleEl) titleEl.dispatchEvent(new Event('blur'));
+
+        // 12. Toast
+        const toastEl = document.getElementById('autofill-toast');
+        if (toastEl && typeof bootstrap !== 'undefined') {
+            toastEl.querySelector('.toast-body').textContent = 'Demo fill: Liquid Gold \u2014 ready to publish';
+            new bootstrap.Toast(toastEl, { delay: 3000, autohide: true }).show();
+        }
+    });
+
     // ── Dev autofill shortcut (Ctrl+`) ────────────────────────────────────────
     document.addEventListener('keydown', function (e) {
         if (!e.ctrlKey || e.key !== '`') return;
@@ -1025,12 +1163,6 @@
 
         const catSel = document.querySelector('select[name="ProductCategoryID"]');
         if (catSel) randomOption(catSel, '0');
-
-        const statusSel = document.querySelector('select[name="Status"]');
-        if (statusSel) {
-            const pub = Array.from(statusSel.options).find(o => o.text.trim() === 'Published');
-            if (pub) statusSel.value = pub.value;
-        }
 
         if (!isVariant) {
             // ── Simple path ──
@@ -1085,6 +1217,69 @@
             toastEl.querySelector('.toast-body').textContent = `Autofill: ${baseName} [${suffix}]`;
             new bootstrap.Toast(toastEl, { delay: 2000, autohide: true }).show();
         }
+    });
+
+    // ── Quick-add Category ────────────────────────────────────────────────────
+    document.getElementById('saveCategoryBtn')?.addEventListener('click', async function () {
+        const nameEl  = document.getElementById('newCategoryName');
+        const errEl   = document.getElementById('newCategoryError');
+        const name    = nameEl.value.trim();
+        errEl.style.display = 'none';
+        if (!name) { errEl.textContent = 'Category name is required.'; errEl.style.display = 'block'; return; }
+        this.disabled = true;
+        try {
+            const res  = await fetch('/ProductVariants/QuickAddCategory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '' },
+                body: 'name=' + encodeURIComponent(name)
+            });
+            const data = await res.json();
+            if (!data.success) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+            const sel = document.getElementById('categorySelect');
+            const opt = document.createElement('option');
+            opt.value = data.id; opt.textContent = data.name; opt.selected = true;
+            sel.appendChild(opt);
+            sel.value = data.id;
+            nameEl.value = '';
+            bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'))?.hide();
+        } catch { errEl.textContent = 'An error occurred. Please try again.'; errEl.style.display = 'block'; }
+        finally { this.disabled = false; }
+    });
+
+    // Enter key submits category modal
+    document.getElementById('newCategoryName')?.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('saveCategoryBtn')?.click(); }
+    });
+
+    // ── Quick-add Vendor ──────────────────────────────────────────────────────
+    document.getElementById('saveVendorBtn')?.addEventListener('click', async function () {
+        const nameEl  = document.getElementById('newVendorName');
+        const errEl   = document.getElementById('newVendorError');
+        const name    = nameEl.value.trim();
+        errEl.style.display = 'none';
+        if (!name) { errEl.textContent = 'Vendor name is required.'; errEl.style.display = 'block'; return; }
+        this.disabled = true;
+        try {
+            const res  = await fetch('/ProductVariants/QuickAddVendor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '' },
+                body: 'name=' + encodeURIComponent(name)
+            });
+            const data = await res.json();
+            if (!data.success) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+            const sel = document.getElementById('vendorSelect');
+            const opt = document.createElement('option');
+            opt.value = data.id; opt.textContent = data.name; opt.selected = true;
+            sel.appendChild(opt);
+            sel.value = data.id;
+            nameEl.value = '';
+            bootstrap.Modal.getInstance(document.getElementById('addVendorModal'))?.hide();
+        } catch { errEl.textContent = 'An error occurred. Please try again.'; errEl.style.display = 'block'; }
+        finally { this.disabled = false; }
+    });
+
+    document.getElementById('newVendorName')?.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('saveVendorBtn')?.click(); }
     });
     </script>
 }

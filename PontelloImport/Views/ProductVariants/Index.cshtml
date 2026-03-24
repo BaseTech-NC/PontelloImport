@@ -42,7 +42,6 @@
     .cat-input:focus {
         border-color: #2563EB;
         box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-        outline: none;
     }
 
     /* Buttons */
@@ -61,7 +60,7 @@
     .btn-search-sm:hover { background: #1F2937; color: #fff; }
 
     .btn-clear-sm {
-        color: #6B7280;
+        color: #4B5563;
         border: 1px solid #E5E7EB;
         background: transparent;
         border-radius: 8px;
@@ -106,7 +105,7 @@
         padding: 0.5rem 0.85rem;
         font-size: 0.85rem;
         font-weight: 500;
-        color: #6B7280;
+        color: #4B5563;
         text-decoration: none;
         border-bottom: 2px solid transparent;
         margin-bottom: -1px;
@@ -121,7 +120,7 @@
         padding: 1px 6px;
         border-radius: 999px;
         background: #F3F4F6;
-        color: #6B7280;
+        color: #4B5563;
     }
     .cat-tab.active .tab-count { background: #EFF6FF; color: #2563EB; }
 
@@ -138,7 +137,7 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: #6B7280;
+        color: #4B5563;
         background: #F8FAFC;
         border-bottom: 1px solid #E5E7EB;
         padding: 0.75rem 1rem;
@@ -165,14 +164,14 @@
         white-space: nowrap;
     }
     /* Status */
-    .pill-published  { background: #F0FDF4; color: #16A34A; }
-    .pill-draft      { background: #FFF7ED; color: #EA580C; }
-    .pill-unlisted   { background: #F3F4F6; color: #6B7280; }
-    .pill-archived   { background: #FEF2F2; color: #DC2626; }
+    .pill-published  { background: #F0FDF4; color: #15803D; }
+    .pill-draft      { background: #FFF7ED; color: #9A3412; }
+    .pill-unlisted   { background: #F3F4F6; color: #4B5563; }
+    .pill-archived   { background: #FEF2F2; color: #B91C1C; }
     /* Inventory */
-    .pill-instock    { background: #F0FDF4; color: #16A34A; }
-    .pill-lowstock   { background: #FFF7ED; color: #EA580C; }
-    .pill-outofstock { background: #FEF2F2; color: #DC2626; }
+    .pill-instock    { background: #F0FDF4; color: #15803D; }
+    .pill-lowstock   { background: #FFF7ED; color: #9A3412; }
+    .pill-outofstock { background: #FEF2F2; color: #B91C1C; }
 
     /* Action buttons */
     .btn-act-details {
@@ -190,7 +189,7 @@
     .btn-act-details:hover { background: #EFF6FF; color: #1D4ED8; }
 
     .btn-act-edit {
-        color: #6B7280;
+        color: #4B5563;
         border: 1px solid #E5E7EB;
         background: transparent;
         border-radius: 6px;
@@ -204,7 +203,7 @@
     .btn-act-edit:hover { background: #F3F4F6; color: #374151; }
 
     .btn-act-ghost {
-        color: #9CA3AF;
+        color: #4B5563;
         border: 1px solid #E5E7EB;
         background: transparent;
         border-radius: 6px;
@@ -215,7 +214,7 @@
         transition: background 150ms;
         white-space: nowrap;
     }
-    .btn-act-ghost:hover { background: #F3F4F6; color: #6B7280; }
+    .btn-act-ghost:hover { background: #F3F4F6; color: #4B5563; }
 
     /* Pagination */
     .pag { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 1.25rem; }
@@ -225,7 +224,7 @@
         padding: 0.35rem 0.75rem;
         font-size: 0.85rem;
         font-weight: 500;
-        color: #6B7280;
+        color: #4B5563;
         border: 1px solid #E5E7EB;
         border-radius: 6px;
         text-decoration: none;
@@ -234,7 +233,7 @@
     }
     .pag-link:hover { background: #F3F4F6; color: #111827; }
     .pag-link.active { background: #2563EB; color: #fff; border-color: #2563EB; }
-    .pag-link.disabled { color: #D1D5DB; pointer-events: none; }
+    .pag-link.disabled { color: #6B7280; pointer-events: none; }
 </style>
 
 <div class="container-fluid mt-4" style="max-width: 1200px;">
@@ -242,10 +241,19 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
-            <h2 style="font-weight:600; color:#111827; font-size:1.4rem; margin-bottom:0.2rem;">Product Catalogue</h2>
-            <p style="color:#6B7280; font-size:0.875rem; margin:0;">Browse, manage, and organise your entire product inventory.</p>
+            <h1 style="font-weight:600; color:#111827; font-size:1.4rem; margin-bottom:0.2rem;">Product Catalogue</h1>
+            <p style="color:#4B5563; font-size:0.875rem; margin:0;">Browse, manage, and organise your entire product inventory.</p>
         </div>
-        <a asp-action="Create" class="btn-create">+ Create Product</a>
+        <div class="d-flex gap-2 align-items-center">
+            <a asp-action="ExportCsv"
+               asp-route-search="@currentSearch"
+               asp-route-statusFilter="@currentFilter"
+               class="btn btn-outline-secondary btn-sm">
+                Export CSV
+            </a>
+            <a asp-action="Import" class="btn btn-outline-secondary btn-sm">Import CSV</a>
+            <a asp-action="Create" class="btn-create">+ Create Product</a>
+        </div>
     </div>
 
     <!-- Search & Filter Bar -->
@@ -258,8 +266,9 @@
 
         <div class="d-flex gap-2 flex-wrap align-items-center">
             <input type="text" name="search" class="cat-input form-control" style="max-width:220px;"
-                   placeholder="Search title or SKU…" value="@currentSearch" />
-            <select name="categoryId" class="cat-input form-select" style="max-width:160px;">
+                   placeholder="Search title or SKU…" value="@currentSearch" aria-label="Search products" autocomplete="off" />
+            <label for="catFilter" class="visually-hidden">Filter by category</label>
+            <select name="categoryId" id="catFilter" class="cat-input form-select" style="max-width:160px;">
                 <option value="">All Categories</option>
                 @if (ViewBag.Categories != null)
                 {
@@ -269,7 +278,8 @@
                     }
                 }
             </select>
-            <select name="vendorId" class="cat-input form-select" style="max-width:150px;">
+            <label for="vendorFilter" class="visually-hidden">Filter by vendor</label>
+            <select name="vendorId" id="vendorFilter" class="cat-input form-select" style="max-width:150px;">
                 <option value="">All Vendors</option>
                 @if (ViewBag.Vendors != null)
                 {
@@ -279,7 +289,8 @@
                     }
                 }
             </select>
-            <select name="productType" class="cat-input form-select" style="max-width:150px;">
+            <label for="typeFilter" class="visually-hidden">Filter by product type</label>
+            <select name="productType" id="typeFilter" class="cat-input form-select" style="max-width:150px;">
                 <option value="">All Types</option>
                 @if (ViewBag.ProductTypes != null)
                 {
@@ -289,7 +300,8 @@
                     }
                 }
             </select>
-            <select name="stockStatus" class="cat-input form-select" style="max-width:140px;">
+            <label for="stockFilter" class="visually-hidden">Filter by stock status</label>
+            <select name="stockStatus" id="stockFilter" class="cat-input form-select" style="max-width:140px;">
                 <option value="">All Stock</option>
                 <option value="instock"    selected="@(currentStockStatus == "instock")">In Stock (&gt;5)</option>
                 <option value="lowstock"   selected="@(currentStockStatus == "lowstock")">Low Stock (1–5)</option>
@@ -343,7 +355,7 @@
 
     @if (!Model.Any())
     {
-        <div style="text-align:center; padding:3rem; color:#6B7280;">
+        <div style="text-align:center; padding:3rem; color:#4B5563;">
             <div style="font-size:1.75rem; margin-bottom:0.6rem;">📦</div>
             <p style="margin:0 0 0.5rem; font-size:0.9rem;">
                 @if (hasActiveFilters) { <text>No products match your search criteria.</text> }
@@ -365,7 +377,7 @@
     {
         <!-- Results summary + page size -->
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <p style="color:#6B7280; font-size:0.8rem; margin:0;">
+            <p style="color:#4B5563; font-size:0.8rem; margin:0;">
                 Showing @((Model.PageIndex - 1) * currentPageSize + 1)–@(Math.Min(Model.PageIndex * currentPageSize, Model.TotalCount)) of @Model.TotalCount results
             </p>
             <form asp-action="Index" method="get" class="d-inline-flex align-items-center gap-2">
@@ -378,8 +390,8 @@
                 <input type="hidden" name="stockStatus" value="@currentStockStatus" />
                 <input type="hidden" name="sortBy" value="@currentSortBy" />
                 <input type="hidden" name="sortDir" value="@currentSortDir" />
-                <label style="font-size:0.8rem; color:#6B7280; margin:0;">Show</label>
-                <select name="pageSize" class="cat-input form-select" style="width:72px; height:32px; padding:0.2rem 0.5rem; font-size:0.8rem;" onchange="this.form.submit()">
+                <label for="pageSizeSel" style="font-size:0.8rem; color:#4B5563; margin:0;">Show</label>
+                <select name="pageSize" id="pageSizeSel" class="cat-input form-select" style="width:72px; height:32px; padding:0.2rem 0.5rem; font-size:0.8rem;" onchange="this.form.submit()">
                     <option value="10"  selected="@(currentPageSize == 10)">10</option>
                     <option value="25"  selected="@(currentPageSize == 25)">25</option>
                     <option value="50"  selected="@(currentPageSize == 50)">50</option>
@@ -437,7 +449,7 @@
                             </th>
                             <th>Vendor</th>
                             <th>Category</th>
-                            <th></th>
+                            <th aria-label="Actions"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -458,7 +470,7 @@
                                     }
                                     @if (opts.Any())
                                     {
-                                        <br /><small style="color:#9CA3AF;">@string.Join(" · ", opts)</small>
+                                        <br /><small style="color:#4B5563;">@string.Join(" · ", opts)</small>
                                     }
                                 </td>
                                 <td><code style="font-size:0.8rem; color:#374151; background:#F3F4F6; padding:2px 6px; border-radius:4px;">@variant.SKU</code></td>
@@ -494,8 +506,8 @@
                                             break;
                                     }
                                 </td>
-                                <td style="color:#6B7280;">@(variant.Product?.Vendor?.VendorName ?? "—")</td>
-                                <td style="color:#6B7280;">@(variant.Product?.ProductCategory?.CategoryName ?? "—")</td>
+                                <td style="color:#4B5563;">@(variant.Product?.Vendor?.VendorName ?? "—")</td>
+                                <td style="color:#4B5563;">@(variant.Product?.ProductCategory?.CategoryName ?? "—")</td>
                                 <td style="white-space:nowrap;">
                                     <div class="d-flex gap-1">
                                         <a asp-action="Details" asp-route-id="@variant.Product!.ProductID" class="btn-act-details">Details</a>
@@ -575,7 +587,7 @@
                    asp-route-stockStatus="@currentStockStatus"
                    asp-route-sortBy="@currentSortBy" asp-route-sortDir="@currentSortDir">Next →</a>
             </div>
-            <p style="text-align:center; color:#9CA3AF; font-size:0.78rem; margin-top:0.5rem;">
+            <p style="text-align:center; color:#4B5563; font-size:0.78rem; margin-top:0.5rem;">
                 Page @Model.PageIndex of @Model.TotalPages
             </p>
         }

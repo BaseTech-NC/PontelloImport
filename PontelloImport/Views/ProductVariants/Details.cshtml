@@ -36,7 +36,7 @@
         padding: 0.75rem 1.25rem;
         font-size: 0.8rem;
         font-weight: 600;
-        color: #6B7280;
+        color: #4B5563;
         text-transform: uppercase;
         letter-spacing: 0.06em;
     }
@@ -58,7 +58,7 @@
     .def-list dt {
         font-size: 0.78rem;
         font-weight: 600;
-        color: #9CA3AF;
+        color: #4B5563;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-bottom: 0.1rem;
@@ -71,14 +71,14 @@
 
     .spec-table th {
         font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.05em; color: #9CA3AF; background: #F8FAFC;
+        letter-spacing: 0.05em; color: #4B5563; background: #F8FAFC;
         padding: 0.45rem 1rem;
     }
     .spec-table td { font-size: 0.875rem; padding: 0.5rem 1rem; }
 
     .var-table th {
         font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.05em; color: #9CA3AF; background: #F8FAFC;
+        letter-spacing: 0.05em; color: #4B5563; background: #F8FAFC;
         padding: 0.45rem 0.75rem;
     }
     .var-table td { font-size: 0.875rem; padding: 0.45rem 0.75rem; vertical-align: middle; }
@@ -112,38 +112,31 @@
     .btn-action-danger:hover { background: #FEF2F2; }
 
     .btn-action-green {
-        background: #16A34A; color: #fff; border: none; border-radius: 8px;
+        background: #15803D; color: #fff; border: none; border-radius: 8px;
         font-size: 0.8rem; font-weight: 500; padding: 0.4rem 1rem;
         cursor: pointer; transition: background 150ms;
     }
-    .btn-action-green:hover { background: #15803D; }
+    .btn-action-green:hover { background: #166534; }
 
-    .audit-row { font-size: 0.78rem; color: #9CA3AF; }
+    .audit-row { font-size: 0.78rem; color: #4B5563; }
 
     .stock-in   { background: #F0FDF4; color: #166534; }
     .stock-low  { background: #FFFBEB; color: #92400E; }
-    .stock-out  { background: #FEF2F2; color: #DC2626; }
+    .stock-out  { background: #FEF2F2; color: #B91C1C; }
 </style>
 
 <div class="container-fluid mt-4" style="max-width: 1060px;">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
-            @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
 
     <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
         <div>
-            <a asp-action="Index" style="color:#6B7280; font-size:0.875rem; text-decoration:none;">
+            <a asp-action="Index" style="color:#4B5563; font-size:0.875rem; text-decoration:none;">
                 ← Back to Product Catalogue
             </a>
-            <div style="font-size:1.25rem; font-weight:700; color:#111827; margin-top:0.4rem;">
+            <h1 style="font-size:1.25rem; font-weight:700; color:#111827; margin-top:0.4rem; margin-bottom:0;">
                 @Model.Title
-            </div>
+            </h1>
             <div class="mt-1">
                 @switch (Model.Status)
                 {
@@ -231,7 +224,7 @@
                             <dd style="white-space:pre-wrap;">@Model.Description</dd>
                         }
                         <dt>Handle</dt>
-                        <dd><code style="font-size:0.8rem; color:#6B7280;">@Model.Handle</code></dd>
+                        <dd><code style="font-size:0.8rem; color:#4B5563;">@Model.Handle</code></dd>
                     </dl>
                 </div>
             </div>
@@ -323,7 +316,7 @@
                             @if (simpleVariant.CostPrice.HasValue && simpleVariant.CostPrice > 0)
                             {
                                 <dt>Your Cost</dt>
-                                <dd style="color:#6B7280;">@simpleVariant.CostPrice.Value.ToString("C")</dd>
+                                <dd style="color:#4B5563;">@simpleVariant.CostPrice.Value.ToString("C")</dd>
                             }
 
                             <dt>Stock</dt>

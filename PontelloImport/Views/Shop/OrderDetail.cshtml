@@ -13,6 +13,21 @@
     </ol>
 </nav>
 
+<h1 class="h4 mb-3">Order @Model.PONumber</h1>
+
+@if (Model.Status == "Submitted")
+{
+    <div class="alert alert-info d-flex align-items-start gap-2 mb-3" role="alert">
+        <span>ℹ️</span>
+        <div>
+            <strong>Order submitted and under review.</strong><br />
+            <span class="text-muted small">
+                To request any changes or cancellation, please contact Pontello Imports directly. Orders cannot be modified after submission.
+            </span>
+        </div>
+    </div>
+}
+
 @if (Model.Status == "ActionRequired")
 {
     <div class="alert alert-warning" role="alert">
@@ -140,6 +155,17 @@
             </div>
         </div>
 
+        @{
+            var reorderStatuses = new[] { "Invoiced", "Shipped", "Cancelled" };
+        }
+        @if (reorderStatuses.Contains(Model.Status))
+        {
+            <form method="post" asp-action="Reorder" class="mb-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="orderId" value="@Model.OrderID" />
+                <button type="submit" class="btn btn-outline-secondary w-100">Reorder</button>
+            </form>
+        }
         <a asp-action="OrderHistory" class="btn btn-outline-secondary w-100">&larr; Back to Order History</a>
     </div>
 </div>
@@ -155,9 +181,11 @@
             "Invoiced"       => ("badge bg-info text-dark", "Invoiced"),
             "Cancelled"      => ("badge bg-danger", "Cancelled"),
             "ActionRequired" => ("badge bg-warning text-dark", "Action Required — Please Contact Us"),
-            _                => ("badge bg-secondary", status)
+            _                => ("badge", status)
         };
-        var style = status == "Shipped" ? " style=\"background:#6f42c1\"" : "";
+        var style = status == "Shipped" ? " style=\"background:#6f42c1\""
+                  : cssClass == "badge" ? " style=\"background:#5a6473\""
+                  : "";
         return new HtmlString($"<span class=\"{cssClass}\"{style}>{label}</span>");
     }
 }

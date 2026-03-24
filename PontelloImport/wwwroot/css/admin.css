@@ -36,7 +36,7 @@
     border-bottom: 1px solid #dee2e6;
 }
 .nav-pills .nav-link.active {
-    background-color: #4A7BA7;
+    background-color: var(--pi-blue);
     color: #fff;
 }
 
@@ -45,14 +45,14 @@
    ════════════════════════════════════════════════════════ */
 
 :root {
-    --pi-blue: #4A7BA7;
+    --pi-blue: #1D5FA0;      /* 6.5:1 with white — was #4A7BA7 (4.5:1 fail) */
     --pi-blue-dark: #2C5F8D;
     --pi-blue-light: #E8F1F8;
     --pi-blue-info: #7A9EBC;
-    --pi-green: #6B9C7D;
-    --pi-amber: #C89F6B;
-    --pi-red: #B85C5C;
-    --pi-gray: #6C757D;
+    --pi-green: #15803D;     /* 4.6:1 with white — was #6B9C7D (3.0:1 fail) */
+    --pi-amber: #92400E;     /* 9.4:1 with white — was #C89F6B (2.4:1 fail) */
+    --pi-red: #B91C1C;       /* 5.9:1 with white — was #B85C5C (3.5:1 fail) */
+    --pi-gray: #4B5563;
 }
 
 /* Buttons */
@@ -120,6 +120,16 @@
     border-color: var(--pi-blue) !important;
 }
 
+/* Export / Import outline buttons — Bootstrap default #6c757d fails WCAG AA */
+.btn.btn-outline-secondary {
+    color: #374151 !important;
+    border-color: #6B7280 !important;
+}
+.btn.btn-outline-secondary:hover {
+    background-color: #6B7280 !important;
+    color: #fff !important;
+}
+
 /* Pagination */
 .pagination .page-link {
     color: var(--pi-blue);
@@ -133,6 +143,9 @@
     background-color: var(--pi-blue);
     border-color: var(--pi-blue);
     color: white;
+}
+.pagination .page-item.disabled .page-link {
+    color: #6B7280;
 }
 
 /* Alerts */

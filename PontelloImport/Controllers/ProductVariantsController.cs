@@ -28,6 +28,8 @@ namespace PontelloImport.Controllers
             string sortBy = "created",
             string sortDir = "desc")
         {
+            search = search?.Trim() ?? "";
+
             var baseQuery = _context.ProductVariants
                 .Include(v => v.Product)
                     .ThenInclude(p => p!.Vendor)
@@ -301,7 +303,7 @@ namespace PontelloImport.Controllers
         // POST: ProductVariants/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(QuickCreateViewModel model)
+        public async Task<IActionResult> Create(QuickCreateViewModel model, string saveAction = "draft")
         {
             // ── 1. Trim all string inputs ──────────────────────────────────────────
             model.ProductTitle      = model.ProductTitle?.Trim() ?? "";
@@ -504,6 +506,7 @@ namespace PontelloImport.Controllers
 
             // ── 4. Save product ────────────────────────────────────────────────────
             var createdBy = User.Identity?.Name ?? "system";
+            var productStatus = saveAction == "publish" ? ProductStatus.Published : ProductStatus.Draft;
 
             var product = new Product
             {
@@ -513,7 +516,7 @@ namespace PontelloImport.Controllers
                 VendorID          = model.VendorID,
                 ProductCategoryID = model.ProductCategoryID,
                 ProductTypeID     = model.ProductTypeID,
-                Status            = model.Status,
+                Status            = productStatus,
                 CreatedDate       = DateTime.UtcNow,
                 CreatedBy         = createdBy
             };
@@ -536,7 +539,7 @@ namespace PontelloImport.Controllers
                         InventoryPolicy   = "deny",
                         RequiresShipping  = true,
                         IsTaxable         = true,
-                        Status            = model.Status,
+                        Status            = productStatus,
                         IsDefault         = isFirst,
                         Option1Name       = string.IsNullOrWhiteSpace(model.Option1Name) ? null : model.Option1Name,
                         Option1Value      = row.Option1Value,
@@ -567,7 +570,7 @@ namespace PontelloImport.Controllers
                     InventoryPolicy   = "deny",
                     RequiresShipping  = true,
                     IsTaxable         = true,
-                    Status            = model.Status,
+                    Status            = productStatus,
                     IsDefault         = !hasOption,
                     Option1Name       = hasOption ? model.SimpleOptionName : "Title",
                     Option1Value      = hasOption ? model.SimpleOptionValue : "Default Title",
@@ -883,6 +886,14 @@ namespace PontelloImport.Controllers
             var product = await _context.Products.FindAsync(viewModel.ProductID);
             if (product == null) return NotFound();
 
+            // Determine new status from split-button save action
+            if (saveAction == "publish")
+                viewModel.Status = ProductStatus.Published;
+            else if (saveAction is "draft" or "unpublish")
+                viewModel.Status = ProductStatus.Draft;
+            else
+                viewModel.Status = product.Status; // no status field in form — keep current
+
             product.Title             = viewModel.Title;
             product.Handle            = GenerateHandle(viewModel.Title);
             product.Description       = viewModel.Description;
@@ -1090,6 +1101,385 @@ namespace PontelloImport.Controllers
             handle = System.Text.RegularExpressions.Regex.Replace(handle, "-+", "-");
             handle = handle.Trim('-');
             return handle;
+        }
+
+        private string CurrentUser =>
+            User.Identity?.Name
+            ?? HttpContext.Session.GetString("DemoRole")
+            ?? "Admin";
+
+        // GET: ProductVariants/ExportCsv
+        [HttpGet]
+        public async Task<IActionResult> ExportCsv(
+            string? search = null,
+            string? statusFilter = null)
+        {
+            var query = _context.ProductVariants
+                .Include(v => v.Product)
+                    .ThenInclude(p => p!.Vendor)
+                .Include(v => v.Product)
+                    .ThenInclude(p => p!.ProductType)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.ToLower();
+                query = query.Where(v =>
+                    v.SKU.ToLower().Contains(q) ||
+                    v.Product!.Title.ToLower().Contains(q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(statusFilter) &&
+                Enum.TryParse<ProductStatus>(statusFilter, true, out var parsedStatus))
+                query = query.Where(v => v.Status == parsedStatus);
+
+            var variants = await query
+                .OrderByDescending(v => v.Product!.CreatedDate)
+                .ThenBy(v => v.VariantID)
+                .ToListAsync();
+
+            static string CsvField(string? s)
+            {
+                if (s == null) return "";
+                if (s.Contains(',') || s.Contains('"') || s.Contains('\n'))
+                    return "\"" + s.Replace("\"", "\"\"") + "\"";
+                return s;
+            }
+
+            string OptName(string? name) =>
+                string.IsNullOrEmpty(name) || name == "Title" ? "" : name;
+            string OptValue(string? val, string? name) =>
+                string.IsNullOrEmpty(name) || name == "Title" || val == "Default Title" ? "" : val ?? "";
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Handle,Title,Vendor,Type,Tags,Published," +
+                          "Option1 Name,Option1 Value,Option2 Name,Option2 Value,Option3 Name,Option3 Value," +
+                          "Variant SKU,Variant Price,Variant Compare At Price,Variant Cost," +
+                          "Variant Inventory Qty,Variant Weight,Variant Barcode,Status");
+
+            foreach (var v in variants)
+            {
+                var p = v.Product!;
+                sb.AppendLine(string.Join(",",
+                    CsvField(p.Handle),
+                    CsvField(p.Title),
+                    CsvField(p.Vendor?.VendorName ?? ""),
+                    CsvField(p.ProductType?.TypeName ?? ""),
+                    CsvField(p.Tags ?? ""),
+                    p.Status == ProductStatus.Published ? "true" : "false",
+                    CsvField(OptName(v.Option1Name)),
+                    CsvField(OptValue(v.Option1Value, v.Option1Name)),
+                    CsvField(OptName(v.Option2Name)),
+                    CsvField(OptValue(v.Option2Value, v.Option2Name)),
+                    CsvField(OptName(v.Option3Name)),
+                    CsvField(OptValue(v.Option3Value, v.Option3Name)),
+                    CsvField(v.SKU),
+                    v.Price.ToString("F2"),
+                    v.CompareAtPrice?.ToString("F2") ?? "",
+                    v.CostPrice?.ToString("F2") ?? "",
+                    v.InventoryQuantity.ToString(),
+                    v.Weight?.ToString("F2") ?? "",
+                    CsvField(v.Barcode ?? ""),
+                    v.Status.ToString()));
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+            return File(bytes, "text/csv", $"products-{DateTime.Now:yyyy-MM-dd}.csv");
+        }
+
+        // GET: ProductVariants/Import
+        [HttpGet]
+        public IActionResult Import() => View();
+
+        // POST: ProductVariants/Import
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Import(IFormFile csvFile)
+        {
+            if (csvFile == null || csvFile.Length == 0)
+            {
+                ModelState.AddModelError("", "Please select a CSV file to upload.");
+                return View();
+            }
+            if (!Path.GetExtension(csvFile.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("", "Only .csv files are supported.");
+                return View();
+            }
+            if (csvFile.Length > 5 * 1024 * 1024)
+            {
+                ModelState.AddModelError("", "File size must not exceed 5MB.");
+                return View();
+            }
+
+            var lines = new List<string>();
+            using (var reader = new System.IO.StreamReader(csvFile.OpenReadStream()))
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    if (line != null) lines.Add(line);
+                }
+
+            if (lines.Count < 2)
+            {
+                ModelState.AddModelError("", "File appears to be empty or has no data rows.");
+                return View();
+            }
+
+            // Parse header to get column indices by name
+            var headers = ParseCsvLine(lines[0]);
+            int Col(string name) => Array.FindIndex(headers,
+                h => h.Trim().Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            int iHandle   = Col("Handle"),       iTitle    = Col("Title");
+            int iVendor   = Col("Vendor"),        iPublished = Col("Published");
+            int iTags     = Col("Tags");
+            int iO1N = Col("Option1 Name"),  iO1V = Col("Option1 Value");
+            int iO2N = Col("Option2 Name"),  iO2V = Col("Option2 Value");
+            int iO3N = Col("Option3 Name"),  iO3V = Col("Option3 Value");
+            int iSku      = Col("Variant SKU"),   iPrice    = Col("Variant Price");
+            int iCompare  = Col("Variant Compare At Price");
+            int iCost     = Col("Variant Cost"),  iQty      = Col("Variant Inventory Qty");
+            int iWeight   = Col("Variant Weight"), iBarcode = Col("Variant Barcode");
+
+            if (iHandle < 0 || iSku < 0)
+            {
+                ModelState.AddModelError("", "CSV is missing required columns (Handle, Variant SKU).");
+                return View();
+            }
+
+            string Get(string[] f, int i) => i >= 0 && i < f.Length ? f[i].Trim() : "";
+
+            // Group rows by Handle
+            var groups = new List<(string handle, List<string[]> rows)>();
+            var groupIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 1; i < lines.Count; i++)
+            {
+                if (string.IsNullOrWhiteSpace(lines[i])) continue;
+                var fields = ParseCsvLine(lines[i]);
+                var handle = Get(fields, iHandle);
+                if (string.IsNullOrEmpty(handle)) continue;
+
+                if (!groupIndex.TryGetValue(handle, out int gi))
+                {
+                    gi = groups.Count;
+                    groups.Add((handle, new List<string[]>()));
+                    groupIndex[handle] = gi;
+                }
+                groups[gi].rows.Add(fields);
+            }
+
+            // Load existing data for duplicate checks
+            var existingTitles = await _context.Products
+                .Select(p => p.Title.ToLower()).ToHashSetAsync();
+            var existingSkus = await _context.ProductVariants
+                .Select(v => v.SKU.ToLower()).ToHashSetAsync();
+            var vendorMap = await _context.Vendors
+                .ToDictionaryAsync(v => v.VendorName.ToLower(), v => v.VendorID);
+            // Use first available category as FK fallback (category not in Shopify CSV)
+            var defaultCategoryId = await _context.ProductCategories
+                .OrderBy(c => c.CategoryID).Select(c => c.CategoryID).FirstOrDefaultAsync();
+
+            int productsCreated = 0, variantsCreated = 0, skippedProducts = 0, skippedVariants = 0;
+            var newSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var (_, rows) in groups)
+            {
+                if (rows.Count == 0) continue;
+                var first = rows[0];
+                var title = Get(first, iTitle);
+                if (string.IsNullOrEmpty(title)) continue;
+
+                // Skip already-existing products
+                if (existingTitles.Contains(title.ToLower()))
+                {
+                    skippedProducts++;
+                    skippedVariants += rows.Count;
+                    continue;
+                }
+
+                var vendorName = Get(first, iVendor);
+                vendorMap.TryGetValue(vendorName.ToLower(), out int vendorId);
+                var published = Get(first, iPublished).Equals("true", StringComparison.OrdinalIgnoreCase);
+                var handle = Get(first, iHandle);
+                var tags = Get(first, iTags);
+
+                var product = new Product
+                {
+                    Title           = title,
+                    Handle          = string.IsNullOrEmpty(handle) ? GenerateHandle(title) : handle,
+                    VendorID        = vendorId,
+                    ProductCategoryID = defaultCategoryId,
+                    Description     = "",
+                    Tags            = string.IsNullOrEmpty(tags) ? null : tags,
+                    Status          = published ? ProductStatus.Published : ProductStatus.Draft,
+                    CreatedDate     = DateTime.UtcNow,
+                    CreatedBy       = CurrentUser
+                };
+
+                bool isFirst = true;
+                var variantsToAdd = new List<ProductVariant>();
+
+                foreach (var row in rows)
+                {
+                    var sku = Get(row, iSku);
+                    if (string.IsNullOrEmpty(sku)) { skippedVariants++; continue; }
+                    if (existingSkus.Contains(sku.ToLower()) || newSkus.Contains(sku))
+                    {
+                        skippedVariants++;
+                        continue;
+                    }
+
+                    decimal.TryParse(Get(row, iPrice),   System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out decimal price);
+                    decimal.TryParse(Get(row, iCompare), System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out decimal compareAt);
+                    decimal.TryParse(Get(row, iCost),    System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out decimal cost);
+                    int.TryParse(Get(row, iQty), out int qty);
+                    decimal.TryParse(Get(row, iWeight),  System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out decimal weight);
+
+                    var o1n = Get(row, iO1N); var o2n = Get(row, iO2N); var o3n = Get(row, iO3N);
+                    var bc  = Get(row, iBarcode);
+
+                    variantsToAdd.Add(new ProductVariant
+                    {
+                        SKU              = sku,
+                        Price            = price,
+                        CompareAtPrice   = compareAt > 0 ? compareAt : null,
+                        CostPrice        = cost > 0 ? cost : null,
+                        InventoryQuantity = qty,
+                        Weight           = weight > 0 ? weight : null,
+                        Barcode          = string.IsNullOrEmpty(bc) ? null : bc,
+                        Option1Name      = string.IsNullOrEmpty(o1n) ? null : o1n,
+                        Option1Value     = string.IsNullOrEmpty(o1n) ? null : Get(row, iO1V),
+                        Option2Name      = string.IsNullOrEmpty(o2n) ? null : o2n,
+                        Option2Value     = string.IsNullOrEmpty(o2n) ? null : Get(row, iO2V),
+                        Option3Name      = string.IsNullOrEmpty(o3n) ? null : o3n,
+                        Option3Value     = string.IsNullOrEmpty(o3n) ? null : Get(row, iO3V),
+                        IsDefault        = isFirst,
+                        Status           = published ? ProductStatus.Published : ProductStatus.Draft,
+                        CreatedDate      = DateTime.UtcNow,
+                        CreatedBy        = CurrentUser
+                    });
+
+                    newSkus.Add(sku);
+                    isFirst = false;
+                    variantsCreated++;
+                }
+
+                if (variantsToAdd.Count > 0)
+                {
+                    product.ProductVariants = variantsToAdd;
+                    _context.Products.Add(product);
+                    existingTitles.Add(title.ToLower());
+                    productsCreated++;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] =
+                $"Import complete. {productsCreated} product{(productsCreated == 1 ? "" : "s")} created, " +
+                $"{variantsCreated} variant{(variantsCreated == 1 ? "" : "s")} created. " +
+                $"{skippedProducts} product{(skippedProducts == 1 ? "" : "s")} skipped (already exist). " +
+                $"{skippedVariants} variant{(skippedVariants == 1 ? "" : "s")} skipped (duplicate SKU).";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // POST: ProductVariants/QuickAddCategory
+        [HttpPost]
+        public async Task<IActionResult> QuickAddCategory(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return Json(new { success = false, error = "Category name is required." });
+
+            name = name.Trim();
+            var duplicate = await _context.ProductCategories
+                .AnyAsync(c => EF.Functions.Like(c.CategoryName, name));
+            if (duplicate)
+                return Json(new { success = false, error = "A category with that name already exists." });
+
+            var slug = System.Text.RegularExpressions.Regex.Replace(name.ToLower(), "[^a-z0-9]+", "-").Trim('-');
+            // Ensure slug uniqueness
+            var slugBase = slug;
+            var n = 2;
+            while (await _context.ProductCategories.AnyAsync(c => c.CategorySlug == slug))
+                slug = $"{slugBase}-{n++}";
+
+            var category = new ProductCategory
+            {
+                CategoryName = name,
+                CategorySlug = slug,
+                IsActive = true
+            };
+            _context.ProductCategories.Add(category);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, id = category.CategoryID, name = category.CategoryName });
+        }
+
+        // POST: ProductVariants/QuickAddVendor
+        [HttpPost]
+        public async Task<IActionResult> QuickAddVendor(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return Json(new { success = false, error = "Vendor name is required." });
+
+            name = name.Trim();
+            var duplicate = await _context.Vendors
+                .AnyAsync(v => EF.Functions.Like(v.VendorName, name));
+            if (duplicate)
+                return Json(new { success = false, error = "A vendor with that name already exists." });
+
+            var slug = System.Text.RegularExpressions.Regex.Replace(name.ToLower(), "[^a-z0-9]+", "-").Trim('-');
+            var slugBase = slug;
+            var n = 2;
+            while (await _context.Vendors.AnyAsync(v => v.VendorSlug == slug))
+                slug = $"{slugBase}-{n++}";
+
+            var vendor = new Vendor
+            {
+                VendorName = name,
+                VendorSlug = slug,
+                IsActive = true
+            };
+            _context.Vendors.Add(vendor);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, id = vendor.VendorID, name = vendor.VendorName });
+        }
+
+        private static string[] ParseCsvLine(string line)
+        {
+            var fields  = new List<string>();
+            var current = new System.Text.StringBuilder();
+            bool inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (inQuotes)
+                {
+                    if (c == '"')
+                    {
+                        if (i + 1 < line.Length && line[i + 1] == '"')
+                        { current.Append('"'); i++; }
+                        else
+                            inQuotes = false;
+                    }
+                    else current.Append(c);
+                }
+                else
+                {
+                    if (c == '"')        inQuotes = true;
+                    else if (c == ',')   { fields.Add(current.ToString()); current.Clear(); }
+                    else                 current.Append(c);
+                }
+            }
+            fields.Add(current.ToString());
+            return fields.ToArray();
         }
     }
 }

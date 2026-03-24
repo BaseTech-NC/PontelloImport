@@ -1,0 +1,57 @@
+@model PontelloImport.Models.Order
+
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = $"Edit Shipping — Order {Model.PONumber}";
+}
+
+<div class="container-fluid mt-4" style="max-width: 600px;">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a asp-action="Details" asp-route-id="@Model.OrderID" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to Order
+        </a>
+        <h4 class="mb-0">Edit Shipping — Order @Model.PONumber</h4>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="card">
+        <div class="card-header bg-dark text-white">Shipping Amount</div>
+        <div class="card-body">
+            <form method="post" asp-action="EditShipping" asp-route-id="@Model.OrderID">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label for="shippingAmount" class="form-label fw-semibold">Shipping Amount ($)</label>
+                    <input type="number" id="shippingAmount" name="shippingAmount"
+                           class="form-control" style="max-width: 200px;"
+                           step="0.01" min="0"
+                           value="@(Model.ShippingCost?.ToString("F2") ?? "0.00")"
+                           required />
+                    <div class="form-text">Enter 0 to remove shipping charge.</div>
+                </div>
+
+                <dl class="row text-muted small mb-3">
+                    <dt class="col-5">Order #</dt>
+                    <dd class="col-7">@Model.PONumber</dd>
+                    <dt class="col-5">Current Subtotal</dt>
+                    <dd class="col-7">@Model.SubtotalAmount.ToString("C")</dd>
+                    @if (Model.TaxAmount.HasValue)
+                    {
+                        <dt class="col-5">Tax</dt>
+                        <dd class="col-7">@Model.TaxAmount.Value.ToString("C")</dd>
+                    }
+                </dl>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-dark">Save Shipping</button>
+                    <a asp-action="Details" asp-route-id="@Model.OrderID" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>

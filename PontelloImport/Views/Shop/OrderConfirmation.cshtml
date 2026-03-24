@@ -6,15 +6,16 @@
 
 <div class="text-center my-4">
     <div class="display-6 text-success mb-2">&#10003; Order Submitted</div>
-    <h2>Thank you for your order!</h2>
-    <p class="text-muted fs-5">
-        Your purchase order number is <strong class="text-dark fs-4">@Model.PONumber</strong>
+    <h2 class="h4">Thank you for your order!</h2>
+    <p class="text-muted">
+        Your purchase order number is <strong class="text-dark fs-5">@Model.PONumber</strong>
     </p>
-    <p class="text-muted">We will review and confirm your order shortly.</p>
 </div>
 
 <div class="row justify-content-center">
     <div class="col-lg-8">
+
+        <!-- Order lines -->
         <div class="card mb-4">
             <div class="card-header fw-semibold">Order Summary — PO @Model.PONumber</div>
             <div class="card-body p-0">
@@ -44,7 +45,7 @@
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="5" class="text-end">Subtotal</td>
+                            <td colspan="5" class="text-end text-muted">Subtotal</td>
                             <td class="text-end">$@Model.SubtotalAmount.ToString("F2")</td>
                         </tr>
                         @if (Model.IsTaxExempt)
@@ -57,7 +58,7 @@
                         else if (Model.TaxAmount.HasValue)
                         {
                             <tr>
-                                <td colspan="5" class="text-end">Tax (@((Model.TaxRate * 100)?.ToString("F0"))%)</td>
+                                <td colspan="5" class="text-end text-muted">Tax (@((Model.TaxRate * 100)?.ToString("F0"))%)</td>
                                 <td class="text-end">$@Model.TaxAmount.Value.ToString("F2")</td>
                             </tr>
                         }
@@ -70,9 +71,22 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-between">
-            <a asp-action="Index" class="btn btn-outline-secondary">Continue Shopping</a>
-            <a asp-action="OrderHistory" class="btn btn-primary">View Order History</a>
+        <!-- What happens next -->
+        <div class="card mb-4 border-0 bg-light">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-2">What happens next?</h6>
+                <p class="text-muted small mb-0">
+                    Your order has been received by Pontello Imports. You will receive confirmation once your order
+                    is reviewed. Shipping will be calculated and added before your order is shipped.
+                </p>
+            </div>
         </div>
+
+        <!-- Action buttons -->
+        <div class="d-flex justify-content-between gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">Continue Shopping</a>
+            <a asp-action="OrderDetail" asp-route-id="@Model.OrderID" class="btn btn-primary">View Order Details</a>
+        </div>
+
     </div>
 </div>

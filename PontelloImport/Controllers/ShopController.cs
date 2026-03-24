@@ -18,6 +18,8 @@ namespace PontelloImport.Controllers
         // GET: /Shop
         public async Task<IActionResult> Index(string? search, int? categoryId)
         {
+            search = search?.Trim();
+
             var categories = await _context.ProductCategories
                 .Where(c => c.IsActive)
                 .OrderBy(c => c.DisplayOrder)
@@ -208,10 +210,20 @@ namespace PontelloImport.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SubmitOrder()
         {
+            // Guard: must have items before starting a transaction
+            var cartCheck = await _context.Carts
+                .Include(c => c.CartItems)
+                .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+            if (cartCheck == null || !cartCheck.CartItems.Any())
+            {
+                TempData["Error"] = "Your cart is empty.";
+                return RedirectToAction(nameof(Cart));
+            }
+
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Load cart
+                // 1. Load cart (full include for order creation)
                 var cart = await _context.Carts
                     .Include(c => c.CartItems)
                         .ThenInclude(ci => ci.ProductVariant)
@@ -254,6 +266,14 @@ namespace PontelloImport.Controllers
                 var total = subtotal + (taxAmount ?? 0);
 
                 // 9. Create order
+                int? previousOrderId = null;
+                var reorderSourceIdStr = HttpContext.Session.GetString("ReorderSourceID");
+                if (int.TryParse(reorderSourceIdStr, out var parsedSourceId))
+                {
+                    previousOrderId = parsedSourceId;
+                    HttpContext.Session.Remove("ReorderSourceID");
+                }
+
                 var order = new Order
                 {
                     OrderNumber = orderNumber,
@@ -266,7 +286,8 @@ namespace PontelloImport.Controllers
                     TotalAmount = total,
                     PaymentTermsID = dealer.PaymentTermsID,
                     PaymentDueDate = DateTime.UtcNow.AddDays(dealer.PaymentTerms.DaysUntilDue),
-                    Status = "Submitted"
+                    Status = "Submitted",
+                    PreviousOrderID = previousOrderId
                 };
                 _context.Orders.Add(order);
 
@@ -340,6 +361,70 @@ namespace PontelloImport.Controllers
                 .ToListAsync();
 
             return View(orders);
+        }
+
+        // POST: /Shop/Reorder
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reorder(int orderId)
+        {
+            var originalOrder = await _context.Orders
+                .Include(o => o.OrderLines)
+                .FirstOrDefaultAsync(o => o.OrderID == orderId && o.DealerID == HardcodedDealerID);
+
+            if (originalOrder == null)
+                return NotFound();
+
+            var cart = await _context.Carts
+                .Include(c => c.CartItems)
+                .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+
+            if (cart == null)
+            {
+                cart = new Cart { DealerID = HardcodedDealerID };
+                _context.Carts.Add(cart);
+                await _context.SaveChangesAsync();
+            }
+
+            var skippedCount = 0;
+            foreach (var line in originalOrder.OrderLines)
+            {
+                if (!line.ProductVariantID.HasValue)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                var variant = await _context.ProductVariants.FindAsync(line.ProductVariantID.Value);
+                if (variant == null || variant.Status == ProductStatus.Archived)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                var existingItem = cart.CartItems.FirstOrDefault(ci => ci.ProductVariantID == variant.VariantID);
+                if (existingItem != null)
+                    existingItem.Quantity += line.Quantity;
+                else
+                    cart.CartItems.Add(new CartItem
+                    {
+                        CartID = cart.CartID,
+                        ProductVariantID = variant.VariantID,
+                        Quantity = line.Quantity
+                    });
+            }
+
+            cart.ModifiedDate = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            // Store source order ID so SubmitOrder can set PreviousOrderID
+            HttpContext.Session.SetString("ReorderSourceID", orderId.ToString());
+
+            if (skippedCount > 0)
+                TempData["Warning"] = "Some items from this order are no longer available and were not added to your cart.";
+
+            TempData["Success"] = "Items added to your cart. Review and submit when ready.";
+            return RedirectToAction(nameof(Cart));
         }
 
         // GET: /Shop/OrderDetail/{id}
