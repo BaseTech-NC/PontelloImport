@@ -1,0 +1,36 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<nav class="w-100 d-flex align-items-center justify-content-between px-3">
+
+     @* Left *@
+    <div class="d-lg-none">
+        @* <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports" class="img-fluid" width="55" height="45" /> *@
+        @* <a href="@Url.Action("Index", "Home")"><img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports Logo" /></a> *@
+        <a href="@Url.Action("Index", "Home")">
+            <img src="~/images/pontello-Imports-Logo.png"
+                 alt="Pontello Imports Logo"
+                 class="img-fluid"
+                 width="55"
+                 height="45" />
+        </a>
+    </div>
+
+    @* Right  *@
+    <div class="d-flex align-items-center gap-3 ms-auto">
+        <i class="bi bi-bell fs-5"></i>
+
+        <div class="dropdown">
+            <a data-bs-toggle="dropdown">
+                <img src="https://img.freepik.com/premium-vector/man-avatar-profile-picture-isolated-background-avatar-profile-picture-man_1293239-4855.jpg" class="rounded-circle img-fluid" width="40" height="40" />
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item">Profile</a></li>
+                <li><a class="dropdown-item">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+
+</nav>
