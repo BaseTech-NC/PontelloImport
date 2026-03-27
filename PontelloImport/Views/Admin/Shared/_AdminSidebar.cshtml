@@ -14,8 +14,7 @@
         </a>
     </div>
 
-    <div class="d-flex flex-column p-3">
-
+    <nav aria-label="Admin navigation" class="d-flex flex-column p-3">
 
         <ul class="nav nav-pills flex-column gap-1">
 
@@ -37,16 +36,16 @@
                 </a>
             </li>
 
-           @*  <li class="nav-item">
-                <a class="nav-link @(controller == "Orders" ? "active" : "text-dark")"
-                   asp-area="Admin"
-                   asp-controller="Orders"
+            <li class="nav-item">
+                <a class="nav-link @(controller == "AdminOrders" ? "active" : "text-dark")"
+                   asp-area=""
+                   asp-controller="AdminOrders"
                    asp-action="Index">
-                    <i class="bi bi-cart me-2"></i> Orders
+                    <i class="bi bi-receipt me-2"></i> Orders
                 </a>
-            </li> *@
+            </li>
 
         </ul>
 
-    </div>
+    </nav>
 </div>

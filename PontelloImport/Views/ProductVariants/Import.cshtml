@@ -1,0 +1,81 @@
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Import Products";
+}
+
+<style>
+    *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
+
+    .import-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 560px;
+    }
+
+    .import-hint {
+        font-size: 0.875rem;
+        color: #4B5563;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .btn-import {
+        background: #111827;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        cursor: pointer;
+        transition: background 150ms;
+    }
+    .btn-import:hover { background: #1F2937; }
+</style>
+
+<div class="container-fluid mt-4" style="max-width: 1200px;">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a asp-action="Index" style="color:#4B5563; font-size:0.875rem; text-decoration:none;">← Back to Product Catalogue</a>
+    </div>
+
+    <h1 style="font-weight:600; color:#111827; font-size:1.4rem; margin-bottom:1.5rem;">Import Products from CSV</h1>
+
+    <div class="import-card">
+        <p class="import-hint">
+            Upload a Shopify-format CSV file. Existing products will not be overwritten.
+            Maximum file size: 5MB.
+            <br />
+            <a asp-action="ExportCsv" style="color:#2563EB;">Download the current export</a>
+            to see the expected column format.
+        </p>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <form asp-action="Import" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label for="csvFile" class="form-label" style="font-size:0.875rem; font-weight:500; color:#111827;">
+                    Select CSV file
+                </label>
+                <input type="file" id="csvFile" name="csvFile" accept=".csv"
+                       class="form-control" style="font-size:0.875rem;" required />
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <button type="submit" class="btn-import">Import</button>
+                <a asp-action="Index" style="color:#4B5563; font-size:0.875rem;">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+</div>

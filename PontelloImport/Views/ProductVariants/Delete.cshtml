@@ -1,150 +1,156 @@
-﻿@model PontelloImport.Models.ProductVariant
+@model PontelloImport.Models.ProductVariant
 
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "Delete Product Variant";
+    ViewData["Title"] = "Archive Product";
+}
+
+<style>
+    *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
+
+    .confirm-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        max-width: 560px;
+        padding: 2rem;
     }
 
-<div class="container mt-4">
+    .confirm-icon {
+        width: 44px;
+        height: 44px;
+        background: #FFF7ED;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 1.25rem;
+    }
 
-    <!-- Warning Header -->
-    <div class="alert alert-dark" role="alert">
-        <h4 class="alert-heading">
-            <i class="bi bi-exclamation-triangle-fill"></i> Archive Product Variant?
-        </h4>
-        <p class="mb-0">
-            This will archive the variant and hide it from dealers. The data will remain in the system and can be restored later.
+    .confirm-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 0.4rem;
+    }
+
+    .confirm-lead {
+        color: #4B5563;
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .product-summary {
+        background: #F8FAFC;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .product-summary .ps-name {
+        font-weight: 600;
+        color: #111827;
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .product-summary .ps-meta {
+        color: #4B5563;
+        font-size: 0.8rem;
+    }
+
+    .restore-note {
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        color: #1E40AF;
+        margin-bottom: 1.75rem;
+        line-height: 1.5;
+    }
+
+    .btn-archive {
+        background: #9A3412;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        transition: background 150ms;
+        cursor: pointer;
+    }
+
+    .btn-archive:hover { background: #C2410C; color: #ffffff; }
+
+    .btn-cancel {
+        color: #4B5563;
+        border: 1px solid #E5E7EB;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1.1rem;
+        text-decoration: none;
+        transition: background 150ms;
+    }
+
+    .btn-cancel:hover { background: #F3F4F6; color: #374151; }
+</style>
+
+<div class="container-fluid mt-4" style="max-width: 700px;">
+
+    <div class="mb-4">
+        <a asp-action="Index" style="color:#4B5563; font-size:0.875rem; text-decoration:none;">← Back to Product Catalogue</a>
+    </div>
+
+    <div class="confirm-card">
+
+        <div class="confirm-icon">📦</div>
+
+        <div class="confirm-title">Archive this product?</div>
+        <p class="confirm-lead">
+            Archiving removes this product from the dealer shop and prevents new orders.
+            The product and all its data are kept — nothing is permanently deleted.
         </p>
-    </div>
 
-    <!-- Product Details Card -->
-    <div class="card">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Variant to Archive</h5>
-        </div>
-        <div class="card-body">
-
-            <div class="row">
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-sm-4">Title:</dt>
-                        <dd class="col-sm-8"><strong>@Model.Title</strong></dd>
-
-                        <dt class="col-sm-4">SKU:</dt>
-                        <dd class="col-sm-8"><code class="text-dark">@Model.SKU</code></dd>
-
-                        <dt class="col-sm-4">Price:</dt>
-                        <dd class="col-sm-8"><strong class="text-dark">@Model.Price.ToString("C")</strong></dd>
-
-                        <dt class="col-sm-4">Inventory:</dt>
-                        <dd class="col-sm-8">
-                            @if (Model.InventoryQuantity > 5)
-                            {
-                                <span class="badge bg-success" style="font-weight:normal;">● @Model.InventoryQuantity in stock</span>
-                            }
-                            else if (Model.InventoryQuantity >= 1)
-                            {
-                                <span class="badge bg-warning" style="font-weight:normal;">● @Model.InventoryQuantity left</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger" style="font-weight:normal;">● Out of stock</span>
-                            }
-                        </dd>
-
-                        @if (Model.Product?.Vendor != null)
-                            {
-                            <dt class="col-sm-4">Vendor:</dt>
-                            <dd class="col-sm-8">@Model.Product.Vendor.VendorName</dd>
-                            }
-                    </dl>
-                </div>
-
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-sm-4">Status:</dt>
-                        <dd class="col-sm-8">
-                            @switch (Model.Status)
-                                {
-                                case ProductStatus.Draft:
-                                <span class="badge bg-info">Draft</span>
-                                break;
-                                case ProductStatus.Published:
-                                <span class="badge bg-success">Published</span>
-                                break;
-                                case ProductStatus.Archived:
-                                <span class="badge bg-secondary">Archived</span>
-                                break;
-                                }
-                        </dd>
-
-                        <dt class="col-sm-4">Created:</dt>
-                        <dd class="col-sm-8">
-                            @if (Model.CreatedDate.HasValue)
-                            {
-                                @Model.CreatedDate.Value.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")
-                            }
-                            else
-                            {
-                                <span class="text-muted">—</span>
-                            }
-                        </dd>
-
-                        @if (Model.Attributes.Any())
-                            {
-                            <dt class="col-sm-4">Attributes:</dt>
-                            <dd class="col-sm-8">
-                                <span class="badge bg-secondary text-white">@Model.Attributes.Count attribute(s)</span>
-                            </dd>
-                            }
-                    </dl>
-                </div>
-            </div>
-
-            @if (Model.Attributes.Any())
+        <div class="product-summary">
+            <div class="ps-name">@(Model.Product?.Title ?? Model.SKU)</div>
+            <div class="ps-meta">
+                SKU: <strong>@Model.SKU</strong>
+                @if (!string.IsNullOrEmpty(Model.Option1Value))
                 {
-                <div class="mt-3">
-                    <h6>Attributes:</h6>
-                    <p class="mb-0">
-                        @foreach (var attr in Model.Attributes)
-                            {
-                            <span class="badge bg-light text-dark me-1">@attr.AttributeName: @attr.AttributeValue</span>
-                            }
-                    </p>
-                </div>
+                    <span class="ms-2">· @Model.Option1Name: @Model.Option1Value</span>
                 }
-
+                @if (!string.IsNullOrEmpty(Model.Option2Value))
+                {
+                    <span class="ms-2">· @Model.Option2Name: @Model.Option2Value</span>
+                }
+                <span class="ms-2">· @Model.Price.ToString("C")</span>
+                <span class="ms-2">
+                    ·
+                    @if (Model.InventoryQuantity > 5) { <text>@Model.InventoryQuantity in stock</text> }
+                    else if (Model.InventoryQuantity >= 1) { <text>@Model.InventoryQuantity left</text> }
+                    else { <text>Out of stock</text> }
+                </span>
+            </div>
         </div>
+
+        <div class="restore-note">
+            You can restore this product at any time from the <strong>Archived</strong> tab in the Product Catalogue.
+        </div>
+
+        <form asp-action="Delete" method="post" class="d-flex gap-2 align-items-center">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="VariantID" />
+            <button type="submit" class="btn-archive">Archive Product</button>
+            <a asp-action="Index" class="btn-cancel">Cancel</a>
+        </form>
+
     </div>
-
-    <!-- What Will Happen -->
-    <div class="card mt-3">
-        <div class="card-header bg-secondary text-white">
-            <h6 class="mb-0">What will happen:</h6>
-        </div>
-        <div class="card-body">
-            <ul class="mb-0">
-                <li>Variant status will be set to <strong>Archived</strong></li>
-                <li>Variant will be marked as <strong>Inactive</strong></li>
-                <li>Variant will be <strong>hidden from dealers</strong></li>
-                <li>All data and attributes will be <strong>preserved in the database</strong></li>
-                <li>The variant can be <strong>restored later</strong> if needed</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <form asp-action="Delete" method="post" class="mt-4">
-        <input type="hidden" asp-for="VariantID" />
-
-        <div class="d-flex justify-content-between">
-            <a asp-action="Details" asp-route-id="@Model.VariantID" class="btn btn-outline-secondary">
-                Cancel
-            </a>
-            <button type="submit" class="btn btn-dark">
-                Yes, Archive This Variant
-            </button>
-        </div>
-    </form>
 
 </div>

@@ -1,55 +1,139 @@
-﻿<!DOCTYPE html>
+@{
+    var demoRole = Context.Session.GetString("DemoRole");
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PontelloImport</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - Pontello Imports</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/PontelloImport.styles.css" asp-append-version="true" />
+    <style>
+        *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
+
+        body {
+            background-color: #F8FAFC;
+            color: #111827;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #E5E7EB !important;
+            box-shadow: none !important;
+            padding-top: 0.6rem;
+            padding-bottom: 0.6rem;
+        }
+
+        .navbar .nav-link {
+            color: #4B5563 !important;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            transition: color 150ms, background 150ms;
+        }
+
+        .navbar .nav-link:hover {
+            color: #111827 !important;
+            background-color: #F3F4F6;
+        }
+
+        /* Exit portal button */
+        .btn-exit {
+            color: #2563EB;
+            border: 1px solid #2563EB;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.3rem 0.85rem;
+            transition: background 150ms, color 150ms;
+            text-decoration: none;
+        }
+
+        .btn-exit:hover {
+            background: #2563EB;
+            color: #ffffff;
+        }
+    </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PontelloImport</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+        <nav class="navbar navbar-expand-sm" aria-label="Main navigation">
+            <div class="container-fluid px-4">
+
+                <a class="navbar-brand p-0 me-4" asp-controller="Home" asp-action="Index">
+                    <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height: 36px;" />
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="ProductVariants" asp-action="Index">Products</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                    <partial name="_LoginPartial" />
+
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between align-items-center">
+
+                    @if (demoRole == "Admin")
+                    {
+                        <ul class="navbar-nav flex-grow-1">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="ProductVariants" asp-action="Index">Products</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="AdminOrders" asp-action="Index">Orders</a>
+                            </li>
+                        </ul>
+                        <a href="/Home/ExitPortal" class="btn-exit">Exit Admin</a>
+                    }
+                    else if (demoRole == "Dealer")
+                    {
+                        <ul class="navbar-nav flex-grow-1">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Shop" asp-action="Index">Shop</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Shop" asp-action="OrderHistory">Order History</a>
+                            </li>
+                        </ul>
+                        <a href="/Home/ExitPortal" class="btn-exit">Exit Dealer Portal</a>
+                    }
+                    else
+                    {
+                        <ul class="navbar-nav flex-grow-1"></ul>
+                    }
+
                 </div>
             </div>
         </nav>
-
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
 
             @if (TempData["Success"] != null)
             {
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
                     @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (TempData["Warning"] != null)
+            {
+                <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+                    @TempData["Warning"]
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             }
 
             @if (TempData["Error"] != null)
             {
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
                     @TempData["Error"]
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -59,11 +143,12 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - PontelloImport - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="border-top text-muted mt-5">
+        <div class="container py-3" style="font-size: 0.8rem; color: #4B5563;">
+            &copy; 2025–2026 Pontello Imports — <a asp-controller="Home" asp-action="Privacy" style="color: #4B5563;">Privacy</a>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

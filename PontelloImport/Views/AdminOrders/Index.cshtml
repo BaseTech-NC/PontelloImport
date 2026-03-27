@@ -1,0 +1,394 @@
+@model List<PontelloImport.Models.Order>
+
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Orders";
+    var currentStatus = ViewBag.CurrentStatus as string ?? "";
+    var currentSearch = ViewBag.CurrentSearch as string ?? "";
+    var currentPage = (int)(ViewData["Page"] ?? 1);
+    var pageSize = (int)(ViewData["PageSize"] ?? 25);
+    var totalCount = (int)(ViewData["TotalCount"] ?? 0);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var dateFrom = ViewData["DateFrom"] as string ?? "";
+    var dateTo = ViewData["DateTo"] as string ?? "";
+}
+
+<style>
+    /* Global font override for admin pages */
+    *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
+
+    /* Status filter tabs */
+    .order-tabs {
+        display: flex;
+        gap: 2px;
+        border-bottom: 1px solid #E5E7EB;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+    }
+
+    .order-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.5rem 0.85rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #4B5563;
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        border-radius: 4px 4px 0 0;
+        transition: color 150ms, background 150ms;
+    }
+
+    .order-tab:hover {
+        color: #111827;
+        background: #F3F4F6;
+    }
+
+    .order-tab.active {
+        color: #2563EB;
+        border-bottom-color: #2563EB;
+        background: transparent;
+    }
+
+    .order-tab .tab-count {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: #F3F4F6;
+        color: #4B5563;
+    }
+
+    .order-tab.active .tab-count {
+        background: #EFF6FF;
+        color: #2563EB;
+    }
+
+    /* Table card */
+    .orders-table-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .orders-table-card table {
+        margin-bottom: 0;
+    }
+
+    .orders-table-card thead th {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #4B5563;
+        background: #F8FAFC;
+        border-bottom: 1px solid #E5E7EB;
+        padding: 0.75rem 1rem;
+    }
+
+    .orders-table-card tbody td {
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid #F3F4F6;
+        color: #111827;
+        font-size: 0.875rem;
+        vertical-align: middle;
+    }
+
+    .orders-table-card tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .orders-table-card tbody tr:hover td {
+        background: #F8FAFC;
+    }
+
+    /* Soft status badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .badge-submitted      { background: #EFF6FF; color: #2563EB; }
+    .badge-confirmed      { background: #F0FDF4; color: #15803D; }
+    .badge-actionrequired { background: #FFF7ED; color: #9A3412; }
+    .badge-shipped        { background: #FAF5FF; color: #7C3AED; }
+    .badge-invoiced       { background: #F0FDFA; color: #0F766E; }
+    .badge-cancelled      { background: #FEF2F2; color: #B91C1C; }
+    .badge-default        { background: #F3F4F6; color: #4B5563; }
+
+    /* Details button */
+    .btn-details {
+        color: #2563EB;
+        border: 1px solid #BFDBFE;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 0.3rem 0.75rem;
+        text-decoration: none;
+        transition: background 150ms;
+        white-space: nowrap;
+    }
+
+    .btn-details:hover {
+        background: #EFF6FF;
+        color: #1D4ED8;
+    }
+
+    /* Search input */
+    .orders-search {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: #111827;
+        background: #ffffff;
+        transition: border-color 150ms;
+    }
+
+    .orders-search:focus {
+        border-color: #2563EB;
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    .btn-search {
+        background: #111827;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.45rem 1.1rem;
+        transition: background 150ms;
+    }
+
+    .btn-search:hover { background: #1F2937; color: #ffffff; }
+
+    .btn-clear-search {
+        color: #4B5563;
+        border: 1px solid #E5E7EB;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.45rem 0.85rem;
+        text-decoration: none;
+        transition: background 150ms;
+    }
+
+    .btn-clear-search:hover { background: #F3F4F6; color: #374151; }
+
+    /* Pagination — matches Product Catalogue style */
+    .pag { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 1.25rem; }
+    .pag-link {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 32px; height: 32px; padding: 0 0.5rem;
+        font-size: 0.8rem; font-weight: 500; text-decoration: none;
+        border: 1px solid #E5E7EB; border-radius: 6px;
+        color: #4B5563; background: #fff;
+    }
+    .pag-link:hover { background: #F3F4F6; color: #111827; }
+    .pag-link.active { background: #2563EB; color: #fff; border-color: #2563EB; }
+    .pag-link.disabled { color: #6B7280; pointer-events: none; }
+</style>
+
+@functions {
+    string StatusBadgeClass(string status) => status switch
+    {
+        "Submitted"      => "status-badge badge-submitted",
+        "Confirmed"      => "status-badge badge-confirmed",
+        "ActionRequired" => "status-badge badge-actionrequired",
+        "Shipped"        => "status-badge badge-shipped",
+        "Invoiced"       => "status-badge badge-invoiced",
+        "Cancelled"      => "status-badge badge-cancelled",
+        _                => "status-badge badge-default"
+    };
+}
+
+<div class="container-fluid mt-4" style="max-width: 1200px;">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 style="font-weight: 600; color: #111827; font-size: 1.4rem; margin-bottom: 0.2rem;">Order Management</h1>
+            <p style="color: #4B5563; font-size: 0.875rem; margin: 0;">Review and process all dealer orders.</p>
+        </div>
+        <a asp-action="ExportCsv"
+           asp-route-statusFilter="@currentStatus"
+           asp-route-search="@currentSearch"
+           asp-route-dateFrom="@dateFrom"
+           asp-route-dateTo="@dateTo"
+           class="btn btn-outline-secondary btn-sm">
+            Export CSV
+        </a>
+    </div>
+
+    <!-- Search + Date Filter Bar -->
+    <form asp-action="Index" method="get" class="mb-3">
+        <input type="hidden" name="status" value="@currentStatus" />
+        <div class="d-flex gap-2 align-items-center flex-wrap mb-2">
+            <input type="text" name="search" class="orders-search form-control" style="max-width: 280px;"
+                   placeholder="Search PO number or dealer…" value="@currentSearch"
+                   aria-label="Search orders by PO number or dealer" autocomplete="off" />
+            <label class="text-muted small mb-0" for="orderDateFrom">From:</label>
+            <input type="date" id="orderDateFrom" name="dateFrom" class="orders-search form-control" style="max-width: 160px;"
+                   value="@dateFrom" />
+            <label class="text-muted small mb-0" for="orderDateTo">To:</label>
+            <input type="date" id="orderDateTo" name="dateTo" class="orders-search form-control" style="max-width: 160px;"
+                   value="@dateTo" />
+            <label for="orderPageSize" class="visually-hidden">Page size</label>
+            <select id="orderPageSize" name="pageSize" class="orders-search form-select" style="max-width: 100px;">
+                @foreach (var sz in new[] { 10, 25, 50 })
+                {
+                    if (pageSize == sz)
+                    {
+                        <option value="@sz" selected>@sz / page</option>
+                    }
+                    else
+                    {
+                        <option value="@sz">@sz / page</option>
+                    }
+                }
+            </select>
+            <button type="submit" class="btn-search">Apply</button>
+            @if (!string.IsNullOrEmpty(currentSearch) || !string.IsNullOrEmpty(dateFrom) || !string.IsNullOrEmpty(dateTo))
+            {
+                <a asp-action="Index" asp-route-status="@currentStatus" class="btn-clear-search">Clear</a>
+            }
+        </div>
+    </form>
+
+    <!-- Status Filter Tabs -->
+    <div class="order-tabs">
+        @{
+            object TabRoute(string? s) => new { status = s, search = currentSearch, dateFrom, dateTo, pageSize };
+        }
+        <a class="order-tab @(string.IsNullOrEmpty(currentStatus) ? "active" : "")"
+           href="@Url.Action("Index", TabRoute(null))">
+            All <span class="tab-count">@ViewBag.AllCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Submitted" ? "active" : "")"
+           href="@Url.Action("Index", TabRoute("Submitted"))">
+            Submitted <span class="tab-count">@ViewBag.SubmittedCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "ActionRequired" ? "active" : "")"
+           href="@Url.Action("Index", TabRoute("ActionRequired"))">
+            Action Required <span class="tab-count">@ViewBag.ActionRequiredCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Confirmed" ? "active" : "")"
+           href="@Url.Action("Index", TabRoute("Confirmed"))">
+            Confirmed <span class="tab-count">@ViewBag.ConfirmedCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Shipped" ? "active" : "")"
+           href="@Url.Action("Index", TabRoute("Shipped"))">
+            Shipped <span class="tab-count">@ViewBag.ShippedCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Invoiced" ? "active" : "")"
+           href="@Url.Action("Index", TabRoute("Invoiced"))">
+            Invoiced <span class="tab-count">@ViewBag.InvoicedCount</span>
+        </a>
+        <a class="order-tab @(currentStatus == "Cancelled" ? "active" : "")"
+           href="@Url.Action("Index", TabRoute("Cancelled"))">
+            Cancelled <span class="tab-count">@ViewBag.CancelledCount</span>
+        </a>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="orders-table-card">
+        @if (Model.Count == 0)
+        {
+            <div style="text-align:center; padding:3rem; color:#4B5563;">
+                <div style="font-size:1.75rem; margin-bottom:0.6rem;">📭</div>
+                <p style="margin:0; font-size:0.9rem;">No orders found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>PO Number</th>
+                            <th>Dealer</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Total</th>
+                            <th aria-label="Actions"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in Model)
+                        {
+                            <tr>
+                                <td style="font-weight: 600;">@order.PONumber</td>
+                                <td style="color: #374151;">@order.DealerCompanyName</td>
+                                <td style="color: #4B5563;">@order.OrderDate.ToString("MMM d, yyyy")</td>
+                                <td>
+                                    <span class="@StatusBadgeClass(order.Status)">@order.Status</span>
+                                </td>
+                                <td style="text-align:right; font-weight:600;">@order.TotalAmount.ToString("C")</td>
+                                <td style="text-align:right;">
+                                    <a asp-action="Details" asp-route-id="@order.OrderID" class="btn-details">Details</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    @if (totalCount > 0)
+    {
+        var rangeStart = (currentPage - 1) * pageSize + 1;
+        var rangeEnd = Math.Min(currentPage * pageSize, totalCount);
+        object PageRoute(int p) => new { status = currentStatus, search = currentSearch, dateFrom, dateTo, pageSize, page = p };
+
+        <div style="text-align:center; margin-top:0.75rem;">
+            <small class="text-muted d-block mb-2">
+                Showing @rangeStart–@rangeEnd of @totalCount orders
+            </small>
+        </div>
+
+        @if (totalPages > 1)
+        {
+            var startPage = Math.Max(1, currentPage - 2);
+            var endPage = Math.Min(totalPages, currentPage + 2);
+
+            <div class="pag">
+                <a class="pag-link @(currentPage == 1 ? "disabled" : "")"
+                   href="@Url.Action("Index", PageRoute(currentPage - 1))">← Prev</a>
+
+                @if (startPage > 1)
+                {
+                    <a class="pag-link" href="@Url.Action("Index", PageRoute(1))">1</a>
+                    @if (startPage > 2) { <span class="pag-link disabled">…</span> }
+                }
+
+                @for (var p = startPage; p <= endPage; p++)
+                {
+                    <a class="pag-link @(p == currentPage ? "active" : "")"
+                       href="@Url.Action("Index", PageRoute(p))">@p</a>
+                }
+
+                @if (endPage < totalPages)
+                {
+                    @if (endPage < totalPages - 1) { <span class="pag-link disabled">…</span> }
+                    <a class="pag-link" href="@Url.Action("Index", PageRoute(totalPages))">@totalPages</a>
+                }
+
+                <a class="pag-link @(currentPage == totalPages ? "disabled" : "")"
+                   href="@Url.Action("Index", PageRoute(currentPage + 1))">Next →</a>
+            </div>
+        }
+    }
+
+</div>

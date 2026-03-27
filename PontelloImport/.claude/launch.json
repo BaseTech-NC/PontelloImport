@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "PontelloImport",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "C:\\Dev\\Pontello-Imports\\PontelloImport\\PontelloImport.csproj"],
+      "port": 5272
+    }
+  ]
+}

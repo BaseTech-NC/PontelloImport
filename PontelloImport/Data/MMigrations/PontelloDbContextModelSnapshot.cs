@@ -17,16 +17,565 @@ namespace PontelloImport.Data.MMigrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.12");
 
+            modelBuilder.Entity("PontelloImport.Models.Address", b =>
+                {
+                    b.Property<int>("AddressID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("AddressID");
+
+                    b.ToTable("Addresses");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.AdminUser", b =>
+                {
+                    b.Property<int>("AdminUserID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ApplicationUserID")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsSuperAdmin")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("AdminUserID");
+
+                    b.HasIndex("ApplicationUserID")
+                        .IsUnique();
+
+                    b.ToTable("AdminUsers");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Cart", b =>
+                {
+                    b.Property<int>("CartID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DealerID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CartID");
+
+                    b.HasIndex("DealerID")
+                        .IsUnique();
+
+                    b.ToTable("Carts");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.CartItem", b =>
+                {
+                    b.Property<int>("CartItemID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CartID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ProductVariantID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("CartItemID");
+
+                    b.HasIndex("CartID");
+
+                    b.HasIndex("ProductVariantID");
+
+                    b.ToTable("CartItems");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Dealer", b =>
+                {
+                    b.Property<int>("DealerID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ApplicationUserID")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BillingAddressID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BusinessNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContactPhone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsTaxExempt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PaymentTermsID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ShippingAddressID")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DealerID");
+
+                    b.HasIndex("ApplicationUserID")
+                        .IsUnique();
+
+                    b.HasIndex("BillingAddressID");
+
+                    b.HasIndex("CompanyName")
+                        .IsUnique();
+
+                    b.HasIndex("PaymentTermsID");
+
+                    b.HasIndex("ShippingAddressID");
+
+                    b.ToTable("Dealers");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.DealerApplication", b =>
+                {
+                    b.Property<int>("ApplicationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ApprovedDealerID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BusinessNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DealerID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("RequestedPaymentTermsID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReviewNotes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ReviewedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SubmittedAddressID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SubmittedCompanyName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SubmittedContactName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SubmittedContactPhone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SubmittedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SubmittedEmail")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ApplicationID");
+
+                    b.HasIndex("ApprovedDealerID");
+
+                    b.HasIndex("DealerID");
+
+                    b.HasIndex("RequestedPaymentTermsID");
+
+                    b.HasIndex("SubmittedAddressID");
+
+                    b.ToTable("DealerApplications");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.OptionTemplate", b =>
+                {
+                    b.Property<int>("OptionTemplateID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AllowCustomValue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("HelpText")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Placeholder")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PredefinedValues")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Suffix")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ValueType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("OptionTemplateID");
+
+                    b.ToTable("OptionTemplates");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Order", b =>
+                {
+                    b.Property<int>("OrderID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DealerCompanyName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DealerID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsCurrentVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsTaxExempt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PaymentDueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PaymentTermsID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PreviousOrderID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("RootOrderID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("ShippingCost")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("SubtotalAmount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("TaxAmount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("TaxRate")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("TrackingNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("OrderID");
+
+                    b.HasIndex("DealerID");
+
+                    b.HasIndex("OrderNumber");
+
+                    b.HasIndex("PaymentTermsID");
+
+                    b.HasIndex("PreviousOrderID");
+
+                    b.HasIndex("RootOrderID");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.OrderHistory", b =>
+                {
+                    b.Property<int>("HistoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ChangeDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChangeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ChangedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("HistoryID");
+
+                    b.HasIndex("OrderID");
+
+                    b.ToTable("OrderHistories");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.OrderLine", b =>
+                {
+                    b.Property<int>("OrderLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("OrderID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ProductTitle")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ProductVariantID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SKU")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("VariantTitle")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("OrderLineID");
+
+                    b.HasIndex("OrderID");
+
+                    b.HasIndex("ProductVariantID");
+
+                    b.ToTable("OrderLines");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.OrderSequence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LastUsedNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrderSequence");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            LastUsedNumber = 0
+                        });
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.PaymentTerms", b =>
+                {
+                    b.Property<int>("PaymentTermsID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DaysUntilDue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TermCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TermDescription")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TermName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("PaymentTermsID");
+
+                    b.HasIndex("TermCode")
+                        .IsUnique();
+
+                    b.HasIndex("TermName")
+                        .IsUnique();
+
+                    b.ToTable("PaymentTerms");
+                });
+
             modelBuilder.Entity("PontelloImport.Models.Product", b =>
                 {
                     b.Property<int>("ProductID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("CreatedDate")
+                    b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
@@ -34,19 +583,22 @@ namespace PontelloImport.Data.MMigrations
 
                     b.Property<string>("Handle")
                         .IsRequired()
-                        .HasMaxLength(255)
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("ProductCategoryID")
+<<<<<<< HEAD:PontelloImport/Data/MMigrations/PontelloDbContextModelSnapshot.cs
+=======
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ProductTypeID")
+>>>>>>> d51b3375d7885e96df984aa979bd5083c4de4923:PontelloImport/Data/PIMigrations/PontelloDbContextModelSnapshot.cs
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Status")
@@ -60,10 +612,13 @@ namespace PontelloImport.Data.MMigrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+<<<<<<< HEAD:PontelloImport/Data/MMigrations/PontelloDbContextModelSnapshot.cs
                     b.Property<string>("Type")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+=======
+>>>>>>> d51b3375d7885e96df984aa979bd5083c4de4923:PontelloImport/Data/PIMigrations/PontelloDbContextModelSnapshot.cs
                     b.Property<int>("VendorID")
                         .HasColumnType("INTEGER");
 
@@ -72,67 +627,13 @@ namespace PontelloImport.Data.MMigrations
                     b.HasIndex("Handle")
                         .IsUnique();
 
-                    b.HasIndex("IsActive");
-
                     b.HasIndex("ProductCategoryID");
 
-                    b.HasIndex("Status");
+                    b.HasIndex("ProductTypeID");
 
                     b.HasIndex("VendorID");
 
-                    b.HasIndex("Status", "IsActive");
-
                     b.ToTable("Products");
-                });
-
-            modelBuilder.Entity("PontelloImport.Models.ProductAttribute", b =>
-                {
-                    b.Property<int>("AttributeID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AttributeName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("AttributeValue")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("CreatedDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsVariantAttribute")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("ModifiedDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("VariantID")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("AttributeID");
-
-                    b.HasIndex("AttributeName");
-
-                    b.HasIndex("VariantID");
-
-                    b.HasIndex("AttributeName", "AttributeValue");
-
-                    b.HasIndex("VariantID", "IsVariantAttribute");
-
-                    b.ToTable("ProductAttributes");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.ProductCategory", b =>
@@ -154,10 +655,10 @@ namespace PontelloImport.Data.MMigrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("CreatedDate")
+                    b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("DisplayOrder")
@@ -166,8 +667,8 @@ namespace PontelloImport.Data.MMigrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("TEXT");
@@ -188,6 +689,65 @@ namespace PontelloImport.Data.MMigrations
                     b.ToTable("ProductCategories");
                 });
 
+            modelBuilder.Entity("PontelloImport.Models.ProductSpecification", b =>
+                {
+                    b.Property<int>("SpecificationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("SpecificationID");
+
+                    b.HasIndex("ProductID");
+
+                    b.ToTable("ProductSpecifications");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.ProductType", b =>
+                {
+                    b.Property<int>("ProductTypeID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TypeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TypeSlug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ProductTypeID");
+
+                    b.ToTable("ProductTypes");
+                });
+
             modelBuilder.Entity("PontelloImport.Models.ProductVariant", b =>
                 {
                     b.Property<int>("VariantID")
@@ -201,44 +761,79 @@ namespace PontelloImport.Data.MMigrations
                     b.Property<decimal?>("CompareAtPrice")
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal?>("CostPrice")
+                        .HasColumnType("decimal(10,2)");
 
-                    b.Property<DateTime?>("CreatedDate")
+                    b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Handle")
-                        .IsRequired()
-                        .HasMaxLength(255)
+                    b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("InventoryPolicy")
                         .IsRequired()
-                        .HasMaxLength(50)
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("InventoryQuantity")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsActive")
+                    b.Property<bool>("IsDefault")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsTaxable")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option1Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option1Value")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option2Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option2Value")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option3Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option3Value")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option4Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option4Value")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option5Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Option5Value")
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<int?>("ProductID")
+                    b.Property<int>("ProductID")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("RequiresShipping")
@@ -252,42 +847,23 @@ namespace PontelloImport.Data.MMigrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Tags")
+                    b.Property<string>("VariantImageUrl")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Title")
+                    b.Property<decimal?>("Weight")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("WeightUnit")
                         .IsRequired()
-                        .HasMaxLength(255)
+                        .HasMaxLength(10)
                         .HasColumnType("TEXT");
-
-                    b.Property<string>("Type")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("Weight")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("VariantID");
-
-                    b.HasIndex("Handle")
-                        .IsUnique();
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("Price");
 
                     b.HasIndex("ProductID");
 
                     b.HasIndex("SKU")
                         .IsUnique();
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("Weight");
-
-                    b.HasIndex("ProductID", "IsActive");
-
-                    b.HasIndex("Status", "IsActive");
 
                     b.ToTable("ProductVariants");
                 });
@@ -311,20 +887,20 @@ namespace PontelloImport.Data.MMigrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Country")
-                        .HasMaxLength(50)
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("CreatedDate")
+                    b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("TEXT");
@@ -334,7 +910,7 @@ namespace PontelloImport.Data.MMigrations
 
                     b.Property<string>("VendorName")
                         .IsRequired()
-                        .HasMaxLength(100)
+                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("VendorSlug")
@@ -357,17 +933,175 @@ namespace PontelloImport.Data.MMigrations
                     b.ToTable("Vendors");
                 });
 
+            modelBuilder.Entity("PontelloImport.Models.Cart", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Dealer", "Dealer")
+                        .WithOne("Cart")
+                        .HasForeignKey("PontelloImport.Models.Cart", "DealerID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dealer");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.CartItem", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Cart", "Cart")
+                        .WithMany("CartItems")
+                        .HasForeignKey("CartID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PontelloImport.Models.ProductVariant", "ProductVariant")
+                        .WithMany("CartItems")
+                        .HasForeignKey("ProductVariantID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cart");
+
+                    b.Navigation("ProductVariant");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Dealer", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Address", "BillingAddress")
+                        .WithMany()
+                        .HasForeignKey("BillingAddressID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PontelloImport.Models.PaymentTerms", "PaymentTerms")
+                        .WithMany("Dealers")
+                        .HasForeignKey("PaymentTermsID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PontelloImport.Models.Address", "ShippingAddress")
+                        .WithMany()
+                        .HasForeignKey("ShippingAddressID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BillingAddress");
+
+                    b.Navigation("PaymentTerms");
+
+                    b.Navigation("ShippingAddress");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.DealerApplication", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Dealer", "ApprovedDealer")
+                        .WithMany()
+                        .HasForeignKey("ApprovedDealerID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PontelloImport.Models.Dealer", "Dealer")
+                        .WithMany("DealerApplications")
+                        .HasForeignKey("DealerID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PontelloImport.Models.PaymentTerms", "RequestedPaymentTerms")
+                        .WithMany()
+                        .HasForeignKey("RequestedPaymentTermsID");
+
+                    b.HasOne("PontelloImport.Models.Address", "SubmittedAddress")
+                        .WithMany()
+                        .HasForeignKey("SubmittedAddressID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedDealer");
+
+                    b.Navigation("Dealer");
+
+                    b.Navigation("RequestedPaymentTerms");
+
+                    b.Navigation("SubmittedAddress");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Order", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Dealer", "Dealer")
+                        .WithMany("Orders")
+                        .HasForeignKey("DealerID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PontelloImport.Models.PaymentTerms", "PaymentTerms")
+                        .WithMany("Orders")
+                        .HasForeignKey("PaymentTermsID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PontelloImport.Models.Order", "PreviousOrder")
+                        .WithMany()
+                        .HasForeignKey("PreviousOrderID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PontelloImport.Models.Order", "RootOrder")
+                        .WithMany()
+                        .HasForeignKey("RootOrderID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Dealer");
+
+                    b.Navigation("PaymentTerms");
+
+                    b.Navigation("PreviousOrder");
+
+                    b.Navigation("RootOrder");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.OrderHistory", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Order", "Order")
+                        .WithMany("OrderHistories")
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.OrderLine", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Order", "Order")
+                        .WithMany("OrderLines")
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PontelloImport.Models.ProductVariant", "ProductVariant")
+                        .WithMany("OrderLines")
+                        .HasForeignKey("ProductVariantID");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("ProductVariant");
+                });
+
             modelBuilder.Entity("PontelloImport.Models.Product", b =>
                 {
                     b.HasOne("PontelloImport.Models.ProductCategory", "ProductCategory")
                         .WithMany("Products")
                         .HasForeignKey("ProductCategoryID")
+<<<<<<< HEAD:PontelloImport/Data/MMigrations/PontelloDbContextModelSnapshot.cs
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+=======
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PontelloImport.Models.ProductType", "ProductType")
+                        .WithMany("Products")
+                        .HasForeignKey("ProductTypeID");
+>>>>>>> d51b3375d7885e96df984aa979bd5083c4de4923:PontelloImport/Data/PIMigrations/PontelloDbContextModelSnapshot.cs
 
                     b.HasOne("PontelloImport.Models.Vendor", "Vendor")
                         .WithMany("Products")
                         .HasForeignKey("VendorID")
+<<<<<<< HEAD:PontelloImport/Data/MMigrations/PontelloDbContextModelSnapshot.cs
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -381,47 +1115,102 @@ namespace PontelloImport.Data.MMigrations
                     b.HasOne("PontelloImport.Models.ProductVariant", "Variant")
                         .WithMany("Attributes")
                         .HasForeignKey("VariantID")
+=======
+>>>>>>> d51b3375d7885e96df984aa979bd5083c4de4923:PontelloImport/Data/PIMigrations/PontelloDbContextModelSnapshot.cs
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Variant");
+                    b.Navigation("ProductCategory");
+
+                    b.Navigation("ProductType");
+
+                    b.Navigation("Vendor");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.ProductCategory", b =>
                 {
                     b.HasOne("PontelloImport.Models.ProductCategory", "ParentCategory")
-                        .WithMany("ChildCategories")
+                        .WithMany("SubCategories")
                         .HasForeignKey("ParentCategoryID")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ParentCategory");
                 });
 
-            modelBuilder.Entity("PontelloImport.Models.ProductVariant", b =>
+            modelBuilder.Entity("PontelloImport.Models.ProductSpecification", b =>
                 {
                     b.HasOne("PontelloImport.Models.Product", "Product")
-                        .WithMany("Variants")
+                        .WithMany("ProductSpecifications")
                         .HasForeignKey("ProductID")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("PontelloImport.Models.ProductVariant", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Product", "Product")
+                        .WithMany("ProductVariants")
+                        .HasForeignKey("ProductID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Cart", b =>
+                {
+                    b.Navigation("CartItems");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Dealer", b =>
+                {
+                    b.Navigation("Cart");
+
+                    b.Navigation("DealerApplications");
+
+                    b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Order", b =>
+                {
+                    b.Navigation("OrderHistories");
+
+                    b.Navigation("OrderLines");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.PaymentTerms", b =>
+                {
+                    b.Navigation("Dealers");
+
+                    b.Navigation("Orders");
+                });
+
             modelBuilder.Entity("PontelloImport.Models.Product", b =>
                 {
-                    b.Navigation("Variants");
+                    b.Navigation("ProductSpecifications");
+
+                    b.Navigation("ProductVariants");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.ProductCategory", b =>
                 {
-                    b.Navigation("ChildCategories");
+                    b.Navigation("Products");
 
+                    b.Navigation("SubCategories");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.ProductType", b =>
+                {
                     b.Navigation("Products");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.ProductVariant", b =>
                 {
-                    b.Navigation("Attributes");
+                    b.Navigation("CartItems");
+
+                    b.Navigation("OrderLines");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.Vendor", b =>

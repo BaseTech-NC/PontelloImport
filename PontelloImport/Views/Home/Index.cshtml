@@ -1,314 +1,131 @@
-﻿@{
-    Layout = null;
-    ViewData["Title"] = "Pontello Imports - Home";
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Pontello Imports";
 }
 
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pontello Imports - Dealer Portal</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<style>
+    .portal-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        transition: box-shadow 150ms;
+    }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Arial", sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f5f5f5;
-        }
+    .portal-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    }
 
-        /* Header Styles */
-        .header {
-            background-color: #a8b5c6;
-            padding: 1rem 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
+    .portal-card .card-icon {
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
+        line-height: 1;
+    }
 
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .portal-card .card-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.6rem;
+    }
 
-        .logo {
-            height: 50px;
-            display: flex;
-            align-items: center;
-        }
+    .portal-card h4 {
+        color: #111827;
+        font-weight: 600;
+        font-size: 1.15rem;
+        margin-bottom: 0.5rem;
+    }
 
-            .logo img {
-                height: 100%;
-                width: auto;
-                max-height: 60px;
-            }
+    .portal-card p {
+        color: #4B5563;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        flex-grow: 1;
+        margin-bottom: 1.5rem;
+    }
 
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
+    .btn-dealer {
+        background: #2563EB;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+        width: 100%;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        transition: background 150ms;
+    }
 
-        /* Navigation */
-        nav ul {
-            list-style: none;
-            display: flex;
-            gap: 2.5rem;
-            align-items: center;
-        }
+    .btn-dealer:hover {
+        background: #1D4ED8;
+        color: #ffffff;
+    }
 
-        nav a {
-            color: #000;
-            text-decoration: none;
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            letter-spacing: 0.3px;
-            padding-bottom: 4px;
-        }
+    .btn-admin {
+        background: #111827;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+        width: 100%;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        transition: background 150ms;
+    }
 
-            nav a:hover {
-                color: #1a1a1a;
-                border-bottom: 2px solid #000;
-            }
+    .btn-admin:hover {
+        background: #1F2937;
+        color: #ffffff;
+    }
+</style>
 
-            nav a.active {
-                color: #000;
-                border-bottom: 2px solid #000;
-            }
+<div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 78vh; padding: 2rem 0;">
 
-            nav a.admin-link {
-                background: #28a745;
-                color: white;
-                padding: 0.5rem 1.25rem;
-                border-radius: 6px;
-                border-bottom: none;
-            }
+    <!-- Title -->
+    <div class="text-center mb-5">
+        <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height: 72px;" class="mb-4" />
+        <h1 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;">
+            Pontello Imports
+        </h1>
+        <p style="color: #4B5563; font-size: 0.95rem; max-width: 400px; margin: 0 auto;">
+            Wholesale karting &amp; motorsports components — Canada &amp; United States
+        </p>
+    </div>
 
-                nav a.admin-link:hover {
-                    background: #218838;
-                    border-bottom: none;
-                }
+    <!-- Cards -->
+    <div class="row g-4 justify-content-center w-100" style="max-width: 760px;">
 
-        /* Welcome Section */
-        .welcome-section {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
-            padding: 4rem 2rem;
-            text-align: center;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .welcome-content {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .welcome-section h1 {
-            font-size: 2.2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #1a1a1a;
-            letter-spacing: -0.5px;
-        }
-
-        .welcome-section p {
-            font-size: 1.1rem;
-            color: #666;
-            line-height: 1.7;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        /* Coming Soon Section */
-        .coming-soon {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
-            text-align: center;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 1rem;
-        }
-
-        .coming-soon-message {
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 3rem 2rem;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .coming-soon-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .coming-soon-message h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #1a1a1a;
-        }
-
-        .coming-soon-message p {
-            font-size: 1rem;
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 0.5rem;
-        }
-
-        /* Footer */
-        .footer {
-            background-color: #a8b5c6;
-            color: #000;
-            padding: 2.5rem 2rem;
-            margin-top: 3rem;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .footer-info {
-            margin-bottom: 1rem;
-        }
-
-            .footer-info p {
-                font-size: 0.9rem;
-                color: #000;
-                margin-bottom: 0.5rem;
-            }
-
-        .footer-links {
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #000;
-        }
-
-            .footer-links a {
-                color: #000;
-                text-decoration: none;
-                margin: 0 1rem;
-                font-size: 0.85rem;
-                transition: color 0.3s ease;
-            }
-
-                .footer-links a:hover {
-                    border-bottom: 2px solid #000;
-                }
-
-        /* Responsive Design */
-        @@media (max-width: 768px) {
-            .header-content
-
-        {
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        nav ul {
-            gap: 1.5rem;
-        }
-
-        .welcome-section h1 {
-            font-size: 1.8rem;
-        }
-
-        .welcome-section p {
-            font-size: 1rem;
-        }
-
-        .footer-links a {
-            display: block;
-            margin: 0.5rem 0;
-        }
-
-        }
-
-        @@media (max-width: 480px) {
-            nav ul
-
-        {
-            flex-wrap: wrap;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        }
-    </style>
-</head>
-<body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <a href="@Url.Action("Index", "Home")"><img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports Logo" /></a>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="/" class="active">Home</a></li>
-                    <li><a href="@Url.Action("Index", "ProductVariants")" class="admin-link">Admin Panel</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Welcome Section -->
-    <section class="welcome-section">
-        <div class="welcome-content">
-            <h1>Welcome to Pontello Imports</h1>
-            <p>
-                Your premier destination for high-quality karting and motorsports components.
-                We specialize in supplying hard-to-find parts from leading international manufacturers
-                across Canada and the United States.
-            </p>
-        </div>
-    </section>
-
-    <!-- Coming Soon Section -->
-    <section class="coming-soon">
-        <h2 class="section-title">Dealer Portal</h2>
-        <div class="coming-soon-message">
-            <div class="coming-soon-icon">🚀</div>
-            <h3>Coming Soon!</h3>
-            <p>We're working hard to bring you an enhanced dealer experience.</p>
-            <p>Our new portal will feature:</p>
-            <p>✓ Complete product catalog browsing</p>
-            <p>✓ Order history and tracking</p>
-            <p>✓ Account management tools</p>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-info">
-                <p>&copy; 2025-2026 Pontello Imports - BaseTech Team. All rights reserved.</p>
-                <p>Niagara College - Capstone Project</p>
-                <p>Email: info@pontelloimports.ca</p>
-            </div>
-            <div class="footer-links">
-                <a href="#support">Support</a>
-                <a href="#terms">Terms of Service</a>
-                <a href="#privacy">Privacy Policy</a>
-                <a href="#contact">Contact Us</a>
+        <div class="col-md-5">
+            <div class="portal-card">
+                <div class="card-icon">🏁</div>
+                <div class="card-label" style="color: #2563EB;">Dealer Portal</div>
+                <h4>Dealer Portal</h4>
+                <p>Browse products, manage your cart, and submit orders to Pontello Imports.</p>
+                <a href="/Home/EnterDealerPortal" class="btn-dealer">Enter Dealer Portal</a>
             </div>
         </div>
-    </footer>
-</body>
-</html>
+
+        <div class="col-md-5">
+            <div class="portal-card">
+                <div class="card-icon">⚙️</div>
+                <div class="card-label" style="color: #4B5563;">Admin</div>
+                <h4>Pontello Admin</h4>
+                <p>Manage products, process orders, and oversee all dealer activity.</p>
+                <a href="/Home/EnterAdminPortal" class="btn-admin">Enter Admin Panel</a>
+            </div>
+        </div>
+
+    </div>
+
+</div>

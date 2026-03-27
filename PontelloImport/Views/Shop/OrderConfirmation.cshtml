@@ -1,0 +1,92 @@
+@model PontelloImport.Models.Order
+
+@{
+    ViewData["Title"] = "Order Confirmed";
+}
+
+<div class="text-center my-4">
+    <div class="display-6 text-success mb-2">&#10003; Order Submitted</div>
+    <h2 class="h4">Thank you for your order!</h2>
+    <p class="text-muted">
+        Your purchase order number is <strong class="text-dark fs-5">@Model.PONumber</strong>
+    </p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <!-- Order lines -->
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Order Summary — PO @Model.PONumber</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>SKU</th>
+                            <th>Product</th>
+                            <th>Variant</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in Model.OrderLines)
+                        {
+                            <tr>
+                                <td class="text-muted small">@line.SKU</td>
+                                <td>@line.ProductTitle</td>
+                                <td>@(line.VariantTitle ?? "—")</td>
+                                <td class="text-center">@line.Quantity</td>
+                                <td class="text-end">$@line.UnitPrice.ToString("F2")</td>
+                                <td class="text-end fw-semibold">$@line.LineTotal.ToString("F2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="text-end text-muted">Subtotal</td>
+                            <td class="text-end">$@Model.SubtotalAmount.ToString("F2")</td>
+                        </tr>
+                        @if (Model.IsTaxExempt)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-end text-muted">Tax</td>
+                                <td class="text-end text-muted">Tax Exempt</td>
+                            </tr>
+                        }
+                        else if (Model.TaxAmount.HasValue)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-end text-muted">Tax (@((Model.TaxRate * 100)?.ToString("F0"))%)</td>
+                                <td class="text-end">$@Model.TaxAmount.Value.ToString("F2")</td>
+                            </tr>
+                        }
+                        <tr class="border-top">
+                            <th colspan="5" class="text-end fs-5">Total</th>
+                            <th class="text-end fs-5">$@Model.TotalAmount.ToString("F2")</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- What happens next -->
+        <div class="card mb-4 border-0 bg-light">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-2">What happens next?</h6>
+                <p class="text-muted small mb-0">
+                    Your order has been received by Pontello Imports. You will receive confirmation once your order
+                    is reviewed. Shipping will be calculated and added before your order is shipped.
+                </p>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="d-flex justify-content-between gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">Continue Shopping</a>
+            <a asp-action="OrderDetail" asp-route-id="@Model.OrderID" class="btn btn-primary">View Order Details</a>
+        </div>
+
+    </div>
+</div>

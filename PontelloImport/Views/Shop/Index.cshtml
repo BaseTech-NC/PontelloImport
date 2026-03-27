@@ -1,0 +1,266 @@
+@model List<PontelloImport.Models.Product>
+
+@{
+    ViewData["Title"] = "Shop";
+    var categories = ViewBag.Categories as List<PontelloImport.Models.ProductCategory> ?? new();
+    string? currentSearch = ViewBag.Search as string;
+    int? currentCategoryId = ViewBag.CategoryId as int?;
+}
+
+<style>
+    .shop-input {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: #111827;
+        background: #ffffff;
+        transition: border-color 150ms;
+    }
+
+    .shop-input:focus {
+        border-color: #2563EB;
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    .product-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        transition: box-shadow 150ms;
+    }
+
+    .product-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    }
+
+    .product-card .product-title {
+        color: #111827;
+        font-weight: 500;
+        font-size: 0.95rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .product-card .product-meta {
+        color: #4B5563;
+        font-size: 0.8rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .product-card .product-price {
+        color: #111827;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .btn-view-product {
+        background: #2563EB;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        width: 100%;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        transition: background 150ms;
+    }
+
+    .btn-view-product:hover {
+        background: #1D4ED8;
+        color: #ffffff;
+    }
+
+    .btn-cart {
+        color: #111827;
+        border: 1px solid #E5E7EB;
+        background: #ffffff;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.45rem 1rem;
+        text-decoration: none;
+        transition: background 150ms, border-color 150ms;
+    }
+
+    .btn-cart:hover {
+        background: #F3F4F6;
+        border-color: #D1D5DB;
+        color: #111827;
+    }
+
+    .btn-filter {
+        background: #2563EB;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.45rem 1.25rem;
+        transition: background 150ms;
+    }
+
+    .btn-filter:hover {
+        background: #1D4ED8;
+        color: #ffffff;
+    }
+
+    .btn-clear {
+        color: #4B5563;
+        border: 1px solid #E5E7EB;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.45rem 1rem;
+        text-decoration: none;
+        transition: background 150ms;
+    }
+
+    .btn-clear:hover {
+        background: #F3F4F6;
+        color: #374151;
+    }
+</style>
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mt-4 mb-4">
+    <div>
+        <h1 style="font-weight: 600; color: #111827; font-size: 1.4rem; margin-bottom: 0.15rem;">Browse Products</h1>
+        <p style="color: #4B5563; font-size: 0.875rem; margin: 0;">Browse and order from our full range of motorsports components.</p>
+    </div>
+    <a asp-controller="Shop" asp-action="Cart" class="btn-cart">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" class="me-1" viewBox="0 0 16 16" style="vertical-align: -1px;">
+            <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l1.313 7h8.17l1.313-7zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
+        </svg>
+        View Cart
+    </a>
+</div>
+
+<!-- Filter Bar -->
+<form method="get" asp-action="Index" class="mb-4">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        <input type="text" name="search" class="shop-input form-control" style="max-width: 280px;"
+               placeholder="Search products…" value="@currentSearch" aria-label="Search products" autocomplete="off" />
+        <label for="categoryFilter" class="visually-hidden">Filter by category</label>
+        <select name="categoryId" id="categoryFilter" class="shop-input form-select" style="max-width: 200px;">
+            <option value="">All Categories</option>
+            @foreach (var cat in categories)
+            {
+                <option value="@cat.CategoryID" selected="@(currentCategoryId == cat.CategoryID)">
+                    @cat.CategoryName
+                </option>
+            }
+        </select>
+        <button type="submit" class="btn-filter">Filter</button>
+        @if (!string.IsNullOrEmpty(currentSearch) || currentCategoryId.HasValue)
+        {
+            <a asp-action="Index" class="btn-clear">Clear</a>
+        }
+    </div>
+</form>
+
+@if (!Model.Any())
+{
+    <div style="text-align:center; padding: 3rem 0; color: #4B5563;">
+        <div style="font-size: 2rem; margin-bottom: 0.75rem;">📦</div>
+        <p style="margin: 0;">No products found matching your criteria.</p>
+    </div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-3 g-3">
+        @foreach (var product in Model)
+        {
+            var prices = product.ProductVariants.Select(v => v.Price).ToList();
+            var minPrice = prices.Any() ? prices.Min() : 0m;
+            var maxPrice = prices.Any() ? prices.Max() : 0m;
+            var variantCount = product.ProductVariants.Count;
+            var firstVariant = product.ProductVariants.FirstOrDefault();
+            var isSimple = firstVariant?.Option1Name == "Title";
+            var defaultVariant = product.ProductVariants.FirstOrDefault(v => v.IsDefault) ?? firstVariant;
+            var isSimpleOrSingle = isSimple || variantCount == 1;
+            var totalInventoryCount = 0;
+            foreach (var pv in product.ProductVariants)
+            {
+                totalInventoryCount += pv.InventoryQuantity;
+            }
+
+            <div class="col">
+                <div class="product-card">
+                    @if (totalInventoryCount <= 10)
+                    {
+                        <p class="product-title">@product.Title (📦Low)</p>
+                    }
+                    else
+                    {
+                        <p class="product-title">@product.Title</p>
+                    }
+                    <p class="product-meta">@(product.Vendor?.VendorName ?? "—")</p>
+                    <p class="product-meta mb-3">@(product.ProductCategory?.CategoryName ?? "—")</p>
+                    <div class="mt-auto">
+                        <p class="product-price">
+                            @if (variantCount == 1 || minPrice == maxPrice)
+                            {
+                                @($"${minPrice:F2}")
+                            }
+                            else
+                            {
+                                @($"${minPrice:F2} – ${maxPrice:F2}")
+                            }
+                            @if (variantCount > 1 && !isSimple)
+                            {
+                                <span style="color:#4B5563; font-weight:400; font-size:0.8rem;" class="ms-1">@variantCount variants</span>
+                            }
+                        </p>
+                        @if (isSimpleOrSingle && defaultVariant != null)
+                        {
+                            <div class="d-flex gap-2">
+                                <form asp-controller="Shop" asp-action="AddToCart" method="post" class="flex-grow-1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="productVariantId" value="@defaultVariant.VariantID" />
+                                    <input type="hidden" name="quantity" value="1" />
+                                    <input type="hidden" name="returnUrl" value="/Shop" />
+                                    <button type="submit" class="btn-view-product">Add to Cart</button>
+                                </form>
+                                <a asp-action="Product" asp-route-id="@product.ProductID"
+                                   class="btn-cart" style="white-space:nowrap;">View Product</a>
+                            </div>
+                        }
+                        else
+                        {
+                            <a asp-action="Product" asp-route-id="@product.ProductID" class="btn-view-product">View Product &amp; Options</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <p style="color: #4B5563; font-size: 0.8rem; margin-top: 1rem;">
+        Showing @Model.Count product@(Model.Count == 1 ? "" : "s")
+    </p>
+}
+
+@section Scripts {
+    <script>
+    // Ctrl+D — demo scenario: search "Liquid Gold"
+    document.addEventListener('keydown', function (e) {
+        if (!e.ctrlKey || e.key !== 'd') return;
+        e.preventDefault();
+        var searchInput = document.querySelector('input[name="search"]');
+        var form = searchInput?.closest('form');
+        if (searchInput && form) {
+            searchInput.value = 'Liquid Gold';
+            form.submit();
+        }
+    });
+    </script>
+}

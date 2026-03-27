@@ -42,11 +42,29 @@ namespace PontelloImport.Data
 
 		// ===== DBSETS =====
 
+		// DbSets — Product Management
 		public DbSet<Product> Products { get; set; }
 		public DbSet<ProductVariant> ProductVariants { get; set; }
-		public DbSet<ProductAttribute> ProductAttributes { get; set; }
-		public DbSet<Vendor> Vendors { get; set; }
 		public DbSet<ProductCategory> ProductCategories { get; set; }
+		public DbSet<ProductType> ProductTypes { get; set; }
+		public DbSet<ProductSpecification> ProductSpecifications { get; set; }
+		public DbSet<Vendor> Vendors { get; set; }
+		public DbSet<OptionTemplate> OptionTemplates { get; set; }
+
+		// DbSets — User Management
+		public DbSet<AdminUser> AdminUsers { get; set; }
+		public DbSet<Dealer> Dealers { get; set; }
+		public DbSet<DealerApplication> DealerApplications { get; set; }
+		public DbSet<Address> Addresses { get; set; }
+		public DbSet<PaymentTerms> PaymentTerms { get; set; }
+
+		// DbSets — Order Management
+		public DbSet<Order> Orders { get; set; }
+		public DbSet<OrderLine> OrderLines { get; set; }
+		public DbSet<OrderHistory> OrderHistories { get; set; }
+		public DbSet<Cart> Carts { get; set; }
+		public DbSet<CartItem> CartItems { get; set; }
+		public DbSet<OrderSequence> OrderSequence { get; set; }
 
 		// ===== MODEL CONFIGURATION =====
 
@@ -54,147 +72,96 @@ namespace PontelloImport.Data
 			{
 			base.OnModelCreating(modelBuilder);
 
-			// ============================================================
-			// PRODUCT INDEXES
-			// ============================================================
+			modelBuilder.Entity<Vendor>().HasIndex(v => v.VendorName).IsUnique();
+			modelBuilder.Entity<Vendor>().HasIndex(v => v.VendorSlug).IsUnique();
 
-			// Unique handle for URL routing
-			modelBuilder.Entity<Product>()
-				.HasIndex(p => p.Handle)
-				.IsUnique();
+			modelBuilder.Entity<ProductCategory>().HasIndex(c => c.CategoryName).IsUnique();
+			modelBuilder.Entity<ProductCategory>().HasIndex(c => c.CategorySlug).IsUnique();
 
-			// Status for filtering (Draft/Published/Archived)
-			modelBuilder.Entity<Product>()
-				.HasIndex(p => p.Status);
+			modelBuilder.Entity<Product>().HasIndex(p => p.Handle).IsUnique();
 
-			// IsActive for visibility filtering
-			modelBuilder.Entity<Product>()
-				.HasIndex(p => p.IsActive);
+			modelBuilder.Entity<ProductVariant>().HasIndex(v => v.SKU).IsUnique();
 
-			// Composite index for status + active queries
-			modelBuilder.Entity<Product>()
-				.HasIndex(p => new { p.Status, p.IsActive });
+			modelBuilder.Entity<PaymentTerms>().HasIndex(pt => pt.TermName).IsUnique();
+			modelBuilder.Entity<PaymentTerms>().HasIndex(pt => pt.TermCode).IsUnique();
 
-			// ============================================================
-			// PRODUCT VARIANT INDEXES
-			// ============================================================
+			modelBuilder.Entity<Order>().HasIndex(o => o.OrderNumber);
 
-			// Unique handle for URL routing
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => v.Handle)
-				.IsUnique();
+			modelBuilder.Entity<Cart>().HasIndex(c => c.DealerID).IsUnique();
 
-			// Unique SKU for product identification
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => v.SKU)
-				.IsUnique();
+			modelBuilder.Entity<AdminUser>().HasIndex(a => a.ApplicationUserID).IsUnique();
 
-			// ProductID for parent lookups
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => v.ProductID);
+			modelBuilder.Entity<Dealer>().HasIndex(d => d.CompanyName).IsUnique();
+			modelBuilder.Entity<Dealer>().HasIndex(d => d.ApplicationUserID).IsUnique();
 
-			// Status for filtering (Draft/Published/Archived)
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => v.Status);
-
-			// IsActive for visibility filtering
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => v.IsActive);
-
-			// Price for sorting/filtering
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => v.Price);
-
-			// Weight for sorting/filtering
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => v.Weight);
-
-			// Composite index for parent + active queries
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => new { v.ProductID, v.IsActive });
-
-			// Composite index for status + active queries
-			modelBuilder.Entity<ProductVariant>()
-				.HasIndex(v => new { v.Status, v.IsActive });
-
-			// ============================================================
-			// PRODUCT ATTRIBUTE INDEXES
-			// ============================================================
-
-			modelBuilder.Entity<ProductAttribute>()
-				.HasIndex(a => a.VariantID);
-
-			modelBuilder.Entity<ProductAttribute>()
-				.HasIndex(a => a.AttributeName);
-
-			modelBuilder.Entity<ProductAttribute>()
-				.HasIndex(a => new { a.VariantID, a.IsVariantAttribute });
-
-			modelBuilder.Entity<ProductAttribute>()
-				.HasIndex(a => new { a.AttributeName, a.AttributeValue });
-
-			// ============================================================
-			// VENDOR INDEXES
-			// ============================================================
-
-			modelBuilder.Entity<Vendor>()
-				.HasIndex(v => v.VendorName)
-				.IsUnique();
-
-			modelBuilder.Entity<Vendor>()
-				.HasIndex(v => v.VendorSlug)
-				.IsUnique();
-
-			// ============================================================
-			// PRODUCT CATEGORY INDEXES
-			// ============================================================
-
-			modelBuilder.Entity<ProductCategory>()
-				.HasIndex(c => c.CategoryName)
-				.IsUnique();
-
-			modelBuilder.Entity<ProductCategory>()
-				.HasIndex(c => c.CategorySlug)
-				.IsUnique();
-
-			// ============================================================
-			// RELATIONSHIPS
-			// ============================================================
-
-			// Product -> Vendor (Restrict delete if products exist)
-			modelBuilder.Entity<Product>()
-				.HasOne(p => p.Vendor)
-				.WithMany(v => v.Products)
-				.HasForeignKey(p => p.VendorID)
-				.OnDelete(DeleteBehavior.Restrict);
-
-			// Product -> Category (Restrict delete if products exist)
-			modelBuilder.Entity<Product>()
-				.HasOne(p => p.ProductCategory)
-				.WithMany(c => c.Products)
-				.HasForeignKey(p => p.ProductCategoryID)
-				.OnDelete(DeleteBehavior.Restrict);
-
-			// ProductVariant -> Product (Restrict delete if variants exist)
-			modelBuilder.Entity<ProductVariant>()
-				.HasOne(v => v.Product)
-				.WithMany(p => p.Variants)
-				.HasForeignKey(v => v.ProductID)
-				.OnDelete(DeleteBehavior.Restrict);
-
-			// ProductAttribute -> ProductVariant (Cascade delete when variant deleted)
-			modelBuilder.Entity<ProductAttribute>()
-				.HasOne(a => a.Variant)
-				.WithMany(v => v.Attributes)
-				.HasForeignKey(a => a.VariantID)
-				.OnDelete(DeleteBehavior.Cascade);
-
-			// ProductCategory self-referencing (Parent/Child categories)
 			modelBuilder.Entity<ProductCategory>()
 				.HasOne(c => c.ParentCategory)
-				.WithMany(c => c.ChildCategories)
+				.WithMany(c => c.SubCategories)
 				.HasForeignKey(c => c.ParentCategoryID)
 				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<Order>()
+				.HasOne(o => o.RootOrder)
+				.WithMany()
+				.HasForeignKey(o => o.RootOrderID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<Order>()
+				.HasOne(o => o.PreviousOrder)
+				.WithMany()
+				.HasForeignKey(o => o.PreviousOrderID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<Dealer>()
+				.HasOne(d => d.BillingAddress)
+				.WithMany()
+				.HasForeignKey(d => d.BillingAddressID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<Dealer>()
+				.HasOne(d => d.ShippingAddress)
+				.WithMany()
+				.HasForeignKey(d => d.ShippingAddressID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<OrderLine>()
+				.HasOne(ol => ol.Order)
+				.WithMany(o => o.OrderLines)
+				.HasForeignKey(ol => ol.OrderID)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<CartItem>()
+				.HasOne(ci => ci.Cart)
+				.WithMany(c => c.CartItems)
+				.HasForeignKey(ci => ci.CartID)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<Order>()
+				.Ignore(o => o.PONumber);
+
+			// Non-conventional PK names require explicit HasKey
+			modelBuilder.Entity<ProductVariant>().HasKey(v => v.VariantID);
+			modelBuilder.Entity<ProductCategory>().HasKey(c => c.CategoryID);
+			modelBuilder.Entity<ProductSpecification>().HasKey(ps => ps.SpecificationID);
+			modelBuilder.Entity<DealerApplication>().HasKey(da => da.ApplicationID);
+			modelBuilder.Entity<OrderHistory>().HasKey(oh => oh.HistoryID);
+
+			// DealerApplication has two FKs to Dealer; configure each explicitly
+			modelBuilder.Entity<DealerApplication>()
+				.HasOne(da => da.Dealer)
+				.WithMany(d => d.DealerApplications)
+				.HasForeignKey(da => da.DealerID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<DealerApplication>()
+				.HasOne(da => da.ApprovedDealer)
+				.WithMany()
+				.HasForeignKey(da => da.ApprovedDealerID)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<OrderSequence>().HasData(
+				new OrderSequence { Id = 1, LastUsedNumber = 0 }
+			);
 			}
 
 		// ===== AUTOMATIC AUDIT TRACKING =====

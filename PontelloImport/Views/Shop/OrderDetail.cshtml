@@ -1,0 +1,191 @@
+@model PontelloImport.Models.Order
+@using Microsoft.AspNetCore.Html
+
+@{
+    ViewData["Title"] = $"Order {Model.PONumber}";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Shop</a></li>
+        <li class="breadcrumb-item"><a asp-action="OrderHistory">Order History</a></li>
+        <li class="breadcrumb-item active">@Model.PONumber</li>
+    </ol>
+</nav>
+
+<h1 class="h4 mb-3">Order @Model.PONumber</h1>
+
+@if (Model.Status == "Submitted")
+{
+    <div class="alert alert-info d-flex align-items-start gap-2 mb-3" role="alert">
+        <span>ℹ️</span>
+        <div>
+            <strong>Order submitted and under review.</strong><br />
+            <span class="text-muted small">
+                To request any changes or cancellation, please contact Pontello Imports directly. Orders cannot be modified after submission.
+            </span>
+        </div>
+    </div>
+}
+
+@if (Model.Status == "ActionRequired")
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Action Required</strong> — There is an issue with your order. Please contact us to resolve it before processing can continue.
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Order Lines</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>SKU</th>
+                            <th>Product</th>
+                            <th>Variant</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in Model.OrderLines)
+                        {
+                            <tr>
+                                <td class="text-muted small">@line.SKU</td>
+                                <td>@line.ProductTitle</td>
+                                <td>@(line.VariantTitle ?? "—")</td>
+                                <td class="text-center">@line.Quantity</td>
+                                <td class="text-end">$@line.UnitPrice.ToString("F2")</td>
+                                <td class="text-end fw-semibold">$@line.LineTotal.ToString("F2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="text-end">Subtotal</td>
+                            <td class="text-end">$@Model.SubtotalAmount.ToString("F2")</td>
+                        </tr>
+                        @if (Model.IsTaxExempt)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-end text-muted">Tax</td>
+                                <td class="text-end text-muted">Tax Exempt</td>
+                            </tr>
+                        }
+                        else if (Model.TaxAmount.HasValue)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-end">Tax (@((Model.TaxRate * 100)?.ToString("F0"))%)</td>
+                                <td class="text-end">$@Model.TaxAmount.Value.ToString("F2")</td>
+                            </tr>
+                        }
+                        <tr class="border-top">
+                            <th colspan="5" class="text-end fs-6">Total</th>
+                            <th class="text-end fs-6">$@Model.TotalAmount.ToString("F2")</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header fw-semibold">Order History</div>
+            <div class="card-body p-0">
+                @if (!Model.OrderHistories.Any())
+                {
+                    <p class="text-muted p-3 mb-0">No history entries.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var h in Model.OrderHistories)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="fw-semibold">@h.ChangeType</span>
+                                        <p class="mb-0 text-muted small">@h.ChangeDescription</p>
+                                        <p class="mb-0 text-muted small">By: @h.ChangedBy</p>
+                                    </div>
+                                    <span class="text-muted small text-nowrap ms-3">
+                                        @h.ChangedDate.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
+                                    </span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Order Details</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Order #</dt>
+                    <dd class="col-7 fw-semibold">@Model.PONumber</dd>
+
+                    <dt class="col-5">Date</dt>
+                    <dd class="col-7">@Model.OrderDate.ToLocalTime().ToString("MMM d, yyyy")</dd>
+
+                    <dt class="col-5">Status</dt>
+                    <dd class="col-7">@StatusBadge(Model.Status)</dd>
+
+                    <dt class="col-5">Dealer</dt>
+                    <dd class="col-7">@Model.DealerCompanyName</dd>
+
+                    @if (Model.PaymentTerms != null)
+                    {
+                        <dt class="col-5">Terms</dt>
+                        <dd class="col-7">@Model.PaymentTerms.TermName</dd>
+                    }
+
+                    @if (Model.PaymentDueDate.HasValue)
+                    {
+                        <dt class="col-5">Due Date</dt>
+                        <dd class="col-7">@Model.PaymentDueDate.Value.ToLocalTime().ToString("MMM d, yyyy")</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        @{
+            var reorderStatuses = new[] { "Invoiced", "Shipped", "Cancelled" };
+        }
+        @if (reorderStatuses.Contains(Model.Status))
+        {
+            <form method="post" asp-action="Reorder" class="mb-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="orderId" value="@Model.OrderID" />
+                <button type="submit" class="btn btn-outline-secondary w-100">Reorder</button>
+            </form>
+        }
+        <a asp-action="OrderHistory" class="btn btn-outline-secondary w-100">&larr; Back to Order History</a>
+    </div>
+</div>
+
+@functions {
+    IHtmlContent StatusBadge(string status)
+    {
+        var (cssClass, label) = status switch
+        {
+            "Submitted"      => ("badge bg-primary", "Received by Pontello"),
+            "Confirmed"      => ("badge bg-success", "Confirmed"),
+            "Shipped"        => ("badge", "Shipped"),
+            "Invoiced"       => ("badge bg-info text-dark", "Invoiced"),
+            "Cancelled"      => ("badge bg-danger", "Cancelled"),
+            "ActionRequired" => ("badge bg-warning text-dark", "Action Required — Please Contact Us"),
+            _                => ("badge", status)
+        };
+        var style = status == "Shipped" ? " style=\"background:#6f42c1\""
+                  : cssClass == "badge" ? " style=\"background:#5a6473\""
+                  : "";
+        return new HtmlString($"<span class=\"{cssClass}\"{style}>{label}</span>");
+    }
+}

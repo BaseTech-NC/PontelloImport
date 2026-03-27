@@ -1,60 +1,42 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace PontelloImport.Models
-	{
-	public class Vendor : Auditable
-		{
-		// ===== PRIMARY KEY =====
-		[Key]
-		public int VendorID { get; set; }
+{
+    public class Vendor
+    {
+        public int VendorID { get; set; }
 
-		// ===== REQUIRED FIELDS =====
+        [Required, MaxLength(255)]
+        public string VendorName { get; set; }
 
-		[Required(ErrorMessage = "Vendor name is required")]
-		[StringLength(100, ErrorMessage = "Vendor name cannot exceed 100 characters")]
-		[Display(Name = "Vendor Name")]
-		public string VendorName { get; set; } = "";
+        [Required, MaxLength(100)]
+        public string VendorSlug { get; set; }
 
-		// ===== AUTO-GENERATED FIELDS =====
+        [MaxLength(100)]
+        public string? ContactName { get; set; }
 
-		[StringLength(100)]
-		[Display(Name = "Slug")]
-		public string VendorSlug { get; set; } = "";  // Auto-generated from VendorName
+        [MaxLength(100)]
+        public string? ContactEmail { get; set; }
 
-		// ===== OPTIONAL FIELDS =====
+        [MaxLength(20)]
+        public string? ContactPhone { get; set; }
 
-		[StringLength(100)]
-		[Display(Name = "Contact Name")]
-		public string? ContactName { get; set; }
+        [MaxLength(255)]
+        public string? Website { get; set; }
 
-		[StringLength(100)]
-		[EmailAddress(ErrorMessage = "Invalid email format")]
-		[Display(Name = "Contact Email")]
-		public string? ContactEmail { get; set; }
+        [MaxLength(100)]
+        public string? Country { get; set; }
 
-		[StringLength(20)]
-		[Display(Name = "Contact Phone")]
-		[DataType(DataType.PhoneNumber)]
-		public string? ContactPhone { get; set; }
+        public string? Notes { get; set; }
 
-		[StringLength(255)]
-		[Display(Name = "Website")]
-		[DataType(DataType.Url)]
-		public string? Website { get; set; }
+        public bool IsActive { get; set; } = true;
 
-		[StringLength(50)]
-		public string? Country { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public string? ModifiedBy { get; set; }
+        public DateTime? ModifiedDate { get; set; }
 
-		[Display(Name = "Notes")]
-		public string? Notes { get; set; }
-
-		// ===== STATUS =====
-
-		[Display(Name = "Active")]
-		public bool IsActive { get; set; } = true;
-
-		// ===== NAVIGATION PROPERTIES =====
-		// Uncomment after Product model is updated in Chunk 4
-		public ICollection<Product> Products { get; set; } = new HashSet<Product>();
-		}
-	}
+        // Navigation
+        public ICollection<Product> Products { get; set; } = new List<Product>();
+    }
+}
