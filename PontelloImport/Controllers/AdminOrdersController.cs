@@ -137,7 +137,7 @@ namespace PontelloImport.Controllers
         // POST: /AdminOrders/FlagIssue/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> FlagIssue(int id)
+        public async Task<IActionResult> FlagIssue(int id, string? reason)
         {
             var order = await _context.Orders.FindAsync(id);
             if (order == null) return NotFound();
@@ -148,25 +148,31 @@ namespace PontelloImport.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["Error"] = "A reason is required to flag an issue.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             order.Status = "ActionRequired";
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,
                 VersionNumber = order.VersionNumber,
-                ChangeType = "ActionRequired",
-                ChangeDescription = "Issue flagged — dealer notified",
+                ChangeType = "FlaggedIssue",
+                ChangeDescription = reason.Trim(),
                 ChangedBy = CurrentUser
             });
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = "Issue flagged.";
+            TempData["Success"] = "Issue flagged. Dealer has been notified to contact Pontello.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
         // POST: /AdminOrders/Cancel/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancel(int id)
+        public async Task<IActionResult> Cancel(int id, string? cancelNote)
         {
             var order = await _context.Orders
                 .Include(o => o.OrderLines)
@@ -186,7 +192,9 @@ namespace PontelloImport.Controllers
                 OrderID = id,
                 VersionNumber = order.VersionNumber,
                 ChangeType = "Cancelled",
-                ChangeDescription = "Order cancelled by Pontello",
+                ChangeDescription = !string.IsNullOrWhiteSpace(cancelNote)
+                    ? cancelNote.Trim()
+                    : "Order cancelled by Pontello",
                 ChangedBy = CurrentUser
             });
 
@@ -204,6 +212,128 @@ namespace PontelloImport.Controllers
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "Order cancelled.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: /AdminOrders/ResolveAndConfirm/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResolveAndConfirm(int id, string? resolutionNote)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderLines)
+                .FirstOrDefaultAsync(o => o.OrderID == id);
+            if (order == null) return NotFound();
+
+            if (order.Status != "ActionRequired")
+            {
+                TempData["Error"] = $"Cannot resolve an order with status '{order.Status}'.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            order.Status = "Confirmed";
+
+            foreach (var line in order.OrderLines)
+            {
+                if (!line.ProductVariantID.HasValue) continue;
+                var variant = await _context.ProductVariants.FindAsync(line.ProductVariantID.Value);
+                if (variant != null)
+                    variant.InventoryQuantity = Math.Max(0, variant.InventoryQuantity - line.Quantity);
+            }
+
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID = id,
+                VersionNumber = order.VersionNumber,
+                ChangeType = "Resolved",
+                ChangeDescription = !string.IsNullOrWhiteSpace(resolutionNote)
+                    ? resolutionNote.Trim()
+                    : "Issue resolved. Order confirmed by admin.",
+                ChangedBy = CurrentUser
+            });
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Order resolved and confirmed.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // GET: /AdminOrders/EditLines/5
+        [HttpGet]
+        public async Task<IActionResult> EditLines(int id)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderLines)
+                .FirstOrDefaultAsync(o => o.OrderID == id);
+            if (order == null) return NotFound();
+
+            if (order.Status != "ActionRequired")
+            {
+                TempData["Error"] = "Order lines can only be edited for ActionRequired orders.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            return View(order);
+        }
+
+        // POST: /AdminOrders/EditLines/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditLines(int id, int[] lineIds, int[] quantities, string? adminNote)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderLines)
+                .FirstOrDefaultAsync(o => o.OrderID == id);
+            if (order == null) return NotFound();
+
+            if (order.Status != "ActionRequired")
+            {
+                TempData["Error"] = "Order lines can only be edited for ActionRequired orders.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var removedLineIds = new HashSet<int>();
+            var modifiedCount = 0;
+
+            for (int i = 0; i < lineIds.Length && i < quantities.Length; i++)
+            {
+                var line = order.OrderLines.FirstOrDefault(l => l.OrderLineID == lineIds[i]);
+                if (line == null) continue;
+
+                if (quantities[i] <= 0)
+                {
+                    _context.OrderLines.Remove(line);
+                    removedLineIds.Add(lineIds[i]);
+                    modifiedCount++;
+                }
+                else if (line.Quantity != quantities[i])
+                {
+                    line.Quantity = quantities[i];
+                    line.LineTotal = Math.Round(line.Quantity * line.UnitPrice, 2);
+                    modifiedCount++;
+                }
+            }
+
+            // Recalculate order totals from remaining lines
+            var remaining = order.OrderLines
+                .Where(l => !removedLineIds.Contains(l.OrderLineID))
+                .ToList();
+            order.SubtotalAmount = remaining.Sum(l => l.LineTotal);
+            order.TaxAmount = order.IsTaxExempt ? null : Math.Round(order.SubtotalAmount * (order.TaxRate ?? 0.13m), 2);
+            order.TotalAmount = order.SubtotalAmount + (order.TaxAmount ?? 0m) + (order.ShippingCost ?? 0m);
+
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID = id,
+                VersionNumber = order.VersionNumber,
+                ChangeType = "AdminModified",
+                ChangeDescription = !string.IsNullOrWhiteSpace(adminNote)
+                    ? adminNote.Trim()
+                    : $"Order lines updated. {modifiedCount} line{(modifiedCount != 1 ? "s" : "")} modified.",
+                ChangedBy = CurrentUser
+            });
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Order lines updated.";
             return RedirectToAction(nameof(Details), new { id });
         }
 

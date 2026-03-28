@@ -30,8 +30,17 @@
 
 @if (Model.Status == "ActionRequired")
 {
+    var flaggedIssue = ViewData["FlaggedIssueHistory"] as PontelloImport.Models.OrderHistory;
     <div class="alert alert-warning" role="alert">
-        <strong>Action Required</strong> — There is an issue with your order. Please contact us to resolve it before processing can continue.
+        <strong>Action Required</strong><br />
+        There is an issue with this order. Please contact Pontello Imports to resolve it.
+        @if (flaggedIssue != null && !string.IsNullOrWhiteSpace(flaggedIssue.ChangeDescription))
+        {
+            <hr class="my-2" />
+            <div><strong>Issue:</strong> @flaggedIssue.ChangeDescription</div>
+        }
+        <hr class="my-2" />
+        <div><strong>Contact:</strong> <a href="mailto:jesse@pontelloimports.com" class="alert-link">jesse@pontelloimports.com</a></div>
     </div>
 }
 

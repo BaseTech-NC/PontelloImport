@@ -1,0 +1,90 @@
+@model PontelloImport.Models.Order
+
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = $"Edit Lines — Order {Model.PONumber}";
+}
+
+<div class="container-fluid mt-4">
+
+    <div class="row mb-4 align-items-center">
+        <div class="col-auto">
+            <a asp-action="Details" asp-route-id="@Model.OrderID" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Order
+            </a>
+        </div>
+        <div class="col">
+            <h1 class="mb-0 h4">Edit Order Lines — @Model.PONumber</h1>
+        </div>
+    </div>
+
+    <div class="alert alert-warning d-flex gap-2 align-items-start">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+        <div>
+            After saving, the order remains <strong>Action Required</strong>.
+            Return to the order and click <strong>Resolve &amp; Confirm</strong> to confirm it.
+        </div>
+    </div>
+
+    <form method="post" asp-action="EditLines" asp-route-id="@Model.OrderID">
+        @Html.AntiForgeryToken()
+
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">Order Lines</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Variant</th>
+                                <th>SKU</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-center" style="width:110px;">Quantity</th>
+                                <th class="text-muted small fw-normal">Set qty to 0 to remove</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in Model.OrderLines)
+                            {
+                                <tr>
+                                    <td>@line.ProductTitle</td>
+                                    <td class="text-muted">@(line.VariantTitle ?? "—")</td>
+                                    <td><code class="text-dark">@line.SKU</code></td>
+                                    <td class="text-end">@line.UnitPrice.ToString("C")</td>
+                                    <td class="text-center">
+                                        <input type="hidden" name="lineIds" value="@line.OrderLineID" />
+                                        <input type="number" name="quantities" value="@line.Quantity"
+                                               min="0" max="9999"
+                                               class="form-control form-control-sm text-center mx-auto"
+                                               style="width:80px;" />
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label for="adminNote" class="form-label fw-semibold">
+                Admin Note <span class="text-muted fw-normal small">(optional)</span>
+            </label>
+            <textarea id="adminNote" name="adminNote" class="form-control" rows="2"
+                      maxlength="500"
+                      placeholder="e.g. Adjusted quantity per dealer request."></textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i> Save Changes
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.OrderID" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+</div>

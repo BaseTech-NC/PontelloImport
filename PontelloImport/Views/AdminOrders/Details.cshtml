@@ -6,20 +6,23 @@
 }
 
 @functions {
-    string BadgeClass(string status) => status switch
+    string BadgeClass(string type) => type switch
     {
-        "Submitted"      => "badge bg-primary",
+        "Submitted"      => "badge bg-secondary",
         "ActionRequired" => "badge bg-warning text-dark",
+        "FlaggedIssue"   => "badge bg-warning text-dark",
         "Confirmed"      => "badge bg-success",
+        "Resolved"       => "badge bg-success",
+        "AdminModified"  => "badge bg-primary",
         "Shipped"        => "badge text-white",
+        "ShippingUpdated"=> "badge bg-primary",
         "Invoiced"       => "badge bg-info text-dark",
         "Cancelled"      => "badge bg-danger",
-        _                => "badge"
+        _                => "badge bg-secondary"
     };
 
-    string BadgeStyle(string status) =>
-        status == "Shipped" ? "background:#6f42c1;" :
-        BadgeClass(status) == "badge" ? "background:#5a6473;" : "";
+    string BadgeStyle(string type) =>
+        type == "Shipped" ? "background:#6f42c1;" : "";
 }
 
 <div class="container-fluid mt-4">
@@ -136,12 +139,9 @@
                                 <i class="bi bi-check-circle me-1"></i> Confirm Order
                             </button>
                         </form>
-                        <form method="post" asp-action="FlagIssue" asp-route-id="@Model.OrderID">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-warning">
-                                <i class="bi bi-flag me-1"></i> Flag Issue
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#flagIssueModal">
+                            <i class="bi bi-flag me-1"></i> Flag Issue
+                        </button>
                         <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
                               onsubmit="return confirm('Cancel this order? This cannot be undone.')">
                             @Html.AntiForgeryToken()
@@ -156,20 +156,30 @@
             {
                 <div class="card mb-4">
                     <div class="card-header bg-dark text-white">Actions</div>
-                    <div class="card-body d-flex gap-2 flex-wrap">
-                        <form method="post" asp-action="Confirm" asp-route-id="@Model.OrderID">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-circle me-1"></i> Confirm Order
+                    <div class="card-body">
+
+                        <!-- Area 1: Edit Order Lines -->
+                        <div class="mb-4 pb-3 border-bottom">
+                            <a asp-action="EditLines" asp-route-id="@Model.OrderID" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil me-1"></i> Edit Order Lines
+                            </a>
+                            <div class="text-muted small mt-1">Modify quantities or remove items before confirming.</div>
+                        </div>
+
+                        <!-- Area 2: Resolve & Confirm -->
+                        <div class="mb-4 pb-3 border-bottom">
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#resolveModal">
+                                <i class="bi bi-check-circle me-1"></i> Resolve &amp; Confirm
                             </button>
-                        </form>
-                        <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
-                              onsubmit="return confirm('Cancel this order? This cannot be undone.')">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-danger">
+                        </div>
+
+                        <!-- Area 3: Cancel -->
+                        <div>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
                                 <i class="bi bi-x-circle me-1"></i> Cancel Order
                             </button>
-                        </form>
+                        </div>
+
                     </div>
                 </div>
             }
@@ -256,7 +266,7 @@
                 </div>
             }
 
-            <!-- Order History -->
+            <!-- Order History Timeline -->
             <div class="card">
                 <div class="card-header bg-dark text-white">History</div>
                 @if (!Model.OrderHistories.Any())
@@ -268,14 +278,27 @@
                     <ul class="list-group list-group-flush">
                         @foreach (var h in Model.OrderHistories)
                         {
-                            <li class="list-group-item">
+                            <li class="list-group-item @(h.ChangeType == "FlaggedIssue" ? "list-group-item-warning" : h.ChangeType == "Resolved" ? "list-group-item-success" : "")">
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <span class="@BadgeClass(h.ChangeType)" style="@BadgeStyle(h.ChangeType)">
-                                            @h.ChangeType
-                                        </span>
-                                        <div class="mt-1">@h.ChangeDescription</div>
-                                        <small class="text-muted">by @h.ChangedBy</small>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="@BadgeClass(h.ChangeType)" style="@BadgeStyle(h.ChangeType)">
+                                                @(h.ChangeType switch {
+                                                    "FlaggedIssue"  => "Flagged Issue",
+                                                    "Resolved"      => "Resolved",
+                                                    "AdminModified" => "Lines Edited",
+                                                    "ShippingUpdated" => "Shipping Updated",
+                                                    _ => h.ChangeType
+                                                })
+                                            </span>
+                                            <small class="text-muted">by @h.ChangedBy</small>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(h.ChangeDescription))
+                                        {
+                                            <div class="@(h.ChangeType is "FlaggedIssue" or "Resolved" or "AdminModified" ? "fw-semibold" : "text-muted small")">
+                                                @h.ChangeDescription
+                                            </div>
+                                        }
                                     </div>
                                     <small class="text-muted text-nowrap ms-3">
                                         @h.ChangedDate.ToString("MMM d, yyyy h:mm tt")
@@ -330,3 +353,96 @@
 
     </div>
 </div>
+
+<!-- Modal: Flag Issue (Submitted orders) -->
+@if (Model.Status == "Submitted")
+{
+    <div class="modal fade" id="flagIssueModal" tabindex="-1" aria-labelledby="flagIssueModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-action="FlagIssue" asp-route-id="@Model.OrderID">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="flagIssueModalLabel">
+                            <i class="bi bi-flag me-1 text-warning"></i> Flag Issue with Order
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="flagReason" class="form-label fw-semibold">Describe the issue <span class="text-danger">*</span></label>
+                        <textarea id="flagReason" name="reason" class="form-control" rows="4" required minlength="10" maxlength="500"
+                                  placeholder="e.g. Item CRG-3001 is out of stock — awaiting restock in 2 weeks."></textarea>
+                        <div class="form-text">Minimum 10 characters. This message will be visible to the dealer.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-flag me-1"></i> Flag Issue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal: Resolve & Confirm (ActionRequired orders) -->
+@if (Model.Status == "ActionRequired")
+{
+    <div class="modal fade" id="resolveModal" tabindex="-1" aria-labelledby="resolveModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-action="ResolveAndConfirm" asp-route-id="@Model.OrderID">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="resolveModalLabel">
+                            <i class="bi bi-check-circle me-1 text-success"></i> Resolve &amp; Confirm Order
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="resolutionNote" class="form-label fw-semibold">Resolution Note <span class="text-muted fw-normal small">(optional)</span></label>
+                        <textarea id="resolutionNote" name="resolutionNote" class="form-control" rows="3" maxlength="500"
+                                  placeholder="e.g. Spoke with dealer — reduced quantity to 5, item will ship next week."></textarea>
+                        <div class="form-text">If left blank: "Issue resolved. Order confirmed by admin."</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i> Confirm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cancel (ActionRequired orders) -->
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="cancelModalLabel">
+                            <i class="bi bi-x-circle me-1 text-danger"></i> Cancel Order
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted">This cannot be undone.</p>
+                        <label for="cancelNote" class="form-label fw-semibold">Reason <span class="text-muted fw-normal small">(optional)</span></label>
+                        <textarea id="cancelNote" name="cancelNote" class="form-control" rows="3" maxlength="500"
+                                  placeholder="e.g. Dealer requested cancellation — item no longer needed."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Dismiss</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle me-1"></i> Cancel Order
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
