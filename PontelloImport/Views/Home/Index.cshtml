@@ -1,131 +1,183 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Pontello Imports";
+    ViewData["Title"] = "Pontello Imports — Dealer Portal";
+    ViewData["LandingPage"] = true;
+    ViewData["FullWidth"] = true;
+    ViewData["HideFooter"] = true;
 }
 
-<style>
-    .portal-card {
-        background: #ffffff;
-        border: 1px solid #E5E7EB;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        padding: 2rem;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        transition: box-shadow 150ms;
-    }
+<!-- SECTION 1 — Hero -->
+<section style="background:#0D3D38; padding:5rem 0 4rem;">
+    <div class="container">
+        <div class="row align-items-center g-5">
 
-    .portal-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
-    }
+            <!-- Left: copy + CTAs -->
+            <div class="col-lg-7">
+                <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports"
+                     style="max-height:110px; width:auto; margin-bottom:1.75rem; display:block;" />
+                <p style="font-size:0.75rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+                           color:#02C39A; margin-bottom:1.25rem;">
+                    CANADA'S MOTORSPORTS PARTS IMPORTER
+                </p>
+                <h1 style="font-size:clamp(2rem,5vw,3.25rem); font-weight:700; color:#ffffff;
+                           line-height:1.15; margin-bottom:0.6rem;">
+                    The dealer portal for<br>Pontello Imports.
+                </h1>
+                <p style="font-size:1rem; font-weight:500; color:rgba(255,255,255,0.5);
+                           font-style:italic; margin-bottom:1rem;">
+                    More than just parts.
+                </p>
+                <p style="font-size:1.125rem; color:rgba(255,255,255,0.65); max-width:480px;
+                           line-height:1.65; margin-bottom:2.25rem;">
+                    Order parts, track shipments, and manage your account — all in one place.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a asp-controller="Home" asp-action="Apply"
+                       style="background:#02C39A; color:#111827; font-weight:600; font-size:0.95rem;
+                              padding:0.75rem 1.75rem; border-radius:8px; text-decoration:none;
+                              display:inline-block; transition:opacity 150ms;"
+                       onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+                        Apply for Dealer Access
+                    </a>
+                    <a asp-area="Identity" asp-page="/Account/Login"
+                       style="color:#ffffff; border:1.5px solid rgba(255,255,255,0.45); font-weight:500;
+                              font-size:0.95rem; padding:0.75rem 1.75rem; border-radius:8px;
+                              text-decoration:none; display:inline-block;
+                              transition:border-color 150ms, background 150ms;"
+                       onmouseover="this.style.borderColor='rgba(255,255,255,0.85)'; this.style.background='rgba(255,255,255,0.07)'"
+                       onmouseout="this.style.borderColor='rgba(255,255,255,0.45)'; this.style.background='transparent'">
+                        Sign In to Your Account
+                    </a>
+                </div>
+            </div>
 
-    .portal-card .card-icon {
-        font-size: 1.75rem;
-        margin-bottom: 1rem;
-        line-height: 1;
-    }
+            <!-- Right: decorative order snapshot card -->
+            <div class="col-lg-5">
+                <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
+                            border-radius:12px; padding:1.75rem; color:#ffffff;">
+                    <div style="font-size:0.75rem; font-weight:600; letter-spacing:0.08em;
+                                text-transform:uppercase; color:#02C39A; margin-bottom:0.85rem;">
+                        📦 Order #0042 — Confirmed
+                    </div>
+                    <div style="font-family:'Courier New', monospace; font-size:0.875rem; line-height:2;
+                                color:rgba(255,255,255,0.8); border-bottom:1px solid rgba(255,255,255,0.1);
+                                padding-bottom:1rem; margin-bottom:1rem;">
+                        <div class="d-flex justify-content-between">
+                            <span>CRG Helmet Pro &times; 2</span><span>$359.98</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>OTK Front Axle &times; 1</span><span>$89.99</span>
+                        </div>
+                        <div class="d-flex justify-content-between"
+                             style="color:rgba(255,255,255,0.45); font-size:0.8rem; margin-top:0.5rem;">
+                            <span>Subtotal</span><span>$449.97 + HST</span>
+                        </div>
+                    </div>
+                    <div style="font-size:0.78rem; color:rgba(255,255,255,0.45); margin-bottom:0.65rem;">
+                        Order status
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <span style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.5);
+                                     font-size:0.7rem; font-weight:600; padding:0.25rem 0.65rem;
+                                     border-radius:20px; letter-spacing:0.04em;">Submitted</span>
+                        <span style="color:rgba(255,255,255,0.25); font-size:0.75rem;">&rarr;</span>
+                        <span style="background:#028090; color:#ffffff;
+                                     font-size:0.7rem; font-weight:600; padding:0.25rem 0.65rem;
+                                     border-radius:20px; letter-spacing:0.04em;">Confirmed</span>
+                        <span style="color:rgba(255,255,255,0.25); font-size:0.75rem;">&rarr;</span>
+                        <span style="background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.35);
+                                     font-size:0.7rem; font-weight:600; padding:0.25rem 0.65rem;
+                                     border-radius:20px; letter-spacing:0.04em;">Shipped</span>
+                    </div>
+                </div>
+            </div>
 
-    .portal-card .card-label {
-        font-size: 0.7rem;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        margin-bottom: 0.6rem;
-    }
+        </div>
+    </div>
+</section>
 
-    .portal-card h4 {
-        color: #111827;
-        font-weight: 600;
-        font-size: 1.15rem;
-        margin-bottom: 0.5rem;
-    }
+<!-- SECTION 2 — Feature strip -->
+<section style="background:#F8FAFC; padding:4rem 0;">
+    <div class="container">
+        <div class="row g-4 text-center">
 
-    .portal-card p {
-        color: #4B5563;
-        font-size: 0.9rem;
-        line-height: 1.55;
-        flex-grow: 1;
-        margin-bottom: 1.5rem;
-    }
+            <div class="col-md-4">
+                <div style="width:56px; height:56px; background:#028090; border-radius:50%;
+                            display:flex; align-items:center; justify-content:center;
+                            font-size:1.5rem; margin:0 auto 1.25rem;">🛒</div>
+                <h3 style="font-size:1.05rem; font-weight:600; color:#111827; margin-bottom:0.5rem;">Order Anytime</h3>
+                <p style="color:#6B7280; font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
+                    Browse the full catalog and submit purchase orders 24/7 — no phone calls required.
+                </p>
+            </div>
 
-    .btn-dealer {
-        background: #2563EB;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        font-weight: 500;
-        font-size: 0.9rem;
-        padding: 0.6rem 1rem;
-        width: 100%;
-        text-align: center;
-        text-decoration: none;
-        display: block;
-        transition: background 150ms;
-    }
+            <div class="col-md-4">
+                <div style="width:56px; height:56px; background:#028090; border-radius:50%;
+                            display:flex; align-items:center; justify-content:center;
+                            font-size:1.5rem; margin:0 auto 1.25rem;">📊</div>
+                <h3 style="font-size:1.05rem; font-weight:600; color:#111827; margin-bottom:0.5rem;">Track Every Order</h3>
+                <p style="color:#6B7280; font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
+                    See real-time status updates from submission through to invoicing.
+                </p>
+            </div>
 
-    .btn-dealer:hover {
-        background: #1D4ED8;
-        color: #ffffff;
-    }
+            <div class="col-md-4">
+                <div style="width:56px; height:56px; background:#028090; border-radius:50%;
+                            display:flex; align-items:center; justify-content:center;
+                            font-size:1.5rem; margin:0 auto 1.25rem;">🔄</div>
+                <h3 style="font-size:1.05rem; font-weight:600; color:#111827; margin-bottom:0.5rem;">Reorder in One Click</h3>
+                <p style="color:#6B7280; font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
+                    Repeat a previous order instantly — items added to your cart automatically.
+                </p>
+            </div>
 
-    .btn-admin {
-        background: #111827;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        font-weight: 500;
-        font-size: 0.9rem;
-        padding: 0.6rem 1rem;
-        width: 100%;
-        text-align: center;
-        text-decoration: none;
-        display: block;
-        transition: background 150ms;
-    }
+        </div>
+    </div>
+</section>
 
-    .btn-admin:hover {
-        background: #1F2937;
-        color: #ffffff;
-    }
-</style>
-
-<div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 78vh; padding: 2rem 0;">
-
-    <!-- Title -->
-    <div class="text-center mb-5">
-        <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height: 72px;" class="mb-4" />
-        <h1 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;">
-            Pontello Imports
-        </h1>
-        <p style="color: #4B5563; font-size: 0.95rem; max-width: 400px; margin: 0 auto;">
-            Wholesale karting &amp; motorsports components — Canada &amp; United States
+<!-- SECTION 3 — Existing dealer nudge -->
+<section style="background:#ffffff; padding:4rem 0; text-align:center;">
+    <div class="container">
+        <h2 style="font-size:1.375rem; font-weight:600; color:#111827; margin-bottom:0.6rem;">
+            Already a dealer?
+        </h2>
+        <p style="color:#6B7280; font-size:0.95rem; margin-bottom:1.75rem; max-width:420px; margin-left:auto; margin-right:auto;">
+            Sign in to access your account, place orders, and view your order history.
         </p>
+        <a asp-area="Identity" asp-page="/Account/Login"
+           style="background:#0D3D38; color:#ffffff; font-weight:600; font-size:0.95rem;
+                  padding:0.75rem 2rem; border-radius:8px; text-decoration:none;
+                  display:inline-block; transition:opacity 150ms;"
+           onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            Sign In &rarr;
+        </a>
     </div>
+</section>
 
-    <!-- Cards -->
-    <div class="row g-4 justify-content-center w-100" style="max-width: 760px;">
-
-        <div class="col-md-5">
-            <div class="portal-card">
-                <div class="card-icon">🏁</div>
-                <div class="card-label" style="color: #2563EB;">Dealer Portal</div>
-                <h4>Dealer Portal</h4>
-                <p>Browse products, manage your cart, and submit orders to Pontello Imports.</p>
-                <a href="/Home/EnterDealerPortal" class="btn-dealer">Enter Dealer Portal</a>
+<!-- SECTION 4 — Footer -->
+<footer style="background:#0D3D38; padding:2rem 0;">
+    <div class="container d-flex justify-content-between align-items-start flex-wrap gap-4">
+        <div>
+            <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports"
+                 style="height:32px; width:auto; margin-bottom:0.75rem; display:block;" />
+            <div style="color:rgba(255,255,255,0.5); font-size:0.82rem; line-height:1.8;">
+                141 Eastchester Avenue<br>
+                St. Catharines, ON&nbsp;&nbsp;L2P 2Z5<br>
+                <a href="tel:6479646833" style="color:rgba(255,255,255,0.5); text-decoration:none;"
+                   onmouseover="this.style.color='rgba(255,255,255,0.8)'"
+                   onmouseout="this.style.color='rgba(255,255,255,0.5)'">647-964-6833</a>
             </div>
         </div>
-
-        <div class="col-md-5">
-            <div class="portal-card">
-                <div class="card-icon">⚙️</div>
-                <div class="card-label" style="color: #4B5563;">Admin</div>
-                <h4>Pontello Admin</h4>
-                <p>Manage products, process orders, and oversee all dealer activity.</p>
-                <a href="/Home/EnterAdminPortal" class="btn-admin">Enter Admin Panel</a>
+        <div style="text-align:right; align-self:flex-end;">
+            <div style="color:rgba(255,255,255,0.35); font-size:0.8rem; margin-bottom:0.4rem;">
+                &copy; 2026 Pontello Imports. All rights reserved.
             </div>
+            <a asp-area="Identity" asp-page="/Account/Login"
+               style="color:rgba(255,255,255,0.3); font-size:0.8rem; text-decoration:none;"
+               onmouseover="this.style.color='rgba(255,255,255,0.65)'"
+               onmouseout="this.style.color='rgba(255,255,255,0.3)'">
+                Staff Login
+            </a>
         </div>
-
     </div>
-
-</div>
+</footer>

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using PontelloImport.Models;
 
 namespace PontelloImport.Controllers
 {
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class ProductVariantsController : Controller
     {
         private readonly PontelloDbContext _context;

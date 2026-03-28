@@ -1,0 +1,65 @@
+@page
+@model PontelloImport.Areas.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Sign In — Pontello Imports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center" style="margin-top:3rem;">
+    <div class="col-sm-8 col-md-5 col-lg-4">
+
+        <div class="text-center mb-4">
+            <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height:52px;" class="mb-3" />
+            <h1 style="font-size:1.35rem; font-weight:600; color:#111827;">Sign In</h1>
+            <p class="text-muted" style="font-size:0.9rem;">Pontello Imports Dealer Portal</p>
+        </div>
+
+        <div class="card shadow-sm" style="border:1px solid #E5E7EB; border-radius:12px;">
+            <div class="card-body p-4">
+
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ReturnUrl" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label fw-semibold" style="font-size:0.875rem;">Email</label>
+                        <input asp-for="Input.Email" class="form-control" autocomplete="username"
+                               placeholder="you@example.com" style="border-radius:8px;" />
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label fw-semibold" style="font-size:0.875rem;">Password</label>
+                        <input asp-for="Input.Password" class="form-control" autocomplete="current-password"
+                               placeholder="••••••••" style="border-radius:8px;" />
+                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4 form-check">
+                        <input asp-for="Input.RememberMe" class="form-check-input" />
+                        <label asp-for="Input.RememberMe" class="form-check-label" style="font-size:0.875rem;">Remember me</label>
+                    </div>
+
+                    <button type="submit" class="btn w-100 fw-semibold"
+                            style="background:#0D3D38; color:#ffffff; border-radius:8px; padding:0.65rem;">
+                        Sign In
+                    </button>
+                </form>
+
+            </div>
+        </div>
+
+        <div class="text-center mt-3" style="font-size:0.875rem; color:#6B7280;">
+            Not a dealer yet?
+            <a asp-controller="Home" asp-action="Apply" style="color:#028090; font-weight:500;">
+                Apply for an account
+            </a>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
@@ -5,6 +6,7 @@ using PontelloImport.Models;
 
 namespace PontelloImport.Controllers
 {
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class AdminOrdersController : Controller
     {
         private readonly PontelloDbContext _context;
@@ -14,10 +16,7 @@ namespace PontelloImport.Controllers
             _context = context;
         }
 
-        private string CurrentUser =>
-            User.Identity?.Name
-            ?? HttpContext.Session.GetString("DemoRole")
-            ?? "Admin";
+        private string CurrentUser => User.Identity?.Name ?? "Admin";
 
         // GET: /AdminOrders
         public async Task<IActionResult> Index(

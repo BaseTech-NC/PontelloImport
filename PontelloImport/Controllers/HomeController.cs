@@ -1,39 +1,92 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using PontelloImport.Data;
 using PontelloImport.Models;
+using PontelloImport.ViewModels;
 
 namespace PontelloImport.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly PontelloDbContext _context;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, PontelloDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
         public IActionResult Index()
         {
+            if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                return RedirectToAction("Index", "AdminOrders");
+            if (User.IsInRole("Dealer"))
+                return RedirectToAction("Index", "Shop");
             return View();
         }
 
-        public IActionResult EnterDealerPortal()
+        // GET: /Home/Apply
+        [HttpGet]
+        public IActionResult Apply()
         {
-            HttpContext.Session.SetString("DemoRole", "Dealer");
-            return Redirect("/Shop");
+            return View(new DealerApplicationViewModel());
         }
 
-        public IActionResult EnterAdminPortal()
+        // POST: /Home/Apply
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Apply(DealerApplicationViewModel model)
         {
-            HttpContext.Session.SetString("DemoRole", "Admin");
-            return Redirect("/AdminOrders");
+            if (!ModelState.IsValid)
+                return View(model);
+
+            // Warn if a pending application already exists for this email
+            var existing = await _context.DealerApplications
+                .AnyAsync(a => a.SubmittedEmail == model.Email && a.Status == "Pending");
+            if (existing)
+            {
+                ModelState.AddModelError("Email", "An application for this email is already pending review.");
+                return View(model);
+            }
+
+            // Create address record
+            var address = new Address
+            {
+                Street = model.BusinessAddress,
+                City = model.City,
+                Province = model.Province,
+                PostalCode = model.PostalCode,
+                Country = "Canada"
+            };
+            _context.Addresses.Add(address);
+            await _context.SaveChangesAsync();
+
+            // Create dealer application
+            var application = new DealerApplication
+            {
+                SubmittedCompanyName = model.CompanyName,
+                SubmittedContactName = $"{model.FirstName} {model.LastName}",
+                SubmittedContactPhone = model.Phone,
+                SubmittedEmail = model.Email,
+                SubmittedAddressID = address.AddressID,
+                BusinessNumber = model.BusinessNumber,
+                Status = "Pending",
+                SubmittedDate = DateTime.UtcNow,
+                ReviewNotes = model.Notes
+            };
+            _context.DealerApplications.Add(application);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Application received. Pontello Imports will review your application and contact you within 2 business days.";
+            return RedirectToAction(nameof(Apply));
         }
 
-        public IActionResult ExitPortal()
+        // GET: /Home/AccessDenied
+        public IActionResult AccessDenied()
         {
-            HttpContext.Session.Remove("DemoRole");
-            return Redirect("/");
+            return View();
         }
 
         public IActionResult Privacy()

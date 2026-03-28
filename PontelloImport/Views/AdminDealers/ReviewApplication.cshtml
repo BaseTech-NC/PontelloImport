@@ -1,0 +1,145 @@
+@model PontelloImport.Models.DealerApplication
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Review Application";
+}
+
+<div class="container-fluid mt-4" style="max-width:780px;">
+    <div class="row mb-4 align-items-center">
+        <div class="col-auto">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Applications
+            </a>
+        </div>
+        <div class="col">
+            <h1 class="h4 mb-0">Review Application — @Model.SubmittedCompanyName</h1>
+        </div>
+        <div class="col-auto">
+            <span class="badge @(Model.Status == "Pending" ? "bg-warning text-dark" : Model.Status == "Approved" ? "bg-success" : "bg-danger")">
+                @Model.Status
+            </span>
+        </div>
+    </div>
+
+    <!-- Application details -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">Application Details</div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4 text-muted">Company Name</dt>
+                <dd class="col-sm-8 fw-semibold">@Model.SubmittedCompanyName</dd>
+
+                <dt class="col-sm-4 text-muted">Contact Name</dt>
+                <dd class="col-sm-8">@Model.SubmittedContactName</dd>
+
+                <dt class="col-sm-4 text-muted">Email</dt>
+                <dd class="col-sm-8"><a href="mailto:@Model.SubmittedEmail">@Model.SubmittedEmail</a></dd>
+
+                <dt class="col-sm-4 text-muted">Phone</dt>
+                <dd class="col-sm-8">@Model.SubmittedContactPhone</dd>
+
+                @if (!string.IsNullOrWhiteSpace(Model.BusinessNumber))
+                {
+                    <dt class="col-sm-4 text-muted">Business Number</dt>
+                    <dd class="col-sm-8">@Model.BusinessNumber</dd>
+                }
+
+                <dt class="col-sm-4 text-muted">Address</dt>
+                <dd class="col-sm-8">
+                    @if (Model.SubmittedAddress != null)
+                    {
+                        <span>@Model.SubmittedAddress.Street, @Model.SubmittedAddress.City,
+                              @Model.SubmittedAddress.Province @Model.SubmittedAddress.PostalCode</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-4 text-muted">Submitted</dt>
+                <dd class="col-sm-8">@Model.SubmittedDate.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ReviewNotes))
+                {
+                    <dt class="col-sm-4 text-muted">Notes</dt>
+                    <dd class="col-sm-8">@Model.ReviewNotes</dd>
+                }
+            </dl>
+        </div>
+    </div>
+
+    @if (Model.Status == "Pending")
+    {
+        <!-- Approve -->
+        <div class="card mb-3 border-success">
+            <div class="card-header bg-success text-white fw-semibold">
+                <i class="bi bi-check-circle me-1"></i> Approve &amp; Create Account
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    This will create a dealer account with the email above.
+                    Enter a temporary password to send to the dealer.
+                </p>
+                <form asp-action="ApproveApplication" asp-route-id="@Model.ApplicationID" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                Assigned Password <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="assignedPassword" class="form-control"
+                                   placeholder="e.g. Welcome@2026!" required minlength="6" />
+                            <div class="form-text">Min 6 chars with uppercase, lowercase, digit, and symbol.</div>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i> Approve &amp; Create Account
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Reject -->
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white fw-semibold">
+                <i class="bi bi-x-circle me-1"></i> Reject Application
+            </div>
+            <div class="card-body">
+                <form asp-action="RejectApplication" asp-route-id="@Model.ApplicationID" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold">
+                                Reason <span class="text-muted fw-normal small">(optional)</span>
+                            </label>
+                            <input type="text" name="reason" class="form-control"
+                                   placeholder="e.g. Outside service area." maxlength="500" />
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-x-circle me-1"></i> Reject
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-secondary">
+            This application has already been <strong>@Model.Status.ToLower()</strong>
+            @if (Model.ReviewedDate.HasValue)
+            {
+                <span>on @Model.ReviewedDate.Value.ToLocalTime().ToString("MMM d, yyyy")</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.ReviewedBy))
+            {
+                <span> by @Model.ReviewedBy</span>
+            }.
+        </div>
+    }
+</div>

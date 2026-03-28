@@ -1,0 +1,138 @@
+@model IEnumerable<PontelloImport.Models.DealerApplication>
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Dealer Applications";
+    var pending  = Model.Where(a => a.Status == "Pending").ToList();
+    var approved = Model.Where(a => a.Status == "Approved").ToList();
+    var rejected = Model.Where(a => a.Status == "Rejected").ToList();
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h1 class="h4 mb-0">
+                Dealer Applications
+                @if (pending.Count > 0)
+                {
+                    <span class="badge bg-warning text-dark ms-2" style="font-size:0.75rem;">
+                        @pending.Count pending
+                    </span>
+                }
+            </h1>
+        </div>
+    </div>
+
+    <!-- Pending -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark fw-semibold">
+            Pending Review (@pending.Count)
+        </div>
+        @if (!pending.Any())
+        {
+            <div class="card-body text-muted">No pending applications.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Company</th>
+                            <th>Contact</th>
+                            <th>Email</th>
+                            <th>City</th>
+                            <th>Submitted</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in pending)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@a.SubmittedCompanyName</td>
+                                <td>@a.SubmittedContactName</td>
+                                <td><a href="mailto:@a.SubmittedEmail">@a.SubmittedEmail</a></td>
+                                <td>@(a.SubmittedAddress?.City ?? "—")</td>
+                                <td class="text-muted small">@a.SubmittedDate.ToLocalTime().ToString("MMM d, yyyy")</td>
+                                <td>
+                                    <a asp-action="ReviewApplication" asp-route-id="@a.ApplicationID"
+                                       class="btn btn-sm btn-outline-primary">Review</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Approved -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white fw-semibold">
+            Approved (@approved.Count)
+        </div>
+        @if (!approved.Any())
+        {
+            <div class="card-body text-muted">None yet.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Company</th>
+                            <th>Email</th>
+                            <th>Reviewed By</th>
+                            <th>Approved</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in approved)
+                        {
+                            <tr>
+                                <td>@a.SubmittedCompanyName</td>
+                                <td>@a.SubmittedEmail</td>
+                                <td class="text-muted small">@(a.ReviewedBy ?? "—")</td>
+                                <td class="text-muted small">@(a.ReviewedDate?.ToLocalTime().ToString("MMM d, yyyy") ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Rejected -->
+    @if (rejected.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white fw-semibold">
+                Rejected (@rejected.Count)
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Company</th>
+                            <th>Email</th>
+                            <th>Reason</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in rejected)
+                        {
+                            <tr>
+                                <td>@a.SubmittedCompanyName</td>
+                                <td>@a.SubmittedEmail</td>
+                                <td class="text-muted small">@(a.ReviewNotes ?? "—")</td>
+                                <td class="text-muted small">@(a.ReviewedDate?.ToLocalTime().ToString("MMM d, yyyy") ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

@@ -1,0 +1,131 @@
+@model PontelloImport.ViewModels.DealerApplicationViewModel
+@{
+    ViewData["Title"] = "Apply for Dealer Access — Pontello Imports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center mt-4 mb-5">
+    <div class="col-lg-7 col-md-9">
+
+        <div class="mb-4">
+            <h1 style="font-size:1.5rem; font-weight:700; color:#0D3D38;">Apply for Dealer Access</h1>
+            <p class="text-muted" style="font-size:0.95rem;">
+                Fill out the form below and Pontello Imports will review your application.
+                You'll be contacted within 2 business days.
+            </p>
+        </div>
+
+        <div class="card shadow-sm" style="border:1px solid #E5E7EB; border-radius:12px;">
+            <div class="card-body p-4">
+
+                <form asp-action="Apply" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3" role="alert"></div>
+
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.72rem; letter-spacing:0.08em;">
+                        Contact Information
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <label asp-for="FirstName" class="form-label small fw-semibold"></label>
+                            <input asp-for="FirstName" class="form-control" style="border-radius:8px;" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="LastName" class="form-label small fw-semibold"></label>
+                            <input asp-for="LastName" class="form-control" style="border-radius:8px;" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="Email" class="form-label small fw-semibold"></label>
+                            <input asp-for="Email" class="form-control" style="border-radius:8px;"
+                                   placeholder="you@yourcompany.com" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="Phone" class="form-label small fw-semibold"></label>
+                            <input asp-for="Phone" class="form-control" style="border-radius:8px;"
+                                   placeholder="416-555-0100" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.72rem; letter-spacing:0.08em;">
+                        Business Information
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label asp-for="CompanyName" class="form-label small fw-semibold"></label>
+                            <input asp-for="CompanyName" class="form-control" style="border-radius:8px;"
+                                   placeholder="Acme Karting Ltd." />
+                            <span asp-validation-for="CompanyName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="BusinessAddress" class="form-label small fw-semibold"></label>
+                            <input asp-for="BusinessAddress" class="form-control" style="border-radius:8px;"
+                                   placeholder="123 Racing Blvd" />
+                            <span asp-validation-for="BusinessAddress" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-5">
+                            <label asp-for="City" class="form-label small fw-semibold"></label>
+                            <input asp-for="City" class="form-control" style="border-radius:8px;" />
+                            <span asp-validation-for="City" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-4">
+                            <label asp-for="Province" class="form-label small fw-semibold"></label>
+                            <select asp-for="Province" class="form-select" style="border-radius:8px;">
+                                <option value="">— Select —</option>
+                                <option value="AB">Alberta</option>
+                                <option value="BC">British Columbia</option>
+                                <option value="MB">Manitoba</option>
+                                <option value="NB">New Brunswick</option>
+                                <option value="NL">Newfoundland &amp; Labrador</option>
+                                <option value="NS">Nova Scotia</option>
+                                <option value="ON">Ontario</option>
+                                <option value="PE">Prince Edward Island</option>
+                                <option value="QC">Quebec</option>
+                                <option value="SK">Saskatchewan</option>
+                            </select>
+                            <span asp-validation-for="Province" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-3">
+                            <label asp-for="PostalCode" class="form-label small fw-semibold"></label>
+                            <input asp-for="PostalCode" class="form-control" style="border-radius:8px;"
+                                   placeholder="A1B 2C3" />
+                            <span asp-validation-for="PostalCode" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="BusinessNumber" class="form-label small fw-semibold"></label>
+                            <input asp-for="BusinessNumber" class="form-control" style="border-radius:8px;"
+                                   placeholder="123456789 RT 0001 (optional)" />
+                            <span asp-validation-for="BusinessNumber" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Notes" class="form-label small fw-semibold"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" style="border-radius:8px;"
+                                  placeholder="Tell us about your business, product lines of interest, or anything else relevant."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn fw-semibold w-100"
+                            style="background:#0D3D38; color:#ffffff; border-radius:8px; padding:0.7rem;">
+                        Submit Application
+                    </button>
+                </form>
+
+            </div>
+        </div>
+
+        <div class="text-center mt-3" style="font-size:0.875rem; color:#6B7280;">
+            Already have an account?
+            <a asp-area="Identity" asp-page="/Account/Login" style="color:#028090; font-weight:500;">Sign In</a>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

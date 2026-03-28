@@ -1,0 +1,17 @@
+@{
+    ViewData["Title"] = "Access Denied";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="text-center" style="margin-top:5rem;">
+    <div style="font-size:3rem; margin-bottom:1rem;">🔒</div>
+    <h1 style="font-size:1.5rem; font-weight:600; color:#111827;">Access Denied</h1>
+    <p class="text-muted" style="max-width:380px; margin:0.75rem auto 2rem;">
+        You don't have permission to view this page.
+        If you believe this is an error, please contact Pontello Imports.
+    </p>
+    <a asp-controller="Home" asp-action="Index"
+       class="btn btn-outline-secondary me-2">Return Home</a>
+    <a href="mailto:jesse@pontelloimports.com"
+       class="btn" style="background:#0D3D38; color:#fff;">Contact Support</a>
+</div>

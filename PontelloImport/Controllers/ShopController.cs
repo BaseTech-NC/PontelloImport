@@ -1,18 +1,35 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
 using PontelloImport.Models;
+using System.Security.Claims;
 
 namespace PontelloImport.Controllers
 {
+    [Authorize(Roles = "Dealer")]
     public class ShopController : Controller
     {
         private readonly PontelloDbContext _context;
-        private const int HardcodedDealerID = 1;
 
         public ShopController(PontelloDbContext context)
         {
             _context = context;
+        }
+
+        private async Task<int?> GetCurrentDealerIdAsync()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return null;
+            var dealer = await _context.Dealers
+                .FirstOrDefaultAsync(d => d.ApplicationUserID == userId);
+            return dealer?.DealerID;
+        }
+
+        private IActionResult DealerNotFound()
+        {
+            TempData["Error"] = "Dealer account not found. Please contact Pontello Imports.";
+            return RedirectToAction("Index", "Home");
         }
 
         // GET: /Shop
@@ -72,13 +89,16 @@ namespace PontelloImport.Controllers
         {
             if (quantity <= 0) quantity = 1;
 
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
-                .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                .FirstOrDefaultAsync(c => c.DealerID == dealerId.Value);
 
             if (cart == null)
             {
-                cart = new Cart { DealerID = HardcodedDealerID };
+                cart = new Cart { DealerID = dealerId.Value };
                 _context.Carts.Add(cart);
                 await _context.SaveChangesAsync();
             }
@@ -122,11 +142,14 @@ namespace PontelloImport.Controllers
         // GET: /Shop/Cart
         public async Task<IActionResult> Cart()
         {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.ProductVariant)
                         .ThenInclude(pv => pv!.Product)
-                .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                .FirstOrDefaultAsync(c => c.DealerID == dealerId.Value);
 
             return View(cart);
         }
@@ -157,9 +180,12 @@ namespace PontelloImport.Controllers
 
             if (isAjax)
             {
-                var cart = await _context.Carts
-                    .Include(c => c.CartItems).ThenInclude(ci => ci.ProductVariant)
-                    .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                var dealerId2 = await GetCurrentDealerIdAsync();
+                var cart = dealerId2.HasValue
+                    ? await _context.Carts
+                        .Include(c => c.CartItems).ThenInclude(ci => ci.ProductVariant)
+                        .FirstOrDefaultAsync(c => c.DealerID == dealerId2.Value)
+                    : null;
                 var cartTotal = cart?.CartItems.Sum(ci => ci.Quantity * (ci.ProductVariant?.Price ?? 0m)) ?? 0m;
                 var lineTotal = quantity <= 0 ? 0m : Math.Round(quantity * unitPrice, 2);
                 return Json(new { success = true, lineTotal = lineTotal.ToString("F2"), cartTotal = cartTotal.ToString("F2"), removed = quantity <= 0 });
@@ -183,9 +209,12 @@ namespace PontelloImport.Controllers
 
             if (isAjax)
             {
-                var cart = await _context.Carts
-                    .Include(c => c.CartItems).ThenInclude(ci => ci.ProductVariant)
-                    .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                var dealerId2 = await GetCurrentDealerIdAsync();
+                var cart = dealerId2.HasValue
+                    ? await _context.Carts
+                        .Include(c => c.CartItems).ThenInclude(ci => ci.ProductVariant)
+                        .FirstOrDefaultAsync(c => c.DealerID == dealerId2.Value)
+                    : null;
                 var cartTotal = cart?.CartItems.Sum(ci => ci.Quantity * (ci.ProductVariant?.Price ?? 0m)) ?? 0m;
                 return Json(new { success = true, cartTotal = cartTotal.ToString("F2") });
             }
@@ -196,11 +225,14 @@ namespace PontelloImport.Controllers
         // GET: /Shop/Checkout
         public async Task<IActionResult> Checkout()
         {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.ProductVariant)
                         .ThenInclude(pv => pv!.Product)
-                .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                .FirstOrDefaultAsync(c => c.DealerID == dealerId.Value);
 
             if (cart == null || !cart.CartItems.Any())
             {
@@ -211,7 +243,7 @@ namespace PontelloImport.Controllers
             var dealer = await _context.Dealers
                 .Include(d => d.BillingAddress)
                 .Include(d => d.PaymentTerms)
-                .FirstOrDefaultAsync(d => d.DealerID == HardcodedDealerID);
+                .FirstOrDefaultAsync(d => d.DealerID == dealerId.Value);
 
             ViewBag.Dealer = dealer;
 
@@ -245,10 +277,13 @@ namespace PontelloImport.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SubmitOrder()
         {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
             // Guard: must have items before starting a transaction
             var cartCheck = await _context.Carts
                 .Include(c => c.CartItems)
-                .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                .FirstOrDefaultAsync(c => c.DealerID == dealerId.Value);
             if (cartCheck == null || !cartCheck.CartItems.Any())
             {
                 TempData["Error"] = "Your cart is empty.";
@@ -263,7 +298,7 @@ namespace PontelloImport.Controllers
                     .Include(c => c.CartItems)
                         .ThenInclude(ci => ci.ProductVariant)
                             .ThenInclude(pv => pv!.Product)
-                    .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                    .FirstOrDefaultAsync(c => c.DealerID == dealerId.Value);
 
                 if (cart == null || !cart.CartItems.Any())
                 {
@@ -274,7 +309,7 @@ namespace PontelloImport.Controllers
                 // 2. Load dealer with PaymentTerms
                 var dealer = await _context.Dealers
                     .Include(d => d.PaymentTerms)
-                    .FirstOrDefaultAsync(d => d.DealerID == HardcodedDealerID);
+                    .FirstOrDefaultAsync(d => d.DealerID == dealerId.Value);
 
                 if (dealer == null || dealer.PaymentTerms == null)
                 {
@@ -312,7 +347,7 @@ namespace PontelloImport.Controllers
                 var order = new Order
                 {
                     OrderNumber = orderNumber,
-                    DealerID = HardcodedDealerID,
+                    DealerID = dealerId.Value,
                     DealerCompanyName = dealer.CompanyName,
                     SubtotalAmount = subtotal,
                     IsTaxExempt = dealer.IsTaxExempt,
@@ -352,7 +387,7 @@ namespace PontelloImport.Controllers
                     VersionNumber = 0,
                     ChangeType = "Submitted",
                     ChangeDescription = "Order submitted by dealer",
-                    ChangedBy = "dealer@testdealer.com"
+                    ChangedBy = User.Identity?.Name ?? "dealer"
                 });
 
                 // 12. Delete cart (cascade removes CartItems)
@@ -390,9 +425,12 @@ namespace PontelloImport.Controllers
         // GET: /Shop/OrderHistory
         public async Task<IActionResult> OrderHistory()
         {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
             var orders = await _context.Orders
                 .Include(o => o.OrderLines)
-                .Where(o => o.DealerID == HardcodedDealerID)
+                .Where(o => o.DealerID == dealerId.Value)
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
@@ -404,9 +442,12 @@ namespace PontelloImport.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reorder(int orderId)
         {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
             var originalOrder = await _context.Orders
                 .Include(o => o.OrderLines)
-                .FirstOrDefaultAsync(o => o.OrderID == orderId && o.DealerID == HardcodedDealerID);
+                .FirstOrDefaultAsync(o => o.OrderID == orderId && o.DealerID == dealerId.Value);
 
             if (originalOrder == null)
                 return NotFound();
@@ -416,11 +457,11 @@ namespace PontelloImport.Controllers
             {
                 var cart = await _context.Carts
                     .Include(c => c.CartItems)
-                    .FirstOrDefaultAsync(c => c.DealerID == HardcodedDealerID);
+                    .FirstOrDefaultAsync(c => c.DealerID == dealerId.Value);
 
                 if (cart == null)
                 {
-                    cart = new Cart { DealerID = HardcodedDealerID };
+                    cart = new Cart { DealerID = dealerId.Value };
                     _context.Carts.Add(cart);
                     await _context.SaveChangesAsync();
                 }
@@ -477,11 +518,14 @@ namespace PontelloImport.Controllers
         // GET: /Shop/OrderDetail/{id}
         public async Task<IActionResult> OrderDetail(int id)
         {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
             var order = await _context.Orders
                 .Include(o => o.OrderLines)
                 .Include(o => o.OrderHistories.OrderBy(h => h.ChangedDate))
                 .Include(o => o.PaymentTerms)
-                .FirstOrDefaultAsync(o => o.OrderID == id && o.DealerID == HardcodedDealerID);
+                .FirstOrDefaultAsync(o => o.OrderID == id && o.DealerID == dealerId.Value);
 
             if (order == null)
                 return NotFound();
