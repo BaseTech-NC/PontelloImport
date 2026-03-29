@@ -15,6 +15,7 @@
         "Resolved"       => "badge bg-success",
         "AdminModified"  => "badge bg-primary",
         "Shipped"        => "badge text-white",
+        "TrackingAdded"  => "badge bg-info text-dark",
         "ShippingUpdated"=> "badge bg-primary",
         "Invoiced"       => "badge bg-info text-dark",
         "Cancelled"      => "badge bg-danger",
@@ -70,7 +71,20 @@
                                 {
                                     <tr>
                                         <td>@line.ProductTitle</td>
-                                        <td class="text-muted">@(line.VariantTitle ?? "—")</td>
+                                        <td class="text-muted">
+                                            @{
+                                                var adminDisplayVariant = (line.VariantTitle == "Default Title" || line.VariantTitle == "Title")
+                                                    ? "" : line.VariantTitle;
+                                            }
+                                            @if (!string.IsNullOrEmpty(adminDisplayVariant))
+                                            {
+                                                @adminDisplayVariant
+                                            }
+                                            else if (string.IsNullOrEmpty(adminDisplayVariant) && string.IsNullOrEmpty(line.VariantTitle))
+                                            {
+                                                <span>—</span>
+                                            }
+                                        </td>
                                         <td><code class="text-dark">@line.SKU</code></td>
                                         <td class="text-center">@line.Quantity</td>
                                         <td class="text-end">@line.UnitPrice.ToString("C")</td>
@@ -188,25 +202,32 @@
                 <div class="card mb-4">
                     <div class="card-header bg-dark text-white">Ship Order</div>
                     <div class="card-body">
-                        <form method="post" asp-action="AddShipping" asp-route-id="@Model.OrderID">
+                        <!-- Save Tracking Number (does NOT change status) -->
+                        <form method="post" asp-action="SaveTracking" asp-route-id="@Model.OrderID" class="mb-3">
                             @Html.AntiForgeryToken()
                             <div class="row g-3 align-items-end">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">Shipping Amount ($) <span class="text-danger">*</span></label>
-                                    <input type="number" name="ShippingCost" class="form-control"
-                                           step="0.01" min="0" placeholder="0.00" required />
-                                </div>
-                                <div class="col-md-5">
-                                    <label class="form-label">Tracking Number <span class="text-muted fw-normal small">(optional)</span></label>
+                                <div class="col-md-7">
+                                    <label class="form-label fw-semibold">Tracking Number <span class="text-muted fw-normal small">(optional)</span></label>
                                     <input type="text" name="TrackingNumber" class="form-control"
-                                           placeholder="e.g. 1Z999AA10123456784" />
+                                           placeholder="e.g. 1Z999AA10123456784"
+                                           value="@Model.TrackingNumber" />
                                 </div>
                                 <div class="col-auto">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-truck me-1"></i> Add Shipping Amount
+                                    <button type="submit" class="btn btn-outline-primary">
+                                        <i class="bi bi-save me-1"></i> Save Tracking
                                     </button>
                                 </div>
                             </div>
+                            <div class="form-text text-muted mt-1">Saves tracking number only — does not change order status.</div>
+                        </form>
+                        <hr />
+                        <!-- Mark as Shipped (changes status) -->
+                        <form method="post" asp-action="MarkShipped" asp-route-id="@Model.OrderID" class="mb-3">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-primary"
+                                    onclick="return confirm('Mark this order as shipped?')">
+                                <i class="bi bi-truck me-1"></i> Mark as Shipped
+                            </button>
                         </form>
                         <hr />
                         <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
@@ -287,6 +308,7 @@
                                                     "FlaggedIssue"  => "Flagged Issue",
                                                     "Resolved"      => "Resolved",
                                                     "AdminModified" => "Lines Edited",
+                                                    "TrackingAdded" => "Tracking Added",
                                                     "ShippingUpdated" => "Shipping Updated",
                                                     _ => h.ChangeType
                                                 })

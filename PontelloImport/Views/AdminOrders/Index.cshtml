@@ -237,26 +237,24 @@
             <input type="text" name="search" class="orders-search form-control" style="max-width: 280px;"
                    placeholder="Search PO number or dealer…" value="@currentSearch"
                    aria-label="Search orders by PO number or dealer" autocomplete="off" />
-            <label class="text-muted small mb-0" for="orderDateFrom">From:</label>
+            <label class="form-label small mb-0" for="orderDateFrom">From</label>
             <input type="date" id="orderDateFrom" name="dateFrom" class="orders-search form-control" style="max-width: 160px;"
                    value="@dateFrom" />
-            <label class="text-muted small mb-0" for="orderDateTo">To:</label>
+            <label class="form-label small mb-0" for="orderDateTo">To</label>
             <input type="date" id="orderDateTo" name="dateTo" class="orders-search form-control" style="max-width: 160px;"
                    value="@dateTo" />
-            <label for="orderPageSize" class="visually-hidden">Page size</label>
-            <select id="orderPageSize" name="pageSize" class="orders-search form-select" style="max-width: 100px;">
-                @foreach (var sz in new[] { 10, 25, 50 })
-                {
-                    if (pageSize == sz)
-                    {
-                        <option value="@sz" selected>@sz / page</option>
-                    }
-                    else
-                    {
-                        <option value="@sz">@sz / page</option>
-                    }
-                }
-            </select>
+            <div class="d-flex align-items-center gap-2">
+                <label for="pageSize" class="mb-0 text-nowrap small">Show</label>
+                <select id="pageSize" name="pageSize"
+                        class="form-select form-select-sm"
+                        style="width: auto;"
+                        onchange="this.form.submit()">
+                    <option value="10" selected="@(pageSize == 10)">10</option>
+                    <option value="25" selected="@(pageSize == 25)">25</option>
+                    <option value="50" selected="@(pageSize == 50)">50</option>
+                </select>
+                <span class="small text-muted">orders per page</span>
+            </div>
             <button type="submit" class="btn-search">Apply</button>
             @if (!string.IsNullOrEmpty(currentSearch) || !string.IsNullOrEmpty(dateFrom) || !string.IsNullOrEmpty(dateTo))
             {

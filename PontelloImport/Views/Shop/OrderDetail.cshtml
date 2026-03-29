@@ -66,7 +66,20 @@
                             <tr>
                                 <td class="text-muted small">@line.SKU</td>
                                 <td>@line.ProductTitle</td>
-                                <td>@(line.VariantTitle ?? "—")</td>
+                                <td>
+                                    @{
+                                        var displayVariant = (line.VariantTitle == "Default Title" || line.VariantTitle == "Title")
+                                            ? "" : line.VariantTitle;
+                                    }
+                                    @if (!string.IsNullOrEmpty(displayVariant))
+                                    {
+                                        <small class="text-muted">@displayVariant</small>
+                                    }
+                                    else if (string.IsNullOrEmpty(displayVariant) && string.IsNullOrEmpty(line.VariantTitle))
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
                                 <td class="text-center">@line.Quantity</td>
                                 <td class="text-end">$@line.UnitPrice.ToString("F2")</td>
                                 <td class="text-end fw-semibold">$@line.LineTotal.ToString("F2")</td>

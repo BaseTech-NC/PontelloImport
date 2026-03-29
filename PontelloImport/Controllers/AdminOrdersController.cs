@@ -10,10 +10,12 @@ namespace PontelloImport.Controllers
     public class AdminOrdersController : Controller
     {
         private readonly PontelloDbContext _context;
+        private readonly ILogger<AdminOrdersController> _logger;
 
-        public AdminOrdersController(PontelloDbContext context)
+        public AdminOrdersController(PontelloDbContext context, ILogger<AdminOrdersController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         private string CurrentUser => User.Identity?.Name ?? "Admin";
@@ -128,6 +130,7 @@ namespace PontelloImport.Controllers
                     variant.InventoryQuantity = Math.Max(0, variant.InventoryQuantity - line.Quantity);
             }
 
+            _logger.LogInformation("Inventory deducted for order {OrderId}: {Count} lines", id, order.OrderLines.Count);
             await _context.SaveChangesAsync();
             TempData["Success"] = "Order confirmed.";
             return RedirectToAction(nameof(Details), new { id });
@@ -336,36 +339,63 @@ namespace PontelloImport.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // POST: /AdminOrders/AddShipping/5
+        // POST: /AdminOrders/SaveTracking/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddShipping(int id, decimal ShippingCost, string? TrackingNumber)
+        public async Task<IActionResult> SaveTracking(int id, string? TrackingNumber)
         {
             var order = await _context.Orders.FindAsync(id);
             if (order == null) return NotFound();
 
             if (order.Status != "Confirmed")
             {
-                TempData["Error"] = $"Cannot add shipping to an order with status '{order.Status}'.";
+                TempData["Error"] = $"Cannot save tracking on an order with status '{order.Status}'.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            order.ShippingCost = ShippingCost;
             order.TrackingNumber = TrackingNumber;
-            order.TotalAmount = order.SubtotalAmount + ShippingCost + (order.TaxAmount ?? 0m);
-            order.Status = "Shipped";
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID = id,
+                VersionNumber = order.VersionNumber,
+                ChangeType = "TrackingAdded",
+                ChangeDescription = $"Tracking number added: {TrackingNumber}",
+                ChangedBy = CurrentUser
+            });
 
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Tracking number saved. Click Mark as Shipped when ready to ship.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: /AdminOrders/MarkShipped/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkShipped(int id)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            if (order.Status != "Confirmed")
+            {
+                TempData["Error"] = $"Cannot mark shipped an order with status '{order.Status}'.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            order.Status = "Shipped";
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,
                 VersionNumber = order.VersionNumber,
                 ChangeType = "Shipped",
-                ChangeDescription = string.IsNullOrWhiteSpace(TrackingNumber) ? "Shipping added" : $"Tracking: {TrackingNumber}",
+                ChangeDescription = string.IsNullOrEmpty(order.TrackingNumber)
+                    ? "Order marked as shipped"
+                    : $"Shipped. Tracking: {order.TrackingNumber}",
                 ChangedBy = CurrentUser
             });
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = "Shipment recorded.";
+            TempData["Success"] = "Order marked as shipped.";
             return RedirectToAction(nameof(Details), new { id });
         }
 

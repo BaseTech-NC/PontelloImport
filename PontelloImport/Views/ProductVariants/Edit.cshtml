@@ -315,13 +315,20 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-6 mb-3">
+                        <div class="col-4 mb-3">
                             <label asp-for="InventoryQuantity" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
                             <input asp-for="InventoryQuantity" type="number" min="0"
                                    class="form-control" placeholder="0" />
                             <span asp-validation-for="InventoryQuantity" class="text-danger small"></span>
                         </div>
-                        <div class="col-6 mb-3">
+                        <div class="col-4 mb-3">
+                            <label asp-for="StockPolicy" class="form-label">Backorders</label>
+                            <select asp-for="StockPolicy" class="form-select">
+                                <option value="deny">Deny (block order when out of stock)</option>
+                                <option value="allow">Allow (permit backorders)</option>
+                            </select>
+                        </div>
+                        <div class="col-4 mb-3">
                             <label asp-for="Weight" class="form-label">
                                 Weight <span class="optional-label">(grams)</span>
                             </label>
@@ -420,6 +427,7 @@
                                 <th style="min-width:100px;">Price <span class="text-danger">*</span></th>
                                 <th style="min-width:100px;">Your Cost</th>
                                 <th style="min-width:80px;">Stock Qty</th>
+                                <th style="min-width:130px;">Backorders</th>
                                 <th style="min-width:110px;">Barcode</th>
                                 <th style="min-width:70px;">Default</th>
                                 <th></th>
@@ -470,6 +478,13 @@
                                                value="@row.InventoryQuantity"
                                                class="form-control form-control-sm" min="0"
                                                aria-label="Stock quantity for variant @(i + 1)" />
+                                    </td>
+                                    <td>
+                                        <select name="Variants[@i].StockPolicy" class="form-select form-select-sm"
+                                                aria-label="Backorder policy for variant @(i + 1)">
+                                            <option value="deny" selected="@(row.StockPolicy != "allow")">Deny</option>
+                                            <option value="allow" selected="@(row.StockPolicy == "allow")">Allow</option>
+                                        </select>
                                     </td>
                                     <td>
                                         <input type="text" name="Variants[@i].Barcode"
@@ -786,6 +801,10 @@
             + '</td>'
             + '<td><input type="number" name="Variants[' + idx + '].InventoryQuantity" value="0" '
             +   'class="form-control form-control-sm" min="0" aria-label="Stock quantity for variant ' + (idx + 1) + '" /></td>'
+            + '<td><select name="Variants[' + idx + '].StockPolicy" class="form-select form-select-sm" aria-label="Backorder policy for variant ' + (idx + 1) + '">'
+            +   '<option value="deny" selected>Deny</option>'
+            +   '<option value="allow">Allow</option>'
+            + '</select></td>'
             + '<td><input type="text" name="Variants[' + idx + '].Barcode" value="" '
             +   'class="form-control form-control-sm" placeholder="Barcode" pattern="[0-9]{8,14}" title="8–14 digits" '
             +   'aria-label="Barcode for variant ' + (idx + 1) + '" /></td>'

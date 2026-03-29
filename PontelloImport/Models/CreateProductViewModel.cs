@@ -50,6 +50,8 @@ namespace PontelloImport.Models
         [Range(0, int.MaxValue, ErrorMessage = "Inventory quantity cannot be negative.")]
         public int InventoryQuantity { get; set; } = 0;
 
+        public string StockPolicy { get; set; } = "deny";
+
         [MaxLength(100)]
         public string? Barcode { get; set; }  // Optional UPC/EAN — simple path only
 
@@ -94,6 +96,8 @@ namespace PontelloImport.Models
         public decimal? CostPrice { get; set; }
 
         public int Qty { get; set; }
+
+        public string StockPolicy { get; set; } = "deny";
 
         [MaxLength(100)]
         public string? Option1Value { get; set; }
@@ -153,6 +157,8 @@ namespace PontelloImport.Models
 
         public int InventoryQuantity { get; set; }
 
+        public string StockPolicy { get; set; } = "deny";
+
         public decimal? Weight { get; set; }
 
         [MaxLength(100)]
@@ -195,6 +201,8 @@ namespace PontelloImport.Models
         public decimal? CostPrice { get; set; }
 
         public int InventoryQuantity { get; set; }
+
+        public string StockPolicy { get; set; } = "deny";
 
         [MaxLength(100)]
         public string? Barcode { get; set; }

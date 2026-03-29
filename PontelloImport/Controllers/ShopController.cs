@@ -103,6 +103,23 @@ namespace PontelloImport.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            // Check stock policy before adding
+            var variant = await _context.ProductVariants.FindAsync(productVariantId);
+            if (variant == null)
+            {
+                TempData["Error"] = "Product variant not found.";
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return Redirect(returnUrl);
+                return RedirectToAction(nameof(Cart));
+            }
+            if (variant.StockPolicy == "deny" && variant.InventoryQuantity <= 0)
+            {
+                TempData["Error"] = "This item is currently out of stock and cannot be ordered.";
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return Redirect(returnUrl);
+                return RedirectToAction(nameof(Cart));
+            }
+
             var existingItem = cart.CartItems.FirstOrDefault(ci => ci.ProductVariantID == productVariantId);
             if (existingItem != null)
             {
@@ -303,6 +320,17 @@ namespace PontelloImport.Controllers
                 if (cart == null || !cart.CartItems.Any())
                 {
                     TempData["Error"] = "Your cart is empty.";
+                    return RedirectToAction(nameof(Cart));
+                }
+
+                // 1b. Block items with deny policy and zero stock
+                var blockedItems = cart.CartItems
+                    .Where(ci => ci.ProductVariant!.StockPolicy == "deny" && ci.ProductVariant.InventoryQuantity <= 0)
+                    .ToList();
+                if (blockedItems.Any())
+                {
+                    var names = string.Join(", ", blockedItems.Select(ci => ci.ProductVariant!.Product!.Title));
+                    TempData["Error"] = $"The following items are out of stock and cannot be ordered: {names}. Please remove them from your cart.";
                     return RedirectToAction(nameof(Cart));
                 }
 

@@ -15,6 +15,13 @@ namespace PontelloImport.Data
 
                 // Schema is managed by EF migrations (Migrate() called in Program.cs)
 
+                // Ensure OrderSequence row exists (not in HasData to avoid migration resets)
+                if (!context.OrderSequence.Any())
+                {
+                    context.OrderSequence.Add(new OrderSequence { Id = 1, LastUsedNumber = 0 });
+                    context.SaveChanges();
+                }
+
                 // Guard: already seeded
                 if (context.Vendors.Any()) return;
 

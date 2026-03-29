@@ -159,9 +159,6 @@ namespace PontelloImport.Data
 				.HasForeignKey(da => da.ApprovedDealerID)
 				.OnDelete(DeleteBehavior.Restrict);
 
-			modelBuilder.Entity<OrderSequence>().HasData(
-				new OrderSequence { Id = 1, LastUsedNumber = 0 }
-			);
 			}
 
 		// ===== AUTOMATIC AUDIT TRACKING =====

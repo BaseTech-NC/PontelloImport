@@ -500,6 +500,16 @@ namespace PontelloImport.Controllers
                 }
             }
 
+            // For draft saves, only ProductTitle is required — clear all other errors
+            if (saveAction == "draft")
+            {
+                var keysToRemove = ModelState.Keys
+                    .Where(k => k != "ProductTitle")
+                    .ToList();
+                foreach (var key in keysToRemove)
+                    ModelState.Remove(key);
+            }
+
             if (!ModelState.IsValid)
             {
                 await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
@@ -539,6 +549,7 @@ namespace PontelloImport.Controllers
                         CostPrice         = row.CostPrice,
                         InventoryQuantity = row.Qty,
                         InventoryPolicy   = "deny",
+                        StockPolicy       = row.StockPolicy ?? "deny",
                         RequiresShipping  = true,
                         IsTaxable         = true,
                         Status            = productStatus,
@@ -570,6 +581,7 @@ namespace PontelloImport.Controllers
                     CostPrice         = model.CostPrice,
                     InventoryQuantity = model.InventoryQuantity,
                     InventoryPolicy   = "deny",
+                    StockPolicy       = model.StockPolicy ?? "deny",
                     RequiresShipping  = true,
                     IsTaxable         = true,
                     Status            = productStatus,
@@ -658,6 +670,7 @@ namespace PontelloImport.Controllers
                 vm.CostPrice         = v.CostPrice;
                 vm.CompareAtPrice    = v.CompareAtPrice;
                 vm.InventoryQuantity = v.InventoryQuantity;
+                vm.StockPolicy       = v.StockPolicy;
                 vm.Weight            = v.Weight;
                 vm.Barcode           = v.Barcode;
                 // Expose as simple option only when name is not the "Title" sentinel
@@ -679,6 +692,7 @@ namespace PontelloImport.Controllers
                     Price             = v.Price,
                     CostPrice         = v.CostPrice,
                     InventoryQuantity = v.InventoryQuantity,
+                    StockPolicy       = v.StockPolicy,
                     Barcode           = v.Barcode,
                     Option1Value      = v.Option1Value,
                     Option2Value      = v.Option2Value,
@@ -918,6 +932,7 @@ namespace PontelloImport.Controllers
                     variant.CostPrice         = viewModel.CostPrice;
                     variant.CompareAtPrice    = viewModel.CompareAtPrice;
                     variant.InventoryQuantity = viewModel.InventoryQuantity;
+                    variant.StockPolicy       = viewModel.StockPolicy ?? "deny";
                     variant.Weight            = viewModel.Weight;
                     variant.Barcode           = viewModel.Barcode;
                     variant.Status            = viewModel.Status;
@@ -951,6 +966,7 @@ namespace PontelloImport.Controllers
                         variant.Price             = row.Price;
                         variant.CostPrice         = row.CostPrice;
                         variant.InventoryQuantity = row.InventoryQuantity;
+                        variant.StockPolicy       = row.StockPolicy ?? "deny";
                         variant.Barcode           = row.Barcode;
                         variant.Option1Name       = viewModel.Option1Name;
                         variant.Option2Name       = viewModel.Option2Name;
@@ -982,6 +998,7 @@ namespace PontelloImport.Controllers
                         IsDefault         = false,
                         Status            = viewModel.Status,
                         InventoryPolicy   = "deny",
+                        StockPolicy       = row.StockPolicy ?? "deny",
                         RequiresShipping  = true,
                         IsTaxable         = true,
                         CreatedDate       = DateTime.UtcNow,

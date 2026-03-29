@@ -31,6 +31,11 @@ namespace PontelloImport.Models
         public string InventoryPolicy { get; set; } = "deny";
         // Values: "deny" / "continue" / "special_order"
 
+        [MaxLength(20)]
+        public string StockPolicy { get; set; } = "deny";
+        // "deny" = do not allow order if stock <= 0
+        // "allow" = allow backorders (stock can go negative)
+
         [Column(TypeName = "decimal(10,2)")]
         public decimal? Weight { get; set; }
 

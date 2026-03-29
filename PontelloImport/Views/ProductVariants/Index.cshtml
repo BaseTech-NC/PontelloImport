@@ -265,8 +265,9 @@
         <input type="hidden" name="sortDir" value="@currentSortDir" />
 
         <div class="d-flex gap-2 flex-wrap align-items-center">
-            <input type="text" name="search" class="cat-input form-control" style="max-width:220px;"
-                   placeholder="Search title or SKU…" value="@currentSearch" aria-label="Search products" autocomplete="off" />
+            <label for="variantSearch" class="form-label mb-0 text-nowrap">Search</label>
+            <input type="text" id="variantSearch" name="search" class="cat-input form-control" style="max-width:220px;"
+                   placeholder="Search title or SKU…" value="@currentSearch" autocomplete="off" />
             <label for="catFilter" class="visually-hidden">Filter by category</label>
             <select name="categoryId" id="catFilter" class="cat-input form-select" style="max-width:160px;">
                 <option value="">All Categories</option>
@@ -300,7 +301,7 @@
                     }
                 }
             </select>
-            <label for="stockFilter" class="visually-hidden">Filter by stock status</label>
+            <label for="stockFilter" class="form-label mb-0 text-nowrap">Stock</label>
             <select name="stockStatus" id="stockFilter" class="cat-input form-select" style="max-width:140px;">
                 <option value="">All Stock</option>
                 <option value="instock"    selected="@(currentStockStatus == "instock")">In Stock (&gt;5)</option>
