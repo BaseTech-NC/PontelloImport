@@ -8,14 +8,13 @@ using PontelloImport.Models;
 namespace PontelloImport.Controllers
 {
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public class AdminDealersController : Controller
+    public class AdminDealersController : AdminBaseController
     {
-        private readonly PontelloDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public AdminDealersController(PontelloDbContext context, UserManager<ApplicationUser> userManager)
+            : base(context)
         {
-            _context = context;
             _userManager = userManager;
         }
 
@@ -147,6 +146,173 @@ namespace PontelloImport.Controllers
             await _context.SaveChangesAsync();
             TempData["Success"] = "Application rejected.";
             return RedirectToAction(nameof(Index));
+        }
+
+        // ── Dealer Management ────────────────────────────────────────────────
+
+        // GET: /AdminDealers/Dealers
+        [HttpGet]
+        public async Task<IActionResult> Dealers(string? search, string? status)
+        {
+            var dealers = await _context.Dealers
+                .Include(d => d.BillingAddress)
+                .Include(d => d.PaymentTerms)
+                .Include(d => d.Orders)
+                .OrderBy(d => d.CompanyName)
+                .ToListAsync();
+
+            var userIds = dealers
+                .Where(d => d.ApplicationUserID != null)
+                .Select(d => d.ApplicationUserID!)
+                .ToList();
+
+            var users = await _userManager.Users
+                .Where(u => userIds.Contains(u.Id))
+                .ToListAsync();
+
+            var userDict = users.ToDictionary(u => u.Id);
+
+            bool IsActive(Dealer d)
+            {
+                if (d.ApplicationUserID == null || !userDict.ContainsKey(d.ApplicationUserID))
+                    return true;
+                var u = userDict[d.ApplicationUserID];
+                return !(u.LockoutEnabled && u.LockoutEnd.HasValue
+                         && u.LockoutEnd.Value > DateTimeOffset.UtcNow);
+            }
+
+            var allItems = dealers.Select(d => new DealerSummaryViewModel
+            {
+                Dealer     = d,
+                User       = d.ApplicationUserID != null && userDict.ContainsKey(d.ApplicationUserID)
+                                 ? userDict[d.ApplicationUserID] : null,
+                IsActive   = IsActive(d),
+                OrderCount = d.Orders.Count
+            }).ToList();
+
+            ViewData["TotalDealers"]     = allItems.Count;
+            ViewData["ActiveDealers"]    = allItems.Count(i => i.IsActive);
+            ViewData["SuspendedDealers"] = allItems.Count(i => !i.IsActive);
+            ViewData["Search"]           = search;
+            ViewData["Status"]           = status;
+
+            var filtered = allItems.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.Trim().ToLower();
+                filtered = filtered.Where(i =>
+                    i.Dealer.CompanyName.ToLower().Contains(q) ||
+                    (i.User?.Email?.ToLower().Contains(q) ?? false));
+            }
+
+            if (status == "active")
+                filtered = filtered.Where(i => i.IsActive);
+            else if (status == "suspended")
+                filtered = filtered.Where(i => !i.IsActive);
+
+            return View(filtered.ToList());
+        }
+
+        // GET: /AdminDealers/DealerProfile/5
+        [HttpGet]
+        public async Task<IActionResult> DealerProfile(int id)
+        {
+            var dealer = await _context.Dealers
+                .Include(d => d.BillingAddress)
+                .Include(d => d.PaymentTerms)
+                .Include(d => d.Orders)
+                    .ThenInclude(o => o.OrderLines)
+                .FirstOrDefaultAsync(d => d.DealerID == id);
+
+            if (dealer == null) return NotFound();
+
+            ApplicationUser? user = null;
+            if (dealer.ApplicationUserID != null)
+                user = await _userManager.FindByIdAsync(dealer.ApplicationUserID);
+
+            bool isActive = user == null ||
+                !(user.LockoutEnabled && user.LockoutEnd.HasValue
+                  && user.LockoutEnd.Value > DateTimeOffset.UtcNow);
+
+            var allPaymentTerms = await _context.PaymentTerms
+                .OrderBy(t => t.TermCode)
+                .ToListAsync();
+
+            var vm = new DealerProfileViewModel
+            {
+                Dealer          = dealer,
+                User            = user,
+                IsActive        = isActive,
+                RecentOrders    = dealer.Orders.OrderByDescending(o => o.CreatedDate).Take(10).ToList(),
+                TotalOrderCount = dealer.Orders.Count,
+                TotalOrderValue = dealer.Orders.Sum(o => o.TotalAmount),
+                AllPaymentTerms = allPaymentTerms
+            };
+
+            return View(vm);
+        }
+
+        // POST: /AdminDealers/SuspendDealer/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SuspendDealer(int id)
+        {
+            var dealer = await _context.Dealers.FindAsync(id);
+            if (dealer == null) return NotFound();
+
+            if (dealer.ApplicationUserID != null)
+            {
+                var user = await _userManager.FindByIdAsync(dealer.ApplicationUserID);
+                if (user != null)
+                {
+                    await _userManager.SetLockoutEnabledAsync(user, true);
+                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+                }
+            }
+
+            TempData["Success"] = $"{dealer.CompanyName} account suspended.";
+            return RedirectToAction(nameof(Dealers));
+        }
+
+        // POST: /AdminDealers/ReinstateDealer/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReinstateDealer(int id)
+        {
+            var dealer = await _context.Dealers.FindAsync(id);
+            if (dealer == null) return NotFound();
+
+            if (dealer.ApplicationUserID != null)
+            {
+                var user = await _userManager.FindByIdAsync(dealer.ApplicationUserID);
+                if (user != null)
+                {
+                    await _userManager.SetLockoutEndDateAsync(user, null);
+                    await _userManager.SetLockoutEnabledAsync(user, false);
+                }
+            }
+
+            TempData["Success"] = $"{dealer.CompanyName} account reinstated.";
+            return RedirectToAction(nameof(Dealers));
+        }
+
+        // POST: /AdminDealers/UpdateDealerTerms/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateDealerTerms(int id, int paymentTermsId, bool isTaxExempt)
+        {
+            var dealer = await _context.Dealers.FindAsync(id);
+            if (dealer == null) return NotFound();
+
+            dealer.PaymentTermsID = paymentTermsId;
+            dealer.IsTaxExempt    = isTaxExempt;
+            dealer.ModifiedDate   = DateTime.UtcNow;
+            dealer.ModifiedBy     = User.Identity?.Name;
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Dealer terms updated.";
+            return RedirectToAction(nameof(DealerProfile), new { id });
         }
     }
 }

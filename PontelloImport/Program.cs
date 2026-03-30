@@ -89,7 +89,7 @@ try
         appDb.Database.Migrate();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        PontelloDbInitializer.Seed(app);
+        await PontelloDbInitializer.Seed(app);
         await SeedAuthAsync(userManager, roleManager, db);
     }
 }

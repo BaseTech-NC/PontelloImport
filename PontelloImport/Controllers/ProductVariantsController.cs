@@ -8,13 +8,11 @@ using PontelloImport.Models;
 namespace PontelloImport.Controllers
 {
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public class ProductVariantsController : Controller
+    public class ProductVariantsController : AdminBaseController
     {
-        private readonly PontelloDbContext _context;
-
         public ProductVariantsController(PontelloDbContext context)
+            : base(context)
         {
-            _context = context;
         }
 
         // GET: ProductVariants

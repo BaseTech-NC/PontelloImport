@@ -214,6 +214,24 @@
 
 <div class="container-fluid mt-4" style="max-width: 1200px;">
 
+    <!-- Pending attention banner -->
+    @if ((int)(ViewData["TotalPendingCount"] ?? 0) > 0)
+    {
+        var s = (int)(ViewData["SubmittedOrderCount"] ?? 0);
+        var a = (int)(ViewData["ActionRequiredCount"] ?? 0);
+        <div class="alert alert-warning d-flex align-items-center gap-3 mb-4" role="alert">
+            <span style="font-size:1.4rem">🔔</span>
+            <div>
+                <strong>Attention needed:</strong>
+                @if (s > 0) { <span>@s order@(s == 1 ? "" : "s") waiting for review</span> }
+                @if (s > 0 && a > 0) { <span> · </span> }
+                @if (a > 0) { <span>@a order@(a == 1 ? "" : "s") require action</span> }
+            </div>
+            <a asp-action="Index" asp-route-status="Submitted"
+               class="btn btn-sm btn-warning ms-auto">Review Now</a>
+        </div>
+    }
+
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>

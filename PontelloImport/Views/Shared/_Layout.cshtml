@@ -78,7 +78,19 @@
                     {
                         <ul class="navbar-nav flex-grow-1">
                             <li class="nav-item"><a class="nav-link" asp-controller="Shop" asp-action="Index">Shop</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-controller="Shop" asp-action="OrderHistory">Order History</a></li>
+                            <li class="nav-item">
+                                @{
+                                    var unviewedCount = (int)(ViewData["UnviewedOrderCount"] ?? 0);
+                                }
+                                <a class="nav-link d-flex align-items-center gap-2"
+                                   asp-controller="Shop" asp-action="OrderHistory">
+                                    Order History
+                                    @if (unviewedCount > 0)
+                                    {
+                                        <span class="badge rounded-pill bg-success">@unviewedCount</span>
+                                    }
+                                </a>
+                            </li>
                         </ul>
                         <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post" class="d-inline">
                             @Html.AntiForgeryToken()

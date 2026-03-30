@@ -55,6 +55,8 @@ namespace PontelloImport.Models
         public int? PreviousOrderID { get; set; }
         public Order? PreviousOrder { get; set; }
 
+        public bool DealerHasViewed { get; set; } = false;
+
         public string? CreatedBy { get; set; }
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         public string? ModifiedBy { get; set; }

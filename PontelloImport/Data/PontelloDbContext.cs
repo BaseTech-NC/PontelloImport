@@ -85,7 +85,7 @@ namespace PontelloImport.Data
 			modelBuilder.Entity<PaymentTerms>().HasIndex(pt => pt.TermName).IsUnique();
 			modelBuilder.Entity<PaymentTerms>().HasIndex(pt => pt.TermCode).IsUnique();
 
-			modelBuilder.Entity<Order>().HasIndex(o => o.OrderNumber);
+			modelBuilder.Entity<Order>().HasIndex(o => o.OrderNumber).IsUnique();
 
 			modelBuilder.Entity<Cart>().HasIndex(c => c.DealerID).IsUnique();
 

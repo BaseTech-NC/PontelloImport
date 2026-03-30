@@ -26,6 +26,12 @@ namespace PontelloImport.Controllers
             return dealer?.DealerID;
         }
 
+        private async Task SetUnviewedOrderCount(int dealerId)
+        {
+            ViewData["UnviewedOrderCount"] = await _context.Orders
+                .CountAsync(o => o.DealerID == dealerId && !o.DealerHasViewed);
+        }
+
         private IActionResult DealerNotFound()
         {
             TempData["Error"] = "Dealer account not found. Please contact Pontello Imports.";
@@ -36,6 +42,10 @@ namespace PontelloImport.Controllers
         public async Task<IActionResult> Index(string? search, int? categoryId)
         {
             search = search?.Trim();
+
+            var dealerIdForCount = await GetCurrentDealerIdAsync();
+            if (dealerIdForCount.HasValue)
+                await SetUnviewedOrderCount(dealerIdForCount.Value);
 
             var categories = await _context.ProductCategories
                 .Where(c => c.IsActive)
@@ -161,6 +171,8 @@ namespace PontelloImport.Controllers
         {
             var dealerId = await GetCurrentDealerIdAsync();
             if (dealerId == null) return DealerNotFound();
+
+            await SetUnviewedOrderCount(dealerId.Value);
 
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
@@ -385,6 +397,7 @@ namespace PontelloImport.Controllers
                     PaymentTermsID = dealer.PaymentTermsID,
                     PaymentDueDate = DateTime.UtcNow.AddDays(dealer.PaymentTerms.DaysUntilDue),
                     Status = "Submitted",
+                    DealerHasViewed = true,
                     PreviousOrderID = previousOrderId
                 };
                 _context.Orders.Add(order);
@@ -455,6 +468,8 @@ namespace PontelloImport.Controllers
         {
             var dealerId = await GetCurrentDealerIdAsync();
             if (dealerId == null) return DealerNotFound();
+
+            await SetUnviewedOrderCount(dealerId.Value);
 
             var orders = await _context.Orders
                 .Include(o => o.OrderLines)
@@ -565,6 +580,14 @@ namespace PontelloImport.Controllers
                     .OrderByDescending(h => h.ChangedDate)
                     .FirstOrDefault();
                 ViewData["FlaggedIssueHistory"] = flaggedIssue;
+            }
+
+            await SetUnviewedOrderCount(dealerId.Value);
+
+            if (!order.DealerHasViewed)
+            {
+                order.DealerHasViewed = true;
+                await _context.SaveChangesAsync();
             }
 
             return View(order);

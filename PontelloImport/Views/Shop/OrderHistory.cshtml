@@ -34,7 +34,13 @@ else
                 @foreach (var order in Model)
                 {
                     <tr>
-                        <td class="fw-semibold">@order.PONumber</td>
+                        <td class="fw-semibold">
+                            @order.PONumber
+                            @if (!order.DealerHasViewed)
+                            {
+                                <span class="badge bg-success ms-1">New</span>
+                            }
+                        </td>
                         <td>@order.OrderDate.ToLocalTime().ToString("MMM d, yyyy")</td>
                         <td>@StatusBadge(order.Status)</td>
                         <td class="text-center">@order.OrderLines.Count</td>

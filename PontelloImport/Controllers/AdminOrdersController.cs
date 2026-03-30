@@ -7,14 +7,13 @@ using PontelloImport.Models;
 namespace PontelloImport.Controllers
 {
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public class AdminOrdersController : Controller
+    public class AdminOrdersController : AdminBaseController
     {
-        private readonly PontelloDbContext _context;
         private readonly ILogger<AdminOrdersController> _logger;
 
         public AdminOrdersController(PontelloDbContext context, ILogger<AdminOrdersController> logger)
+            : base(context)
         {
-            _context = context;
             _logger = logger;
         }
 
@@ -112,6 +111,7 @@ namespace PontelloImport.Controllers
             }
 
             order.Status = "Confirmed";
+            order.DealerHasViewed = false;
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,
@@ -157,6 +157,7 @@ namespace PontelloImport.Controllers
             }
 
             order.Status = "ActionRequired";
+            order.DealerHasViewed = false;
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,
@@ -189,6 +190,7 @@ namespace PontelloImport.Controllers
 
             var wasConfirmed = order.Status == "Confirmed";
             order.Status = "Cancelled";
+            order.DealerHasViewed = false;
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,
@@ -234,6 +236,7 @@ namespace PontelloImport.Controllers
             }
 
             order.Status = "Confirmed";
+            order.DealerHasViewed = false;
 
             foreach (var line in order.OrderLines)
             {
@@ -383,6 +386,7 @@ namespace PontelloImport.Controllers
             }
 
             order.Status = "Shipped";
+            order.DealerHasViewed = false;
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,
@@ -523,6 +527,7 @@ namespace PontelloImport.Controllers
             }
 
             order.Status = "Invoiced";
+            order.DealerHasViewed = false;
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,

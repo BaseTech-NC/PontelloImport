@@ -3,6 +3,9 @@
 *@
 @{
     string controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var pending         = (int)(ViewData["TotalPendingCount"]    ?? 0);
+    var submitted       = (int)(ViewData["SubmittedOrderCount"]  ?? 0);
+    var actionRequired  = (int)(ViewData["ActionRequiredCount"]  ?? 0);
 }
 <div class="h-100 ">
     <div class="sidebar-logo p-3">
@@ -37,11 +40,27 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link @(controller == "AdminOrders" ? "active" : "text-dark")"
+                <a class="nav-link @(controller == "AdminDealers" ? "active" : "text-dark")"
+                   asp-area=""
+                   asp-controller="AdminDealers"
+                   asp-action="Dealers">
+                    <i class="bi bi-people me-2"></i> Dealers
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link @(controller == "AdminOrders" ? "active" : "text-dark") d-flex align-items-center gap-2"
                    asp-area=""
                    asp-controller="AdminOrders"
                    asp-action="Index">
                     <i class="bi bi-receipt me-2"></i> Orders
+                    @if (pending > 0)
+                    {
+                        <span class="badge rounded-pill bg-danger ms-auto"
+                              title="@submitted Submitted, @actionRequired Action Required">
+                            @pending
+                        </span>
+                    }
                 </a>
             </li>
 

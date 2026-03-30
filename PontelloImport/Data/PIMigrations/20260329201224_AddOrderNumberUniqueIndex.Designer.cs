@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PontelloImport.Data;
 
@@ -10,9 +11,11 @@ using PontelloImport.Data;
 namespace PontelloImport.Data.PIMigrations
 {
     [DbContext(typeof(PontelloDbContext))]
-    partial class PontelloDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260329201224_AddOrderNumberUniqueIndex")]
+    partial class AddOrderNumberUniqueIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.12");
@@ -338,9 +341,6 @@ namespace PontelloImport.Data.PIMigrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
-
-                    b.Property<bool>("DealerHasViewed")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int>("DealerID")
                         .HasColumnType("INTEGER");

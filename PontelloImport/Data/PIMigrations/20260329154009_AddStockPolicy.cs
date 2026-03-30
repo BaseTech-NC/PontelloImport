@@ -21,7 +21,7 @@ namespace PontelloImport.Data.PIMigrations
                 type: "TEXT",
                 maxLength: 20,
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "deny");
         }
 
         /// <inheritdoc />

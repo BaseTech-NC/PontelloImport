@@ -1,0 +1,222 @@
+@model PontelloImport.Models.DealerProfileViewModel
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = Model.Dealer.CompanyName;
+    var dealer = Model.Dealer;
+    var user   = Model.User;
+    var addr   = dealer.BillingAddress;
+}
+
+<div class="container-fluid mt-4">
+
+    <!-- Top bar -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a asp-action="Dealers" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dealers
+            </a>
+            <h1 class="h4 mb-0 fw-semibold">@dealer.CompanyName</h1>
+            @if (Model.IsActive)
+            {
+                <span class="badge bg-success">Active</span>
+            }
+            else
+            {
+                <span class="badge bg-danger">Suspended</span>
+            }
+        </div>
+        <div>
+            @if (Model.IsActive)
+            {
+                <form asp-action="SuspendDealer" asp-route-id="@dealer.DealerID"
+                      method="post" class="d-inline"
+                      onsubmit="return confirm('Suspend this dealer account?')">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-danger">Suspend Account</button>
+                </form>
+            }
+            else
+            {
+                <form asp-action="ReinstateDealer" asp-route-id="@dealer.DealerID"
+                      method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-success">Reinstate Account</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Left column: Dealer Info -->
+        <div class="col-lg-5">
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-semibold">Dealer Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0" style="row-gap:0.5rem;">
+                        <dt class="col-5 text-muted small fw-normal">Company</dt>
+                        <dd class="col-7 mb-0 fw-medium">@dealer.CompanyName</dd>
+
+                        <dt class="col-5 text-muted small fw-normal">Contact</dt>
+                        <dd class="col-7 mb-0">@(user?.FirstName) @(user?.LastName)</dd>
+
+                        <dt class="col-5 text-muted small fw-normal">Email</dt>
+                        <dd class="col-7 mb-0"><a href="mailto:@user?.Email" class="text-dark">@(user?.Email ?? "—")</a></dd>
+
+                        <dt class="col-5 text-muted small fw-normal">Phone</dt>
+                        <dd class="col-7 mb-0">@(dealer.ContactPhone ?? "—")</dd>
+
+                        <dt class="col-5 text-muted small fw-normal">Address</dt>
+                        <dd class="col-7 mb-0">
+                            @if (addr != null)
+                            {
+                                <span>@addr.Street, @addr.City, @addr.Province @addr.PostalCode</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </dd>
+
+                        <dt class="col-5 text-muted small fw-normal">Payment Terms</dt>
+                        <dd class="col-7 mb-0">@(dealer.PaymentTerms?.TermName ?? "—")</dd>
+
+                        <dt class="col-5 text-muted small fw-normal">Tax Exempt</dt>
+                        <dd class="col-7 mb-0">@(dealer.IsTaxExempt ? "Yes" : "No")</dd>
+
+                        <dt class="col-5 text-muted small fw-normal">Member Since</dt>
+                        <dd class="col-7 mb-0">@dealer.CreatedDate.ToString("MMM d, yyyy")</dd>
+
+                        @if (!string.IsNullOrEmpty(dealer.BusinessNumber))
+                        {
+                            <dt class="col-5 text-muted small fw-normal">Business #</dt>
+                            <dd class="col-7 mb-0">@dealer.BusinessNumber</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Edit Terms -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-semibold">Edit Terms</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="UpdateDealerTerms" asp-route-id="@dealer.DealerID" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label small">Payment Terms</label>
+                            <select name="paymentTermsId" class="form-select form-select-sm">
+                                @foreach (var term in Model.AllPaymentTerms)
+                                {
+                                    <option value="@term.PaymentTermsID"
+                                            selected="@(term.PaymentTermsID == dealer.PaymentTermsID)">
+                                        @term.TermName
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="isTaxExempt"
+                                   name="isTaxExempt" value="true"
+                                   @(dealer.IsTaxExempt ? "checked" : "") />
+                            <label class="form-check-label small" for="isTaxExempt">Tax Exempt</label>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-dark">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right column: Orders -->
+        <div class="col-lg-7">
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-semibold">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-4 text-center">
+                            <div class="text-muted small mb-1">Total Orders</div>
+                            <div class="fw-bold fs-4">@Model.TotalOrderCount</div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="text-muted small mb-1">Total Value</div>
+                            <div class="fw-bold fs-4">$@Model.TotalOrderValue.ToString("N2")</div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="text-muted small mb-1">Last Order</div>
+                            <div class="fw-bold">
+                                @if (Model.RecentOrders.Any())
+                                {
+                                    @Model.RecentOrders.First().CreatedDate.ToString("MMM d, yyyy")
+                                }
+                                else
+                                {
+                                    <span class="text-muted fs-6">—</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-semibold">Recent Orders</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th class="text-end">Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.RecentOrders.Any())
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">No orders yet.</td>
+                                </tr>
+                            }
+                            @foreach (var order in Model.RecentOrders)
+                            {
+                                var badgeClass = order.Status switch
+                                {
+                                    "Confirmed"  => "bg-primary",
+                                    "Shipped"    => "bg-info text-dark",
+                                    "Delivered"  => "bg-success",
+                                    "Cancelled"  => "bg-secondary",
+                                    "Flagged"    => "bg-warning text-dark",
+                                    _            => "bg-light text-dark border"
+                                };
+                                <tr>
+                                    <td class="fw-medium">@order.PONumber</td>
+                                    <td class="text-muted small">@order.CreatedDate.ToString("MMM d, yyyy")</td>
+                                    <td><span class="badge @badgeClass">@order.Status</span></td>
+                                    <td class="text-end">$@order.TotalAmount.ToString("N2")</td>
+                                    <td>
+                                        <a asp-controller="AdminOrders" asp-action="Details"
+                                           asp-route-id="@order.OrderID"
+                                           class="btn btn-sm btn-outline-secondary">View</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
