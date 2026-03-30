@@ -56,8 +56,13 @@
                     <i class="bi bi-receipt me-2"></i> Orders
                     @if (pending > 0)
                     {
-                        <span class="badge rounded-pill bg-danger ms-auto"
-                              title="@submitted Submitted, @actionRequired Action Required">
+                        <span class="ms-1"
+                              style="display: inline-flex; align-items: center; justify-content: center;
+                                     min-width: 18px; height: 18px; padding: 0 5px;
+                                     font-size: 10px; font-weight: 600; border-radius: 9px;
+                                     background-color: rgba(255,255,255,0.15);
+                                     color: rgba(255,255,255,0.9);
+                                     border: 1px solid rgba(255,255,255,0.25);">
                             @pending
                         </span>
                     }

@@ -62,10 +62,10 @@ else
 app.UseHttpsRedirection();
 app.UseRouting();
 
-app.UseSession();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseSession();
 
 app.MapStaticAssets();
 
@@ -79,25 +79,40 @@ app.MapRazorPages()
 
 
 // Apply EF migrations, then seed reference/test data
-try
+using (var scope = app.Services.CreateScope())
 {
-    using (var scope = app.Services.CreateScope())
+    var db = scope.ServiceProvider.GetRequiredService<PontelloDbContext>();
+    var appDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    // Migrations in their own block so Azure stdout captures the failure point clearly
+    try
     {
-        var db = scope.ServiceProvider.GetRequiredService<PontelloDbContext>();
         db.Database.Migrate();
-        var appDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         appDb.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine("MIGRATION FAILED: " + ex.Message);
+        Console.Error.WriteLine(ex.StackTrace);
+        throw;
+    }
+
+    try
+    {
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         await PontelloDbInitializer.Seed(app);
         await SeedAuthAsync(userManager, roleManager, db);
     }
-}
-catch (Exception ex)
-{
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Database migration or seeding failed.");
-    throw;
+    catch (Exception ex)
+    {
+        Console.WriteLine("=== SEED ERROR ===");
+        Console.WriteLine(ex.ToString());
+        Console.WriteLine("=== END ERROR ===");
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Seeding failed.");
+        throw;
+    }
 }
 
 app.Run();

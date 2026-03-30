@@ -10,20 +10,15 @@ namespace PontelloImport.Data.PIMigrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_Orders_OrderNumber",
-                table: "Orders");
+            // Drop existing non-unique index (Azure DB already has it from InitialSchema).
+            // Using raw SQL so IF EXISTS prevents failure if already dropped.
+            migrationBuilder.Sql("DROP INDEX IF EXISTS \"IX_Orders_OrderNumber\";");
 
-            // Deduplicate OrderNumbers before enforcing uniqueness.
-            // Assigns sequential numbers (based on OrderID) to any rows
-            // that share an OrderNumber with another row.
+            // Reassign ALL orders sequentially by OrderID — guarantees uniqueness
+            // because OrderID is the PK. No WHERE clause needed.
             migrationBuilder.Sql(@"
-                UPDATE Orders SET OrderNumber = printf('%04d', OrderID)
-                WHERE OrderNumber IN (
-                    SELECT OrderNumber FROM Orders
-                    GROUP BY OrderNumber
-                    HAVING COUNT(*) > 1
-                )
+                UPDATE Orders
+                SET OrderNumber = substr('0000' || CAST(OrderID AS TEXT), -4, 4)
             ");
 
             // Sync OrderSequence to the highest assigned number.
