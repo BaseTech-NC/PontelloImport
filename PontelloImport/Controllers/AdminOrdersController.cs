@@ -1,23 +1,65 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
 using PontelloImport.Models;
+using PontelloImport.Services;
 
 namespace PontelloImport.Controllers
 {
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Admin,SuperAdmin,Staff")]
     public class AdminOrdersController : AdminBaseController
     {
         private readonly ILogger<AdminOrdersController> _logger;
+        private readonly IEmailService _emailService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AdminOrdersController(PontelloDbContext context, ILogger<AdminOrdersController> logger)
+        public AdminOrdersController(
+            PontelloDbContext context,
+            ILogger<AdminOrdersController> logger,
+            IEmailService emailService,
+            UserManager<ApplicationUser> userManager)
             : base(context)
         {
             _logger = logger;
+            _emailService = emailService;
+            _userManager = userManager;
         }
 
         private string CurrentUser => User.Identity?.Name ?? "Admin";
+
+        // Helper: look up the dealer email for a given order
+        private async Task<(string? email, string companyName)> GetDealerEmailAsync(Order order)
+        {
+            var dealer = await _context.Dealers
+                .FirstOrDefaultAsync(d => d.DealerID == order.DealerID);
+            if (dealer?.ApplicationUserID == null)
+                return (null, order.DealerCompanyName);
+            var user = await _userManager.FindByIdAsync(dealer.ApplicationUserID);
+            return (user?.Email, dealer.CompanyName);
+        }
+
+        // Helper: create a dealer notification (fire-and-forget errors)
+        private void QueueDealerNotification(int dealerId, string type, string message)
+        {
+            try
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    DealerID    = dealerId,
+                    Type        = type,
+                    Message     = message,
+                    ActionUrl   = "/Shop/OrderHistory",
+                    IsRead      = false,
+                    CreatedDate = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to queue dealer notification");
+            }
+        }
 
         // GET: /AdminOrders
         public async Task<IActionResult> Index(
@@ -40,11 +82,9 @@ namespace PontelloImport.Controllers
             ViewBag.InvoicedCount       = await baseQuery.CountAsync(o => o.Status == "Invoiced");
             ViewBag.CancelledCount      = await baseQuery.CountAsync(o => o.Status == "Cancelled");
 
-            // Apply status filter
             if (!string.IsNullOrWhiteSpace(status))
                 baseQuery = baseQuery.Where(o => o.Status == status);
 
-            // Apply search filter
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var q = search.ToLower();
@@ -53,13 +93,11 @@ namespace PontelloImport.Controllers
                     o.DealerCompanyName.ToLower().Contains(q));
             }
 
-            // Apply date filters
             if (dateFrom.HasValue)
                 baseQuery = baseQuery.Where(o => o.OrderDate >= dateFrom.Value);
             if (dateTo.HasValue)
                 baseQuery = baseQuery.Where(o => o.OrderDate <= dateTo.Value.AddDays(1));
 
-            // Pagination
             var totalCount = await baseQuery.CountAsync();
             var orders = await baseQuery
                 .OrderByDescending(o => o.OrderDate)
@@ -91,6 +129,10 @@ namespace PontelloImport.Controllers
 
             if (order == null) return NotFound();
 
+            var hasBeenEdited = order.OrderHistories.Any(h =>
+                h.ChangeType == "EditInitiated" || h.ChangeType == "AdminModified");
+            ViewData["HasBeenEdited"] = hasBeenEdited;
+
             return View(order);
         }
 
@@ -121,7 +163,6 @@ namespace PontelloImport.Controllers
                 ChangedBy = CurrentUser
             });
 
-            // Deduct inventory once on Confirm
             foreach (var line in order.OrderLines)
             {
                 if (!line.ProductVariantID.HasValue) continue;
@@ -131,8 +172,58 @@ namespace PontelloImport.Controllers
             }
 
             _logger.LogInformation("Inventory deducted for order {OrderId}: {Count} lines", id, order.OrderLines.Count);
+            QueueDealerNotification(order.DealerID,
+                "OrderConfirmed",
+                $"Your order #{order.OrderNumber} has been confirmed by Pontello Imports.");
             await _context.SaveChangesAsync();
+
+            var (email, companyName) = await GetDealerEmailAsync(order);
+            if (email != null)
+            {
+                try
+                {
+                    await _emailService.SendOrderStatusChangedAsync(
+                        email, companyName, order.OrderNumber, "Confirmed");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
+                }
+            }
+
             TempData["Success"] = "Order confirmed.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: /AdminOrders/InitiateEdit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> InitiateEdit(int id, string? adminNote)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            if (order.Status != "Submitted")
+            {
+                TempData["Error"] = $"Cannot initiate edit on an order with status '{order.Status}'.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            order.Status = "ActionRequired";
+            order.DealerHasViewed = false;
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID = id,
+                VersionNumber = order.VersionNumber,
+                ChangeType = "AdminModified",
+                ChangeDescription = string.IsNullOrWhiteSpace(adminNote)
+                    ? "Order opened for admin editing."
+                    : adminNote.Trim(),
+                ChangedBy = CurrentUser
+            });
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Order opened for editing. Use Edit Order Lines to adjust quantities.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -166,6 +257,9 @@ namespace PontelloImport.Controllers
                 ChangeDescription = reason.Trim(),
                 ChangedBy = CurrentUser
             });
+            QueueDealerNotification(order.DealerID,
+                "IssueFlagged",
+                $"Order #{order.OrderNumber} requires attention. Pontello Imports has flagged an issue — please contact us.");
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "Issue flagged. Dealer has been notified to contact Pontello.";
@@ -202,7 +296,6 @@ namespace PontelloImport.Controllers
                 ChangedBy = CurrentUser
             });
 
-            // Restore inventory only if cancelling from Confirmed (inventory was deducted at that point)
             if (wasConfirmed)
             {
                 foreach (var line in order.OrderLines)
@@ -215,6 +308,22 @@ namespace PontelloImport.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            var (email, companyName) = await GetDealerEmailAsync(order);
+            if (email != null)
+            {
+                try
+                {
+                    await _emailService.SendOrderStatusChangedAsync(
+                        email, companyName, order.OrderNumber, "Cancelled",
+                        cancelNote);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
+                }
+            }
+
             TempData["Success"] = "Order cancelled.";
             return RedirectToAction(nameof(Details), new { id });
         }
@@ -258,6 +367,22 @@ namespace PontelloImport.Controllers
             });
 
             await _context.SaveChangesAsync();
+
+            var (email, companyName) = await GetDealerEmailAsync(order);
+            if (email != null)
+            {
+                try
+                {
+                    await _emailService.SendOrderStatusChangedAsync(
+                        email, companyName, order.OrderNumber, "Confirmed",
+                        resolutionNote);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
+                }
+            }
+
             TempData["Success"] = "Order resolved and confirmed.";
             return RedirectToAction(nameof(Details), new { id });
         }
@@ -318,11 +443,46 @@ namespace PontelloImport.Controllers
                 }
             }
 
-            // Recalculate order totals from remaining lines
+            // Process newly added product lines
+            var newVariantIdStrings = Request.Form["newVariantIds[]"];
+            var newQtyStrings = Request.Form["newQuantities[]"];
+            decimal newLinesSubtotal = 0m;
+
+            for (int i = 0; i < newVariantIdStrings.Count; i++)
+            {
+                if (!int.TryParse(newVariantIdStrings[i], out int variantId)) continue;
+                var variant = await _context.ProductVariants
+                    .Include(v => v.Product)
+                    .FirstOrDefaultAsync(v => v.VariantID == variantId);
+                if (variant == null) continue;
+
+                int qty = 1;
+                if (i < newQtyStrings.Count && int.TryParse(newQtyStrings[i], out int parsedQty))
+                    qty = Math.Max(1, parsedQty);
+
+                var lineTotal = Math.Round(variant.Price * qty, 2);
+                var newOpts = new[] { variant.Option1Value, variant.Option2Value, variant.Option3Value, variant.Option4Value, variant.Option5Value }
+                    .Where(o => !string.IsNullOrWhiteSpace(o));
+                var newVariantTitle = newOpts.Any() ? string.Join(" / ", newOpts) : null;
+                _context.OrderLines.Add(new OrderLine
+                {
+                    OrderID = id,
+                    ProductVariantID = variant.VariantID,
+                    ProductTitle = variant.Product?.Title ?? "",
+                    VariantTitle = newVariantTitle,
+                    SKU = variant.SKU,
+                    Quantity = qty,
+                    UnitPrice = variant.Price,
+                    LineTotal = lineTotal
+                });
+                newLinesSubtotal += lineTotal;
+                modifiedCount++;
+            }
+
             var remaining = order.OrderLines
                 .Where(l => !removedLineIds.Contains(l.OrderLineID))
                 .ToList();
-            order.SubtotalAmount = remaining.Sum(l => l.LineTotal);
+            order.SubtotalAmount = remaining.Sum(l => l.LineTotal) + newLinesSubtotal;
             order.TaxAmount = order.IsTaxExempt ? null : Math.Round(order.SubtotalAmount * (order.TaxRate ?? 0.13m), 2);
             order.TotalAmount = order.SubtotalAmount + (order.TaxAmount ?? 0m) + (order.ShippingCost ?? 0m);
 
@@ -397,10 +557,66 @@ namespace PontelloImport.Controllers
                     : $"Shipped. Tracking: {order.TrackingNumber}",
                 ChangedBy = CurrentUser
             });
+            QueueDealerNotification(order.DealerID,
+                "OrderShipped",
+                string.IsNullOrEmpty(order.TrackingNumber)
+                    ? $"Order #{order.OrderNumber} has been shipped!"
+                    : $"Order #{order.OrderNumber} has been shipped! Tracking: {order.TrackingNumber}");
 
             await _context.SaveChangesAsync();
+
+            var trackingNote = !string.IsNullOrEmpty(order.TrackingNumber)
+                ? $"Tracking number: {order.TrackingNumber}"
+                : null;
+
+            var (email, companyName) = await GetDealerEmailAsync(order);
+            if (email != null)
+            {
+                try
+                {
+                    await _emailService.SendOrderStatusChangedAsync(
+                        email, companyName, order.OrderNumber, "Shipped",
+                        trackingNote);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
+                }
+            }
+
             TempData["Success"] = "Order marked as shipped.";
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // GET: /AdminOrders/SearchProducts
+        [HttpGet]
+        public async Task<IActionResult> SearchProducts(string? q)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+                return Json(Array.Empty<object>());
+
+            var variants = await _context.ProductVariants
+                .Include(v => v.Product)
+                .Where(v => v.Product.Status == ProductStatus.Published
+                    && (v.Product.Title.Contains(q) || v.SKU.Contains(q)))
+                .Take(6)
+                .ToListAsync();
+
+            var results = variants.Select(v =>
+            {
+                var opts = new[] { v.Option1Value, v.Option2Value, v.Option3Value, v.Option4Value, v.Option5Value }
+                    .Where(o => !string.IsNullOrWhiteSpace(o));
+                return new {
+                    v.VariantID,
+                    v.SKU,
+                    v.Price,
+                    v.InventoryQuantity,
+                    ProductTitle = v.Product!.Title,
+                    VariantTitle = opts.Any() ? string.Join(" / ", opts) : (string?)null
+                };
+            }).ToList();
+
+            return Json(results);
         }
 
         // GET: /AdminOrders/EditShipping/5
@@ -512,6 +728,25 @@ namespace PontelloImport.Controllers
             return File(bytes, "text/csv", $"orders-{DateTime.Now:yyyy-MM-dd}.csv");
         }
 
+        // POST: /AdminOrders/UpdateTax
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateTax(int id, decimal taxRate)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            // taxRate comes in as percentage (e.g. 13), store as fraction
+            order.TaxRate = taxRate / 100m;
+            order.TaxAmount = order.SubtotalAmount * (taxRate / 100m);
+            order.TotalAmount = order.SubtotalAmount
+                + order.TaxAmount.Value
+                + (order.ShippingCost ?? 0);
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         // POST: /AdminOrders/MarkInvoiced/5
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -536,8 +771,26 @@ namespace PontelloImport.Controllers
                 ChangeDescription = "Order invoiced",
                 ChangedBy = CurrentUser
             });
+            QueueDealerNotification(order.DealerID,
+                "OrderInvoiced",
+                $"Invoice ready for order #{order.OrderNumber}. Please review your order history.");
 
             await _context.SaveChangesAsync();
+
+            var (email, companyName) = await GetDealerEmailAsync(order);
+            if (email != null)
+            {
+                try
+                {
+                    await _emailService.SendOrderStatusChangedAsync(
+                        email, companyName, order.OrderNumber, "Invoiced");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
+                }
+            }
+
             TempData["Success"] = "Order marked as invoiced.";
             return RedirectToAction(nameof(Details), new { id });
         }

@@ -1,0 +1,67 @@
+@{
+    ViewData["Title"] = "Application Submitted — Pontello Imports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var refId     = TempData["AppRefId"]     as string ?? "—";
+    var firstName = TempData["AppFirstName"] as string ?? "there";
+    var email     = TempData["AppEmail"]     as string ?? "";
+}
+
+<div class="row justify-content-center mt-5 mb-5">
+    <div class="col-lg-6 col-md-8 col-sm-10">
+
+        <div class="card shadow-sm text-center" style="border:1px solid #D1FAE5; border-radius:16px; padding:2.5rem 2rem;">
+
+            <div class="mb-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                      style="width:64px;height:64px;background:#D1FAE5;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#059669" viewBox="0 0 16 16">
+                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                    </svg>
+                </span>
+            </div>
+
+            <h1 style="font-size:1.4rem; font-weight:700; color:#065F46;" class="mb-2">
+                Application Submitted!
+            </h1>
+            <p class="text-muted mb-4" style="font-size:0.95rem;">
+                Thanks, <strong>@firstName</strong>! We've received your dealer application.
+                Our team reviews applications within <strong>2 business days</strong>.
+            </p>
+
+            <div class="mb-4">
+                <p class="text-muted mb-1" style="font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;">
+                    Your Reference Number
+                </p>
+                <span style="font-family:monospace; font-size:1.15rem; font-weight:700;
+                             color:#028090; background:#E0F7F7; padding:0.35rem 0.9rem;
+                             border-radius:8px; letter-spacing:0.04em;">
+                    @refId
+                </span>
+            </div>
+
+            @if (!string.IsNullOrEmpty(email))
+            {
+                <p class="text-muted mb-4" style="font-size:0.875rem;">
+                    A confirmation will be sent to <strong>@email</strong> once your application is approved.
+                </p>
+            }
+
+            <hr style="border-color:#E5E7EB;" class="my-3" />
+
+            <p class="text-muted" style="font-size:0.82rem;">
+                Questions? Reach us at
+                <a href="tel:6479646833" style="color:#028090;">647-964-6833</a>
+                or
+                <a href="mailto:jesse@pontelloimports.com" style="color:#028090;">jesse@pontelloimports.com</a>
+            </p>
+
+        </div>
+
+        <div class="text-center mt-4" style="font-size:0.875rem; color:#6B7280;">
+            Already have an account?
+            <a asp-area="Identity" asp-page="/Account/Login" style="color:#028090; font-weight:500;">Sign In</a>
+        </div>
+
+    </div>
+</div>

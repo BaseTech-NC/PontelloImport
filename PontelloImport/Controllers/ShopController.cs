@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
 using PontelloImport.Models;
+using PontelloImport.Services;
 using System.Security.Claims;
 
 namespace PontelloImport.Controllers
@@ -11,10 +13,23 @@ namespace PontelloImport.Controllers
     public class ShopController : Controller
     {
         private readonly PontelloDbContext _context;
+        private readonly IEmailService _emailService;
+        private readonly IPdfService _pdfService;
+        private readonly ILogger<ShopController> _logger;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ShopController(PontelloDbContext context)
+        public ShopController(
+            PontelloDbContext context,
+            IEmailService emailService,
+            IPdfService pdfService,
+            ILogger<ShopController> logger,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _emailService = emailService;
+            _pdfService = pdfService;
+            _logger = logger;
+            _userManager = userManager;
         }
 
         private async Task<int?> GetCurrentDealerIdAsync()
@@ -26,10 +41,39 @@ namespace PontelloImport.Controllers
             return dealer?.DealerID;
         }
 
-        private async Task SetUnviewedOrderCount(int dealerId)
+        private async Task SetDealerViewData(int dealerId)
         {
             ViewData["UnviewedOrderCount"] = await _context.Orders
                 .CountAsync(o => o.DealerID == dealerId && !o.DealerHasViewed);
+
+            var dealer = await _context.Dealers
+                .FirstOrDefaultAsync(d => d.DealerID == dealerId);
+            if (dealer != null)
+            {
+                ViewData["DealerCompanyName"] = dealer.CompanyName;
+
+                if (dealer.ApplicationUserID != null)
+                {
+                    var user = await _userManager.FindByIdAsync(dealer.ApplicationUserID);
+                    if (user != null)
+                        ViewData["DealerFirstName"] = user.FirstName;
+                }
+            }
+
+            // Dealer notifications (newest 15)
+            var dealerNotifications = await _context.Notifications
+                .Where(n => n.DealerID == dealerId)
+                .OrderByDescending(n => n.CreatedDate)
+                .Take(15)
+                .ToListAsync();
+
+            ViewData["DealerNotifications"] = dealerNotifications;
+            ViewData["DealerUnreadCount"]   = dealerNotifications.Count(n => !n.IsRead);
+        }
+
+        private async Task SetUnviewedOrderCount(int dealerId)
+        {
+            await SetDealerViewData(dealerId);
         }
 
         private IActionResult DealerNotFound()
@@ -271,10 +315,24 @@ namespace PontelloImport.Controllers
 
             var dealer = await _context.Dealers
                 .Include(d => d.BillingAddress)
+                .Include(d => d.ShippingAddress)
                 .Include(d => d.PaymentTerms)
                 .FirstOrDefaultAsync(d => d.DealerID == dealerId.Value);
 
             ViewBag.Dealer = dealer;
+
+            // All addresses for shipping selector
+            var dealerAddresses = await _context.Addresses
+                .Where(a => a.DealerID == dealerId.Value)
+                .ToListAsync();
+            // Include billing/shipping if not already in the list
+            if (dealer?.BillingAddress != null &&
+                dealerAddresses.All(a => a.AddressID != dealer.BillingAddressID))
+                dealerAddresses.Insert(0, dealer.BillingAddress);
+            if (dealer?.ShippingAddress != null &&
+                dealerAddresses.All(a => a.AddressID != dealer.ShippingAddressID))
+                dealerAddresses.Add(dealer.ShippingAddress);
+            ViewBag.DealerAddresses = dealerAddresses;
 
             var flaggedItems = cart.CartItems
                 .Where(i => i.ProductVariant.InventoryQuantity < i.Quantity)
@@ -438,7 +496,72 @@ namespace PontelloImport.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // 14. Redirect to confirmation
+                // 14. Admin notification for new order
+                try
+                {
+                    _context.Notifications.Add(new PontelloImport.Models.Notification
+                    {
+                        DealerID  = null,
+                        Type      = "OrderSubmitted",
+                        Message   = $"New order #{order.OrderNumber} submitted by {dealer.CompanyName}",
+                        ActionUrl = $"/AdminOrders/Details/{order.OrderID}",
+                        IsRead    = false,
+                        CreatedDate = DateTime.UtcNow
+                    });
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to create order notification for {OrderNumber}", order.OrderNumber);
+                }
+
+                // 15. Generate PDF and email to both parties
+                try
+                {
+                    // Reload order with full dealer + address includes for PDF
+                    var orderForPdf = await _context.Orders
+                        .Include(o => o.OrderLines)
+                        .Include(o => o.PaymentTerms)
+                        .Include(o => o.Dealer)
+                            .ThenInclude(d => d!.BillingAddress)
+                        .Include(o => o.Dealer)
+                            .ThenInclude(d => d!.ShippingAddress)
+                        .FirstOrDefaultAsync(o => o.OrderID == order.OrderID);
+
+                    var dealerUser = await _userManager.FindByIdAsync(dealer.ApplicationUserID!);
+                    var dealerEmail = dealerUser?.Email;
+
+                    if (orderForPdf != null && dealerEmail != null)
+                    {
+                        var pdfBytes = _pdfService.GeneratePurchaseOrder(
+                            orderForPdf, dealerEmail);
+                        await _emailService.SendPurchaseOrderAsync(
+                            dealerEmail,
+                            dealer.CompanyName,
+                            "noreply.pontelloimports@gmail.com",
+                            order.OrderNumber,
+                            pdfBytes);
+                    }
+                    else
+                    {
+                        // Fallback: plain admin notification
+                        var summary = string.Join("\n",
+                            order.OrderLines.Select(l =>
+                                $"{l.ProductTitle} x{l.Quantity} — ${l.LineTotal:F2}"));
+                        summary += $"\n\nTotal: ${order.TotalAmount:F2}";
+                        await _emailService.SendOrderSubmittedAsync(
+                            "noreply.pontelloimports@gmail.com",
+                            dealer.CompanyName,
+                            order.OrderNumber,
+                            summary);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
+                }
+
+                // 15. Redirect to confirmation
                 TempData["Success"] = $"Order {order.PONumber} submitted successfully.";
                 return RedirectToAction(nameof(OrderConfirmation), new { id = order.OrderID });
             }
@@ -591,6 +714,57 @@ namespace PontelloImport.Controllers
             }
 
             return View(order);
+        }
+
+        // POST: /Shop/DealerMarkNotificationRead/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DealerMarkNotificationRead(int id)
+        {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
+            var n = await _context.Notifications.FindAsync(id);
+            if (n != null && n.DealerID == dealerId.Value)
+            {
+                n.IsRead = true;
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(OrderHistory));
+        }
+
+        // POST: /Shop/DealerMarkAllNotificationsRead
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DealerMarkAllNotificationsRead()
+        {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
+            var unread = await _context.Notifications
+                .Where(n => n.DealerID == dealerId.Value && !n.IsRead)
+                .ToListAsync();
+            foreach (var n in unread)
+                n.IsRead = true;
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(OrderHistory));
+        }
+
+        // POST: /Shop/DealerDismissNotification/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DealerDismissNotification(int id)
+        {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return DealerNotFound();
+
+            var n = await _context.Notifications.FindAsync(id);
+            if (n != null && n.DealerID == dealerId.Value)
+            {
+                _context.Notifications.Remove(n);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(OrderHistory));
         }
     }
 }

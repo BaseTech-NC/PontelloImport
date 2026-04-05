@@ -76,12 +76,15 @@
                     }
                     else if (User.IsInRole("Dealer"))
                     {
+                        var unviewedCount    = (int)(ViewData["UnviewedOrderCount"] ?? 0);
+                        var dealerFirstName  = ViewData["DealerFirstName"] as string ?? User.Identity?.Name?.Split('@')[0] ?? "Dealer";
+                        var dealerCompany    = ViewData["DealerCompanyName"] as string;
+                        var dealerNotifs     = ViewData["DealerNotifications"] as List<PontelloImport.Models.Notification>
+                                              ?? new List<PontelloImport.Models.Notification>();
+                        var dealerUnread     = (int)(ViewData["DealerUnreadCount"] ?? 0);
                         <ul class="navbar-nav flex-grow-1">
                             <li class="nav-item"><a class="nav-link" asp-controller="Shop" asp-action="Index">Shop</a></li>
                             <li class="nav-item">
-                                @{
-                                    var unviewedCount = (int)(ViewData["UnviewedOrderCount"] ?? 0);
-                                }
                                 <a class="nav-link d-flex align-items-center gap-2"
                                    asp-controller="Shop" asp-action="OrderHistory">
                                     Order History
@@ -92,10 +95,127 @@
                                 </a>
                             </li>
                         </ul>
-                        <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Sign Out</button>
-                        </form>
+
+                        @* Dealer notification bell *@
+                        <div class="dropdown me-2">
+                            <button class="btn btn-link p-1 position-relative navbar-site"
+                                    type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                    aria-label="Notifications" style="color:#4B5563;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2z"/>
+                                    <path d="M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/>
+                                </svg>
+                                @if (dealerUnread > 0)
+                                {
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                                          style="background:#028090; font-size:0.6rem; min-width:16px; padding:2px 4px;
+                                                 transform: translate(-70%, 0%) !important;">
+                                        @(dealerUnread > 9 ? "9+" : dealerUnread.ToString())
+                                    </span>
+                                }
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow"
+                                style="min-width:300px; font-size:0.875rem; max-height:380px; overflow-y:auto;">
+                                <li class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+                                    <span class="fw-semibold text-dark">Notifications</span>
+                                    @if (dealerUnread > 0)
+                                    {
+                                        <form asp-controller="Shop" asp-action="DealerMarkAllNotificationsRead" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-link p-0" style="font-size:0.75rem; color:#028090; text-decoration:none;">
+                                                Mark all read
+                                            </button>
+                                        </form>
+                                    }
+                                </li>
+                                @if (!dealerNotifs.Any())
+                                {
+                                    <li class="px-3 py-4 text-center text-muted"><small>No notifications</small></li>
+                                }
+                                else
+                                {
+                                    foreach (var dn in dealerNotifs)
+                                    {
+                                        var dnBg = dn.IsRead ? "" : "background:#F0FDF4;";
+                                        <li style="@dnBg border-bottom:1px solid #F3F4F6;">
+                                            <div class="dropdown-item py-2 px-3 d-flex align-items-start gap-2"
+                                                 style="white-space:normal; cursor:default;">
+                                                <div class="flex-grow-1">
+                                                    <div style="font-size:0.82rem; color:#111827; line-height:1.4;">
+                                                        @if (!string.IsNullOrEmpty(dn.ActionUrl))
+                                                        {
+                                                            <a href="@dn.ActionUrl" style="color:#111827; text-decoration:none;">@dn.Message</a>
+                                                        }
+                                                        else
+                                                        {
+                                                            @dn.Message
+                                                        }
+                                                    </div>
+                                                    <div class="text-muted" style="font-size:0.72rem;">
+                                                        @{
+                                                            var dnDiff = DateTime.UtcNow - dn.CreatedDate;
+                                                            string dnRel;
+                                                            if (dnDiff.TotalMinutes < 2)      dnRel = "just now";
+                                                            else if (dnDiff.TotalHours < 1)   dnRel = $"{(int)dnDiff.TotalMinutes}m ago";
+                                                            else if (dnDiff.TotalDays < 1)    dnRel = $"{(int)dnDiff.TotalHours}h ago";
+                                                            else if (dnDiff.TotalDays < 7)    dnRel = $"{(int)dnDiff.TotalDays}d ago";
+                                                            else                              dnRel = dn.CreatedDate.ToLocalTime().ToString("MMM d");
+                                                        }
+                                                        @dnRel
+                                                    </div>
+                                                </div>
+                                                <div class="flex-shrink-0 d-flex flex-column gap-1">
+                                                    @if (!dn.IsRead)
+                                                    {
+                                                        <form asp-controller="Shop" asp-action="DealerMarkNotificationRead"
+                                                              asp-route-id="@dn.NotificationID" method="post">
+                                                            @Html.AntiForgeryToken()
+                                                            <button type="submit" class="btn btn-link p-0"
+                                                                    style="font-size:0.7rem; color:#028090; text-decoration:none;"
+                                                                    title="Mark as read">✓</button>
+                                                        </form>
+                                                    }
+                                                    <form asp-controller="Shop" asp-action="DealerDismissNotification"
+                                                          asp-route-id="@dn.NotificationID" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-link p-0"
+                                                                style="font-size:0.7rem; color:#9CA3AF; text-decoration:none;"
+                                                                title="Dismiss">✕</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+
+                        <div class="dropdown me-2">
+                            <button class="btn btn-link dropdown-toggle p-0"
+                                    type="button" data-bs-toggle="dropdown"
+                                    style="color:#4B5563;font-size:0.875rem;font-weight:500;text-decoration:none;">
+                                @dealerFirstName
+                                @if (!string.IsNullOrWhiteSpace(dealerCompany))
+                                {
+                                    <span class="text-muted fw-normal"> — @dealerCompany</span>
+                                }
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow" style="font-size:0.875rem;">
+                                <li>
+                                    <a asp-controller="DealerAccount" asp-action="ManageAccount"
+                                       class="dropdown-item">
+                                        Manage Account
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item text-danger">Sign Out</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     }
                     else
                     {
@@ -104,7 +224,7 @@
                             <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-sm btn-outline-light">Sign In</a>
                             <a asp-controller="Home" asp-action="Apply"
                                class="btn btn-sm fw-semibold" style="background:#02C39A; color:#111827; border:none;">
-                                Apply for Dealer Access
+                                Become a Dealer
                             </a>
                         </div>
                     }
@@ -144,7 +264,8 @@
                 }
                 @if (TempData["Warning"] != null)
                 {
-                    <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+                    <div class="alert alert-dismissible fade show mt-3" role="alert"
+                         style="background:#F0F9FF;border-left:3px solid #0284C7;color:#0C4A6E;border-radius:6px;">
                         @TempData["Warning"]
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>

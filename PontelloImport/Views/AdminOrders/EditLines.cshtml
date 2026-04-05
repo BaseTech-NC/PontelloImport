@@ -18,11 +18,16 @@
         </div>
     </div>
 
-    <div class="alert alert-warning d-flex gap-2 align-items-start">
-        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
-        <div>
-            After saving, the order remains <strong>Action Required</strong>.
-            Return to the order and click <strong>Resolve &amp; Confirm</strong> to confirm it.
+    <!-- FIX 1: teal info banner replacing amber alert -->
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:#F0FDF4;border-left:4px solid #028090;border-radius:0 8px 8px 0;margin-bottom:20px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#028090" stroke-width="2" style="flex-shrink:0;margin-top:1px;">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div style="font-size:13px;color:#065F46;line-height:1.5;">
+            <strong>Editing in progress.</strong>
+            After saving, return to the order and click <strong>Confirm Order</strong> to finalise.
         </div>
     </div>
 
@@ -30,18 +35,21 @@
         @Html.AntiForgeryToken()
 
         <div class="card mb-4">
-            <div class="card-header bg-dark text-white">Order Lines</div>
+            <!-- FIX 1: replace blue card-header -->
+            <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
+                Order Lines
+            </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                    <table id="order-lines-table" class="table table-sm align-middle mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th>Product</th>
                                 <th>Variant</th>
                                 <th>SKU</th>
                                 <th class="text-end">Unit Price</th>
-                                <th class="text-center" style="width:110px;">Quantity</th>
-                                <th class="text-muted small fw-normal">Set qty to 0 to remove</th>
+                                <th class="text-center" style="width:130px;">Quantity</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -54,16 +62,46 @@
                                     <td class="text-end">@line.UnitPrice.ToString("C")</td>
                                     <td class="text-center">
                                         <input type="hidden" name="lineIds" value="@line.OrderLineID" />
-                                        <input type="number" name="quantities" value="@line.Quantity"
+                                        <input type="number" name="quantities"
+                                               value="@line.Quantity"
                                                min="0" max="9999"
+                                               data-line-id="@line.OrderLineID"
+                                               oninput="handleQtyChange(this)"
                                                class="form-control form-control-sm text-center mx-auto"
                                                style="width:80px;" />
                                     </td>
-                                    <td></td>
+                                    <td>
+                                        <span class="remove-label text-danger" style="display:none;font-size:11px;">
+                                            will be removed
+                                        </span>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <!-- FIX 3 Part B: Add Product -->
+                <div style="margin:12px 16px;padding-top:12px;border-top:1px solid #f1f5f9;">
+                    <button type="button" id="add-product-btn"
+                            onclick="showProductSearch()"
+                            style="background:transparent;border:1.5px dashed #028090;color:#028090;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Product
+                    </button>
+                    <div id="product-search-panel" style="display:none;margin-top:12px;background:#f8fafc;border:1px solid #e9ecef;border-radius:8px;padding:14px;">
+                        <div style="font-size:12px;color:var(--bs-secondary-color);margin-bottom:8px;">
+                            Search for a product to add to this order
+                        </div>
+                        <input type="text" id="product-search-input"
+                               placeholder="Type product name or SKU..."
+                               oninput="searchProducts(this.value)"
+                               style="width:100%;border:1px solid #e9ecef;border-radius:6px;padding:8px 12px;font-size:13px;box-sizing:border-box;">
+                        <div id="product-search-results" style="margin-top:8px;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -88,3 +126,95 @@
 
     </form>
 </div>
+
+@section Scripts {
+<script>
+    // FIX 3 Part A: qty=0 fades and hides the row
+    function handleQtyChange(input) {
+        const val = parseInt(input.value);
+        const row = input.closest('tr');
+        if (isNaN(val) || val <= 0) {
+            input.value = 0;
+            if (row) {
+                row.style.opacity = '0.4';
+                row.style.transition = 'opacity 0.2s';
+                const label = row.querySelector('.remove-label');
+                if (label) label.style.display = 'inline';
+                setTimeout(() => { row.style.display = 'none'; }, 600);
+            }
+        } else {
+            if (row) row.style.opacity = '1';
+            const label = row.querySelector('.remove-label');
+            if (label) label.style.display = 'none';
+        }
+    }
+
+    // FIX 3 Part B: product search panel toggle
+    function showProductSearch() {
+        const panel = document.getElementById('product-search-panel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        if (panel.style.display === 'block')
+            document.getElementById('product-search-input').focus();
+    }
+
+    function searchProducts(q) {
+        if (q.length < 2) {
+            document.getElementById('product-search-results').innerHTML = '';
+            return;
+        }
+        fetch('/AdminOrders/SearchProducts?q=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(items => {
+                const el = document.getElementById('product-search-results');
+                if (!items.length) {
+                    el.innerHTML = '<div style="font-size:12px;color:#6b7280;padding:8px;">No results</div>';
+                    return;
+                }
+                el.innerHTML = items.map(i => `
+                    <div onclick="addProductLine(${i.variantID}, '${escStr(i.productTitle)}', '${escStr(i.sku)}', ${i.price}, '${escStr(i.variantTitle || '')}')"
+                         style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;cursor:pointer;border-radius:6px;font-size:13px;transition:background 0.15s;"
+                         onmouseover="this.style.background='#f1f5f9'"
+                         onmouseout="this.style.background=''">
+                        <div>
+                            <span style="font-weight:500;">${i.productTitle}</span>
+                            <span style="color:#6b7280;font-size:11px;margin-left:6px;">${i.sku}</span>
+                        </div>
+                        <div style="color:#028090;font-size:12px;text-align:right;">
+                            $${i.price.toFixed(2)}
+                            <span style="color:#6b7280;">(${i.inventoryQuantity} in stock)</span>
+                        </div>
+                    </div>`).join('');
+            });
+    }
+
+    function escStr(s) {
+        return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function addProductLine(variantId, title, sku, price, variantTitle) {
+        const tbody = document.querySelector('#order-lines-table tbody');
+        const row = document.createElement('tr');
+        row.setAttribute('data-new-variant', variantId);
+        const displayVariant = variantTitle && variantTitle !== 'Default Title' && variantTitle !== 'Title'
+            ? variantTitle : '—';
+        row.innerHTML = `
+            <td>${title}</td>
+            <td class="text-muted">${displayVariant}</td>
+            <td><code class="text-dark">${sku}</code></td>
+            <td class="text-end">$${price.toFixed(2)}</td>
+            <td class="text-center">
+                <input type="hidden" name="newVariantIds[]" value="${variantId}">
+                <input type="number" name="newQuantities[]"
+                       value="1" min="1" max="9999"
+                       class="form-control form-control-sm text-center mx-auto"
+                       style="width:80px;">
+            </td>
+            <td><span style="color:#028090;font-size:11px;">New</span></td>`;
+        tbody.appendChild(row);
+
+        document.getElementById('product-search-panel').style.display = 'none';
+        document.getElementById('product-search-input').value = '';
+        document.getElementById('product-search-results').innerHTML = '';
+    }
+</script>
+}

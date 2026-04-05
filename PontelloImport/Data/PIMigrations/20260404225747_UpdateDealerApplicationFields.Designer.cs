@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PontelloImport.Data;
 
@@ -10,9 +11,11 @@ using PontelloImport.Data;
 namespace PontelloImport.Data.PIMigrations
 {
     [DbContext(typeof(PontelloDbContext))]
-    partial class PontelloDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260404225747_UpdateDealerApplicationFields")]
+    partial class UpdateDealerApplicationFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.12");
@@ -35,12 +38,6 @@ namespace PontelloImport.Data.PIMigrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("DealerID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("TEXT");
@@ -317,42 +314,6 @@ namespace PontelloImport.Data.PIMigrations
                     b.HasIndex("SubmittedAddressID");
 
                     b.ToTable("DealerApplications");
-                });
-
-            modelBuilder.Entity("PontelloImport.Models.Notification", b =>
-                {
-                    b.Property<int>("NotificationID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ActionUrl")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("DealerID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("NotificationID");
-
-                    b.HasIndex("DealerID");
-
-                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.OptionTemplate", b =>
@@ -1094,15 +1055,6 @@ namespace PontelloImport.Data.PIMigrations
                     b.Navigation("RequestedPaymentTerms");
 
                     b.Navigation("SubmittedAddress");
-                });
-
-            modelBuilder.Entity("PontelloImport.Models.Notification", b =>
-                {
-                    b.HasOne("PontelloImport.Models.Dealer", "Dealer")
-                        .WithMany()
-                        .HasForeignKey("DealerID");
-
-                    b.Navigation("Dealer");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.Order", b =>

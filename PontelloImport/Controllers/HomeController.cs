@@ -20,7 +20,7 @@ namespace PontelloImport.Controllers
 
         public IActionResult Index()
         {
-            if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+            if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
                 return RedirectToAction("Index", "AdminOrders");
             if (User.IsInRole("Dealer"))
                 return RedirectToAction("Index", "Shop");
@@ -44,43 +44,67 @@ namespace PontelloImport.Controllers
 
             // Warn if a pending application already exists for this email
             var existing = await _context.DealerApplications
-                .AnyAsync(a => a.SubmittedEmail == model.Email && a.Status == "Pending");
+                .AnyAsync(a => (a.Email == model.Email || a.SubmittedEmail == model.Email) && a.Status == "Pending");
             if (existing)
             {
                 ModelState.AddModelError("Email", "An application for this email is already pending review.");
                 return View(model);
             }
 
-            // Create address record
-            var address = new Address
-            {
-                Street = model.BusinessAddress,
-                City = model.City,
-                Province = model.Province,
-                PostalCode = model.PostalCode,
-                Country = "Canada"
-            };
-            _context.Addresses.Add(address);
-            await _context.SaveChangesAsync();
-
-            // Create dealer application
             var application = new DealerApplication
             {
-                SubmittedCompanyName = model.CompanyName,
+                // New fields
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Email = model.Email,
+                Phone = model.Phone,
+                Company = model.Company,
+                Address = model.Address,
+                City = model.City,
+                ProvinceState = model.ProvinceState,
+                PostalZipCode = model.PostalZipCode,
+                CompanyDescription = model.CompanyDescription,
+                WebsiteSocialMedia = model.WebsiteSocialMedia,
+
+                // Populate legacy fields for backward compat
+                SubmittedCompanyName = model.Company ?? $"{model.FirstName} {model.LastName}",
                 SubmittedContactName = $"{model.FirstName} {model.LastName}",
                 SubmittedContactPhone = model.Phone,
                 SubmittedEmail = model.Email,
-                SubmittedAddressID = address.AddressID,
-                BusinessNumber = model.BusinessNumber,
+
                 Status = "Pending",
-                SubmittedDate = DateTime.UtcNow,
-                ReviewNotes = model.Notes
+                SubmittedDate = DateTime.UtcNow
             };
             _context.DealerApplications.Add(application);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Application received. Pontello Imports will review your application and contact you within 2 business days.";
-            return RedirectToAction(nameof(Apply));
+            // Admin notification for new application
+            _context.Notifications.Add(new PontelloImport.Models.Notification
+            {
+                DealerID    = null,
+                Type        = "ApplicationSubmitted",
+                Message     = $"New dealer application from {model.FirstName} {model.LastName}" +
+                              (string.IsNullOrWhiteSpace(model.Company) ? "" : $" ({model.Company})"),
+                ActionUrl   = $"/AdminDealers/ReviewApplication/{application.ApplicationID}",
+                IsRead      = false,
+                CreatedDate = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            TempData["AppRefId"]    = $"APP-{application.ApplicationID:D5}";
+            TempData["AppFirstName"] = model.FirstName;
+            TempData["AppEmail"]    = model.Email;
+            return RedirectToAction(nameof(ApplyConfirmation));
+        }
+
+        // GET: /Home/ApplyConfirmation
+        [HttpGet]
+        public IActionResult ApplyConfirmation()
+        {
+            // If accessed directly without going through Apply, send back to Apply
+            if (TempData["AppRefId"] == null)
+                return RedirectToAction(nameof(Apply));
+            return View();
         }
 
         // GET: /Home/AccessDenied

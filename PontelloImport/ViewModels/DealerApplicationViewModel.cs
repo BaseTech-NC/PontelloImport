@@ -16,34 +16,38 @@ namespace PontelloImport.ViewModels
         [Display(Name = "Email Address")]
         public string Email { get; set; } = "";
 
-        [Required, Phone, MaxLength(20)]
+        [Required]
+        [RegularExpression(@"^[\d\s\-\(\)\+]{7,20}$",
+            ErrorMessage = "Enter a valid phone number")]
+        [MaxLength(20)]
         [Display(Name = "Phone Number")]
         public string Phone { get; set; } = "";
 
-        [Required, MaxLength(255)]
+        [MaxLength(255)]
         [Display(Name = "Company Name")]
-        public string CompanyName { get; set; } = "";
+        public string? Company { get; set; }
 
-        [Required, MaxLength(255)]
+        [MaxLength(255)]
         [Display(Name = "Business Address")]
-        public string BusinessAddress { get; set; } = "";
+        public string? Address { get; set; }
 
-        [Required, MaxLength(100)]
-        public string City { get; set; } = "";
-
-        [Required, MaxLength(50)]
-        public string Province { get; set; } = "";
-
-        [Required, MaxLength(10)]
-        [Display(Name = "Postal Code")]
-        public string PostalCode { get; set; } = "";
+        [MaxLength(100)]
+        public string? City { get; set; }
 
         [MaxLength(50)]
-        [Display(Name = "Business Number (GST/HST)")]
-        public string? BusinessNumber { get; set; }
+        [Display(Name = "Province / State")]
+        public string? ProvinceState { get; set; }
+
+        [MaxLength(20)]
+        [Display(Name = "Postal Code / Zip Code")]
+        public string? PostalZipCode { get; set; }
 
         [MaxLength(1000)]
-        [Display(Name = "Additional Notes")]
-        public string? Notes { get; set; }
+        [Display(Name = "Brief description of your company")]
+        public string? CompanyDescription { get; set; }
+
+        [MaxLength(255)]
+        [Display(Name = "Website / Social Media")]
+        public string? WebsiteSocialMedia { get; set; }
     }
 }

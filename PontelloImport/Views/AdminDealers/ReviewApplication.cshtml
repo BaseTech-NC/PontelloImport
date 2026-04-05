@@ -2,6 +2,17 @@
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewBag.Title = "Review Application";
+
+    var displayName = !string.IsNullOrWhiteSpace(Model.Company)
+        ? Model.Company
+        : (!string.IsNullOrWhiteSpace(Model.SubmittedCompanyName) ? Model.SubmittedCompanyName : $"{Model.FirstName} {Model.LastName}");
+
+    var displayEmail = Model.Email ?? Model.SubmittedEmail ?? "—";
+    var displayPhone = Model.Phone ?? Model.SubmittedContactPhone ?? "—";
+    var displayCity = Model.City ?? Model.SubmittedAddress?.City ?? "—";
+    var displayStreet = Model.Address ?? Model.SubmittedAddress?.Street;
+    var displayProvince = Model.ProvinceState ?? Model.SubmittedAddress?.Province;
+    var displayPostal = Model.PostalZipCode ?? Model.SubmittedAddress?.PostalCode;
 }
 
 <div class="container-fluid mt-4" style="max-width:780px;">
@@ -12,7 +23,7 @@
             </a>
         </div>
         <div class="col">
-            <h1 class="h4 mb-0">Review Application — @Model.SubmittedCompanyName</h1>
+            <h1 class="h4 mb-0">Review Application — @displayName</h1>
         </div>
         <div class="col-auto">
             <span class="badge @(Model.Status == "Pending" ? "bg-warning text-dark" : Model.Status == "Approved" ? "bg-success" : "bg-danger")">
@@ -26,36 +37,44 @@
         <div class="card-header bg-dark text-white">Application Details</div>
         <div class="card-body">
             <dl class="row mb-0">
-                <dt class="col-sm-4 text-muted">Company Name</dt>
-                <dd class="col-sm-8 fw-semibold">@Model.SubmittedCompanyName</dd>
+                <dt class="col-sm-4 text-muted">First Name</dt>
+                <dd class="col-sm-8 fw-semibold">@Model.FirstName</dd>
 
-                <dt class="col-sm-4 text-muted">Contact Name</dt>
-                <dd class="col-sm-8">@Model.SubmittedContactName</dd>
+                <dt class="col-sm-4 text-muted">Last Name</dt>
+                <dd class="col-sm-8 fw-semibold">@Model.LastName</dd>
 
                 <dt class="col-sm-4 text-muted">Email</dt>
-                <dd class="col-sm-8"><a href="mailto:@Model.SubmittedEmail">@Model.SubmittedEmail</a></dd>
+                <dd class="col-sm-8"><a href="mailto:@displayEmail">@displayEmail</a></dd>
 
                 <dt class="col-sm-4 text-muted">Phone</dt>
-                <dd class="col-sm-8">@Model.SubmittedContactPhone</dd>
+                <dd class="col-sm-8">@displayPhone</dd>
 
-                @if (!string.IsNullOrWhiteSpace(Model.BusinessNumber))
+                @if (!string.IsNullOrWhiteSpace(Model.Company ?? Model.SubmittedCompanyName))
                 {
-                    <dt class="col-sm-4 text-muted">Business Number</dt>
-                    <dd class="col-sm-8">@Model.BusinessNumber</dd>
+                    <dt class="col-sm-4 text-muted">Company Name</dt>
+                    <dd class="col-sm-8">@(Model.Company ?? Model.SubmittedCompanyName)</dd>
                 }
 
-                <dt class="col-sm-4 text-muted">Address</dt>
-                <dd class="col-sm-8">
-                    @if (Model.SubmittedAddress != null)
-                    {
-                        <span>@Model.SubmittedAddress.Street, @Model.SubmittedAddress.City,
-                              @Model.SubmittedAddress.Province @Model.SubmittedAddress.PostalCode</span>
-                    }
-                    else
-                    {
-                        <span class="text-muted">—</span>
-                    }
-                </dd>
+                @if (!string.IsNullOrWhiteSpace(displayStreet))
+                {
+                    <dt class="col-sm-4 text-muted">Address</dt>
+                    <dd class="col-sm-8">
+                        @displayStreet, @displayCity,
+                        @displayProvince @displayPostal
+                    </dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.CompanyDescription))
+                {
+                    <dt class="col-sm-4 text-muted">Company Description</dt>
+                    <dd class="col-sm-8" style="white-space:pre-wrap;">@Model.CompanyDescription</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.WebsiteSocialMedia))
+                {
+                    <dt class="col-sm-4 text-muted">Website / Social</dt>
+                    <dd class="col-sm-8">@Model.WebsiteSocialMedia</dd>
+                }
 
                 <dt class="col-sm-4 text-muted">Submitted</dt>
                 <dd class="col-sm-8">@Model.SubmittedDate.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
@@ -71,38 +90,31 @@
 
     @if (Model.Status == "Pending")
     {
-        <!-- Approve -->
+        <!-- Approve section -->
         <div class="card mb-3 border-success">
             <div class="card-header bg-success text-white fw-semibold">
-                <i class="bi bi-check-circle me-1"></i> Approve &amp; Create Account
+                <i class="bi bi-check-circle me-1"></i> Approve this application
             </div>
             <div class="card-body">
-                <p class="text-muted small mb-3">
-                    This will create a dealer account with the email above.
-                    Enter a temporary password to send to the dealer.
-                </p>
+                <div class="alert mb-3 p-3" style="background:#E0F5F5; border:1px solid #028090; border-radius:8px; font-size:0.875rem; color:#0D3D38;">
+                    <strong>Approving will:</strong>
+                    <ul class="mb-0 mt-1" style="padding-left:1.2rem;">
+                        <li>Create a dealer account immediately</li>
+                        <li>Auto-generate a temporary password</li>
+                        <li>Email login credentials to the dealer</li>
+                        <li>You will see the temporary password on the next screen in case email fails</li>
+                    </ul>
+                </div>
                 <form asp-action="ApproveApplication" asp-route-id="@Model.ApplicationID" method="post">
                     @Html.AntiForgeryToken()
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">
-                                Assigned Password <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" name="assignedPassword" class="form-control"
-                                   placeholder="e.g. Welcome@2026!" required minlength="6" />
-                            <div class="form-text">Min 6 chars with uppercase, lowercase, digit, and symbol.</div>
-                        </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-circle me-1"></i> Approve &amp; Create Account
-                            </button>
-                        </div>
-                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i> Approve Application
+                    </button>
                 </form>
             </div>
         </div>
 
-        <!-- Reject -->
+        <!-- Reject section -->
         <div class="card border-danger">
             <div class="card-header bg-danger text-white fw-semibold">
                 <i class="bi bi-x-circle me-1"></i> Reject Application
@@ -115,8 +127,8 @@
                             <label class="form-label fw-semibold">
                                 Reason <span class="text-muted fw-normal small">(optional)</span>
                             </label>
-                            <input type="text" name="reason" class="form-control"
-                                   placeholder="e.g. Outside service area." maxlength="500" />
+                            <textarea name="reason" class="form-control" rows="2"
+                                      placeholder="e.g. Outside service area." maxlength="500"></textarea>
                         </div>
                         <div class="col-auto">
                             <button type="submit" class="btn btn-outline-danger">
@@ -135,10 +147,6 @@
             @if (Model.ReviewedDate.HasValue)
             {
                 <span>on @Model.ReviewedDate.Value.ToLocalTime().ToString("MMM d, yyyy")</span>
-            }
-            @if (!string.IsNullOrWhiteSpace(Model.ReviewedBy))
-            {
-                <span> by @Model.ReviewedBy</span>
             }.
         </div>
     }

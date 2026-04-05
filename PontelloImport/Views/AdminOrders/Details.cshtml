@@ -6,24 +6,38 @@
 }
 
 @functions {
-    string BadgeClass(string type) => type switch
+    string GetBadgeStyle(string type) => type switch
     {
-        "Submitted"      => "badge bg-secondary",
-        "ActionRequired" => "badge bg-warning text-dark",
-        "FlaggedIssue"   => "badge bg-warning text-dark",
-        "Confirmed"      => "badge bg-success",
-        "Resolved"       => "badge bg-success",
-        "AdminModified"  => "badge bg-primary",
-        "Shipped"        => "badge text-white",
-        "TrackingAdded"  => "badge bg-info text-dark",
-        "ShippingUpdated"=> "badge bg-primary",
-        "Invoiced"       => "badge bg-info text-dark",
-        "Cancelled"      => "badge bg-danger",
-        _                => "badge bg-secondary"
+        "Submitted"       => "background:#E0F5F5;color:#085041;border:1px solid #5DCAA5;",
+        "Confirmed"       => "background:#EAF3DE;color:#27500A;border:1px solid #97C459;",
+        "ActionRequired"  => "background:#FAEEDA;color:#633806;border:1px solid #EF9F27;",
+        "FlaggedIssue"    => "background:#FAEEDA;color:#633806;border:1px solid #EF9F27;",
+        "Shipped"         => "background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;",
+        "TrackingAdded"   => "background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;",
+        "ShippingUpdated" => "background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;",
+        "Invoiced"        => "background:#E1F5EE;color:#085041;border:1px solid #02C39A;",
+        "Cancelled"       => "background:#FCEBEB;color:#791F1F;border:1px solid #F09595;",
+        "Resolved"        => "background:#EAF3DE;color:#27500A;border:1px solid #97C459;",
+        "AdminModified"   => "background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;",
+        "EditInitiated"   => "background:#f1f5f9;color:#475569;",
+        _                 => "background:#f1f5f9;color:#475569;"
     };
 
-    string BadgeStyle(string type) =>
-        type == "Shipped" ? "background:#6f42c1;" : "";
+    string ChangeTypeLabel(string type) => type switch
+    {
+        "Submitted"       => "Order submitted",
+        "Confirmed"       => "Order confirmed",
+        "FlaggedIssue"    => "Issue flagged",
+        "EditInitiated"   => "Edit initiated",
+        "AdminModified"   => "Order lines updated",
+        "Resolved"        => "Issue resolved",
+        "TrackingAdded"   => "Tracking number added",
+        "ShippingUpdated" => "Shipping updated",
+        "Shipped"         => "Marked as shipped",
+        "Invoiced"        => "Invoice issued",
+        "Cancelled"       => "Order cancelled",
+        _ => type
+    };
 }
 
 <div class="container-fluid mt-4">
@@ -38,7 +52,7 @@
         <div class="col">
             <h1 class="mb-0 h4">
                 Order @Model.PONumber
-                <span class="@BadgeClass(Model.Status)" style="@BadgeStyle(Model.Status) font-size:0.75rem;">
+                <span style="font-size:12px;font-weight:500;padding:3px 10px;border-radius:12px;@GetBadgeStyle(Model.Status)">
                     @Model.Status
                 </span>
             </h1>
@@ -52,7 +66,9 @@
 
             <!-- Order Lines -->
             <div class="card mb-4">
-                <div class="card-header bg-dark text-white">Items</div>
+                <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
+                    Items
+                </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm mb-0">
@@ -141,66 +157,104 @@
                 </div>
             </div>
 
-            <!-- Action Buttons -->
+            <!-- Action Buttons — Submitted -->
             @if (Model.Status == "Submitted")
             {
                 <div class="card mb-4">
-                    <div class="card-header bg-dark text-white">Actions</div>
-                    <div class="card-body d-flex gap-2 flex-wrap">
-                        <form method="post" asp-action="Confirm" asp-route-id="@Model.OrderID">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-circle me-1"></i> Confirm Order
+                    <div class="card-body">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+
+                            <form method="post" asp-action="Confirm" asp-route-id="@Model.OrderID">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" style="background:#028090;color:white;border:none;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                                    </svg>
+                                    Confirm Order
+                                </button>
+                            </form>
+
+                            <button type="button"
+                                    style="background:transparent;border:1.5px solid #028090;color:#028090;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"
+                                    title="Modify quantities or remove items. A reason is required and logged."
+                                    data-bs-toggle="modal" data-bs-target="#editOrderModal">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                                </svg>
+                                Edit Order
                             </button>
-                        </form>
-                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#flagIssueModal">
-                            <i class="bi bi-flag me-1"></i> Flag Issue
-                        </button>
-                        <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
-                              onsubmit="return confirm('Cancel this order? This cannot be undone.')">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-danger">
-                                <i class="bi bi-x-circle me-1"></i> Cancel Order
+
+                            <button type="button"
+                                    style="background:transparent;border:1.5px solid #6c757d;color:#495057;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"
+                                    title="Notify the dealer to contact you. Does not change the order."
+                                    data-bs-toggle="modal" data-bs-target="#flagIssueModal">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M14.778.085A.5.5 0 0 1 15 .5V8a.5.5 0 0 1-.314.464L14.5 8l.186.464-.003.001-.006.003-.023.009a12.435 12.435 0 0 1-.397.15c-.264.095-.631.223-1.047.35-.816.252-1.879.523-2.71.523-.847 0-1.548-.28-2.158-.525l-.028-.01C7.68 8.71 7.14 8.5 6.5 8.5c-.7 0-1.638.23-2.437.477A19.626 19.626 0 0 0 3 9.342V15.5a.5.5 0 0 1-1 0V.5a.5.5 0 0 1 1 0v.282c.226-.079.496-.17.79-.26C4.606.272 5.67 0 6.5 0c.84 0 1.524.277 2.121.519l.043.018C9.286.788 9.828 1 10.5 1c.7 0 1.638-.23 2.437-.477a19.587 19.587 0 0 0 1.349-.476l.019-.007.004-.002h.001"/>
+                                </svg>
+                                Flag Issue
                             </button>
-                        </form>
+
+                            <div style="margin-left:auto;">
+                                <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
+                                      onsubmit="return confirm('Cancel this order? This cannot be undone.')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" style="background:transparent;border:1px solid #dc3545;color:#dc3545;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+                                        <i class="bi bi-x-circle"></i> Cancel Order
+                                    </button>
+                                </form>
+                            </div>
+
+                        </div>
+                        <div style="font-size:11px;color:#9ca3af;margin-top:8px;padding-left:2px;">
+                            Use <strong>Edit Order</strong> to adjust quantities · Use <strong>Flag Issue</strong> if you need the dealer to call first
+                        </div>
                     </div>
                 </div>
             }
             else if (Model.Status == "ActionRequired")
             {
                 <div class="card mb-4">
-                    <div class="card-header bg-dark text-white">Actions</div>
                     <div class="card-body">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
 
-                        <!-- Area 1: Edit Order Lines -->
-                        <div class="mb-4 pb-3 border-bottom">
-                            <a asp-action="EditLines" asp-route-id="@Model.OrderID" class="btn btn-outline-primary">
-                                <i class="bi bi-pencil me-1"></i> Edit Order Lines
+                            @if ((bool)(ViewData["HasBeenEdited"] ?? false))
+                            {
+                                <button type="button"
+                                        style="background:#028090;color:white;border:none;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"
+                                        data-bs-toggle="modal" data-bs-target="#resolveModal">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                                    </svg>
+                                    Confirm Order
+                                </button>
+                            }
+
+                            <a asp-action="EditLines" asp-route-id="@Model.OrderID"
+                               style="background:transparent;border:1.5px solid #028090;color:#028090;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                                </svg>
+                                Edit Order
                             </a>
-                            <div class="text-muted small mt-1">Modify quantities or remove items before confirming.</div>
-                        </div>
 
-                        <!-- Area 2: Resolve & Confirm -->
-                        <div class="mb-4 pb-3 border-bottom">
-                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#resolveModal">
-                                <i class="bi bi-check-circle me-1"></i> Resolve &amp; Confirm
-                            </button>
-                        </div>
+                            <div style="margin-left:auto;">
+                                <button type="button"
+                                        style="background:transparent;border:1px solid #dc3545;color:#dc3545;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"
+                                        data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                    <i class="bi bi-x-circle"></i> Cancel Order
+                                </button>
+                            </div>
 
-                        <!-- Area 3: Cancel -->
-                        <div>
-                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
-                                <i class="bi bi-x-circle me-1"></i> Cancel Order
-                            </button>
                         </div>
-
                     </div>
                 </div>
             }
             else if (Model.Status == "Confirmed")
             {
                 <div class="card mb-4">
-                    <div class="card-header bg-dark text-white">Ship Order</div>
+                    <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
+                        Ship Order
+                    </div>
                     <div class="card-body">
                         <!-- Save Tracking Number (does NOT change status) -->
                         <form method="post" asp-action="SaveTracking" asp-route-id="@Model.OrderID" class="mb-3">
@@ -222,6 +276,17 @@
                         </form>
                         <hr />
                         <!-- Mark as Shipped (changes status) -->
+                        @if (!Model.ShippingCost.HasValue)
+                        {
+                            <div style="background:#F0F9FF;border-left:3px solid #0284C7;
+                                        border-radius:0 6px 6px 0;padding:8px 12px;
+                                        font-size:12px;color:#0C4A6E;margin-bottom:8px;">
+                                No shipping amount added. You can proceed without shipping or
+                                <a asp-action="EditShipping" asp-route-id="@Model.OrderID"
+                                   style="color:#0284C7;">add an amount</a>.
+                                The invoice will show "Shipping: TBD" if no amount is entered.
+                            </div>
+                        }
                         <form method="post" asp-action="MarkShipped" asp-route-id="@Model.OrderID" class="mb-3">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-primary"
@@ -243,7 +308,9 @@
             else if (Model.Status == "Shipped")
             {
                 <div class="card mb-4">
-                    <div class="card-header bg-dark text-white">Actions</div>
+                    <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
+                        Actions
+                    </div>
                     <div class="card-body d-flex gap-3 align-items-center flex-wrap">
                         <form method="post" asp-action="MarkInvoiced" asp-route-id="@Model.OrderID">
                             @Html.AntiForgeryToken()
@@ -289,46 +356,40 @@
 
             <!-- Order History Timeline -->
             <div class="card">
-                <div class="card-header bg-dark text-white">History</div>
+                <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
+                    History
+                </div>
                 @if (!Model.OrderHistories.Any())
                 {
                     <div class="card-body text-muted">No history entries.</div>
                 }
                 else
                 {
-                    <ul class="list-group list-group-flush">
+                    <div class="card-body p-0">
                         @foreach (var h in Model.OrderHistories)
                         {
-                            <li class="list-group-item @(h.ChangeType == "FlaggedIssue" ? "list-group-item-warning" : h.ChangeType == "Resolved" ? "list-group-item-success" : "")">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center gap-2 mb-1">
-                                            <span class="@BadgeClass(h.ChangeType)" style="@BadgeStyle(h.ChangeType)">
-                                                @(h.ChangeType switch {
-                                                    "FlaggedIssue"  => "Flagged Issue",
-                                                    "Resolved"      => "Resolved",
-                                                    "AdminModified" => "Lines Edited",
-                                                    "TrackingAdded" => "Tracking Added",
-                                                    "ShippingUpdated" => "Shipping Updated",
-                                                    _ => h.ChangeType
-                                                })
-                                            </span>
-                                            <small class="text-muted">by @h.ChangedBy</small>
-                                        </div>
-                                        @if (!string.IsNullOrWhiteSpace(h.ChangeDescription))
-                                        {
-                                            <div class="@(h.ChangeType is "FlaggedIssue" or "Resolved" or "AdminModified" ? "fw-semibold" : "text-muted small")">
-                                                @h.ChangeDescription
-                                            </div>
-                                        }
+                            <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+                                <span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0;@GetBadgeStyle(h.ChangeType)">
+                                    @ChangeTypeLabel(h.ChangeType)
+                                </span>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-size:13px;font-weight:500;color:#111827;">
+                                        @ChangeTypeLabel(h.ChangeType)
+                                        <span style="font-size:12px;font-weight:400;color:#6b7280;margin-left:4px;">by @h.ChangedBy</span>
                                     </div>
-                                    <small class="text-muted text-nowrap ms-3">
-                                        @h.ChangedDate.ToString("MMM d, yyyy h:mm tt")
-                                    </small>
+                                    @if (!string.IsNullOrWhiteSpace(h.ChangeDescription))
+                                    {
+                                        <div style="font-size:12px;color:#6b7280;margin-top:3px;line-height:1.5;">
+                                            @h.ChangeDescription
+                                        </div>
+                                    }
                                 </div>
-                            </li>
+                                <div style="font-size:11px;color:#9ca3af;white-space:nowrap;">
+                                    @h.ChangedDate.ToString("MMM d, h:mm tt")
+                                </div>
+                            </div>
                         }
-                    </ul>
+                    </div>
                 }
             </div>
 
@@ -336,45 +397,178 @@
 
         <!-- Right column: Order Details -->
         <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header bg-dark text-white">Order Details</div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-5 text-muted">PO Number</dt>
-                        <dd class="col-sm-7 fw-semibold">@Model.PONumber</dd>
+            <div style="background:white;border:1px solid #e9ecef;border-top:3px solid #028090;border-radius:0 0 8px 8px;">
+                <div style="padding:16px;">
+                    <div style="font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:#6c757d;margin-bottom:12px;">
+                        Order Details
+                    </div>
 
-                        <dt class="col-sm-5 text-muted">Dealer</dt>
-                        <dd class="col-sm-7">@Model.DealerCompanyName</dd>
-
-                        <dt class="col-sm-5 text-muted">Order Date</dt>
-                        <dd class="col-sm-7">@Model.OrderDate.ToString("MMM d, yyyy")</dd>
-
-                        <dt class="col-sm-5 text-muted">Payment Terms</dt>
-                        <dd class="col-sm-7">@(Model.PaymentTerms?.TermName ?? "—")</dd>
-
-                        <dt class="col-sm-5 text-muted">Payment Due</dt>
-                        <dd class="col-sm-7">
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
+                        <span style="color:#6c757d;">PO Number</span>
+                        <span style="font-weight:500;color:#111827;">@Model.PONumber</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
+                        <span style="color:#6c757d;">Dealer</span>
+                        <span style="font-weight:500;color:#111827;">@Model.DealerCompanyName</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
+                        <span style="color:#6c757d;">Order Date</span>
+                        <span style="font-weight:500;color:#111827;">@Model.OrderDate.ToString("MMM d, yyyy")</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
+                        <span style="color:#6c757d;">Payment Terms</span>
+                        <span style="font-weight:500;color:#111827;">@(Model.PaymentTerms?.TermName ?? "—")</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
+                        <span style="color:#6c757d;">Payment Due</span>
+                        <span style="font-weight:500;color:#111827;">
                             @(Model.PaymentDueDate.HasValue
                                 ? Model.PaymentDueDate.Value.ToString("MMM d, yyyy")
                                 : "—")
-                        </dd>
+                        </span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
+                        <span style="color:#6c757d;">Tax Exempt</span>
+                        <span style="font-weight:500;color:#111827;">@(Model.IsTaxExempt ? "Yes" : "No")</span>
+                    </div>
 
-                        <dt class="col-sm-5 text-muted">Tax Exempt</dt>
-                        <dd class="col-sm-7">@(Model.IsTaxExempt ? "Yes" : "No")</dd>
-
-                        <dt class="col-sm-5 text-muted">Status</dt>
-                        <dd class="col-sm-7">
-                            <span class="@BadgeClass(Model.Status)" style="@BadgeStyle(Model.Status)">
-                                @Model.Status
+                    @* Tax Rate — editable for Confirmed and earlier *@
+                    @if (Model.Status is "Submitted" or "ActionRequired" or "Confirmed")
+                    {
+                        @Html.AntiForgeryToken()
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;
+                                    border-bottom:1px solid #f1f5f9;font-size:14px;">
+                            <span style="color:#6c757d;">Tax Rate</span>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <input type="number" id="taxRateInput"
+                                       value="@(Model.TaxRate.HasValue ? (Model.TaxRate.Value * 100m).ToString("0.##") : "13")"
+                                       min="0" max="30" step="0.5"
+                                       onchange="recalcTax(this.value)"
+                                       style="width:55px;text-align:center;
+                                              border:1px solid #e9ecef;border-radius:4px;
+                                              padding:3px;font-size:13px;" />
+                                <span style="font-size:13px;color:#6b7280;">%</span>
+                                <button onclick="saveTaxRate()"
+                                        style="font-size:11px;background:#028090;color:white;
+                                               border:none;border-radius:4px;padding:3px 8px;
+                                               cursor:pointer;">
+                                    Apply
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;
+                                    border-bottom:1px solid #f1f5f9;font-size:14px;">
+                            <span style="color:#6c757d;">Tax Amount</span>
+                            <span id="taxAmountDisplay" style="font-weight:500;">
+                                @(Model.TaxAmount.HasValue ? $"${Model.TaxAmount.Value:F2}" : "—")
                             </span>
-                        </dd>
-                    </dl>
+                        </div>
+                    }
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:14px;">
+                        <span style="color:#6c757d;">Status</span>
+                        <span style="font-size:12px;font-weight:500;padding:3px 10px;border-radius:12px;@GetBadgeStyle(Model.Status)">
+                            @Model.Status
+                        </span>
+                    </div>
+
                 </div>
             </div>
         </div>
 
     </div>
 </div>
+
+<!-- Modal: Edit Order (Submitted orders) -->
+@if (Model.Status == "Submitted")
+{
+    <div class="modal fade" id="editOrderModal" tabindex="-1" aria-labelledby="editOrderModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-action="InitiateEdit" asp-route-id="@Model.OrderID">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editOrderModalLabel">
+                            <i class="bi bi-pencil me-1 text-primary"></i> Edit Order
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted" style="font-size:0.9rem;">
+                            This will move the order to <strong>Action Required</strong> status and open it for
+                            line editing. The dealer will <em>not</em> be notified at this stage.
+                        </p>
+                        <label for="editNote" class="form-label fw-semibold">
+                            Admin Note <span class="text-muted fw-normal small">(optional)</span>
+                        </label>
+                        <textarea id="editNote" name="adminNote" class="form-control" rows="3" maxlength="500"
+                                  placeholder="e.g. Adjusting line quantities before confirmation."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-pencil me-1"></i> Open for Editing
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+    function recalcTax(rate) {
+        const subtotal = @Model.SubtotalAmount;
+        const tax = subtotal * (parseFloat(rate) / 100);
+        document.getElementById('taxAmountDisplay').textContent =
+            '$' + tax.toFixed(2);
+    }
+
+    async function saveTaxRate() {
+        const rate = document.getElementById('taxRateInput').value;
+        const token = document.querySelector('[name=__RequestVerificationToken]')?.value ?? '';
+        await fetch('/AdminOrders/UpdateTax', {
+            method: 'POST',
+            body: new URLSearchParams({
+                id: @Model.OrderID,
+                taxRate: rate,
+                __RequestVerificationToken: token
+            }),
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        });
+        location.reload();
+    }
+
+    function handleFlagReason(val) {
+        const note = document.getElementById('flagReasonNote');
+        if (val && val !== 'other') {
+            note.placeholder = val + ' — add any additional details here.';
+        }
+        const presets = {
+            'Out of stock / inventory shortage':
+                'We currently have limited stock for one or more items in your order. ' +
+                'Please call us at 647-964-6833 to discuss options.',
+            'Product discontinued':
+                'One or more products in your order have been discontinued. ' +
+                'Please call 647-964-6833 to arrange an alternative.',
+        };
+        if (presets[val] && note.value === '') {
+            note.value = presets[val];
+        }
+    }
+
+    document.querySelector('#flagIssueModal form')
+        ?.addEventListener('submit', function() {
+        const sel = document.getElementById('flagReasonSelect').value;
+        const note = document.getElementById('flagReasonNote');
+        const combined = sel && sel !== 'other'
+            ? (note.value ? sel + ': ' + note.value : sel)
+            : note.value;
+        note.value = combined;
+    });
+    </script>
+}
 
 <!-- Modal: Flag Issue (Submitted orders) -->
 @if (Model.Status == "Submitted")
@@ -391,10 +585,43 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <label for="flagReason" class="form-label fw-semibold">Describe the issue <span class="text-danger">*</span></label>
-                        <textarea id="flagReason" name="reason" class="form-control" rows="4" required minlength="10" maxlength="500"
-                                  placeholder="e.g. Item CRG-3001 is out of stock — awaiting restock in 2 weeks."></textarea>
-                        <div class="form-text">Minimum 10 characters. This message will be visible to the dealer.</div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:13px;">
+                                Reason for flagging
+                            </label>
+                            <select id="flagReasonSelect" class="form-select form-select-sm mb-2"
+                                    onchange="handleFlagReason(this.value)">
+                                <option value="">Select a reason...</option>
+                                <option value="Out of stock / inventory shortage">
+                                    Out of stock / inventory shortage
+                                </option>
+                                <option value="Product discontinued">
+                                    Product discontinued
+                                </option>
+                                <option value="Pricing discrepancy">
+                                    Pricing discrepancy
+                                </option>
+                                <option value="Shipping restriction">
+                                    Shipping restriction to this address
+                                </option>
+                                <option value="Address issue">
+                                    Address issue — cannot ship here
+                                </option>
+                                <option value="Incorrect order details">
+                                    Incorrect order details
+                                </option>
+                                <option value="other">
+                                    Other (add note below)
+                                </option>
+                            </select>
+                            <textarea id="flagReasonNote" name="reason"
+                                      class="form-control form-control-sm" rows="3"
+                                      placeholder="Add details or describe the issue for the dealer..."
+                                      style="font-size:13px;"></textarea>
+                            <div style="font-size:11px;color:#6b7280;margin-top:4px;">
+                                Include 647-964-6833 so the dealer knows how to reach you.
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -418,7 +645,7 @@
                     @Html.AntiForgeryToken()
                     <div class="modal-header">
                         <h5 class="modal-title" id="resolveModalLabel">
-                            <i class="bi bi-check-circle me-1 text-success"></i> Resolve &amp; Confirm Order
+                            <i class="bi bi-check-circle me-1 text-success"></i> Confirm Order
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>

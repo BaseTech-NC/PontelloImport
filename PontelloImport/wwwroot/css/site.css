@@ -44,3 +44,105 @@ thead th { color: #212529; font-weight: 600; }
 .badge.bg-success { background-color: #15803D !important; }
 .badge.bg-danger  { background-color: #B91C1C !important; }
 .badge.bg-primary { background-color: #1D4ED8 !important; }
+
+/* ── Global hover improvements ── */
+.table tbody tr {
+    transition: background-color 0.12s ease;
+}
+.table tbody tr:hover {
+    background-color: #F0FDF4 !important;
+}
+
+.card {
+    transition: border-color 0.15s ease;
+}
+.card:hover {
+    border-color: #028090 !important;
+}
+
+.nav-link {
+    transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover {
+    background-color: #E0F5F5 !important;
+    color: #028090 !important;
+    border-color: #028090 !important;
+}
+
+.product-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+}
+.product-card:hover {
+    transform: translateY(-2px);
+    border-color: #028090 !important;
+    box-shadow: 0 4px 12px rgba(2, 128, 144, 0.12);
+}
+
+.dealer-row {
+    transition: background-color 0.12s ease;
+    cursor: pointer;
+}
+.dealer-row:hover {
+    background-color: #F0FDF4 !important;
+}
+
+.order-row {
+    transition: background-color 0.12s ease;
+}
+.order-row:hover {
+    background-color: #F0FDF4 !important;
+}
+
+button[style*="028090"]:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+    transition: all 0.12s ease;
+}
+
+.history-entry {
+    transition: background-color 0.12s ease;
+    border-radius: 6px;
+    padding: 8px;
+    margin: 0 -8px;
+}
+.history-entry:hover {
+    background-color: #f8fafc;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #028090 !important;
+    box-shadow: 0 0 0 3px rgba(2, 128, 144, 0.1) !important;
+    outline: none;
+}
+/* Destructive button hover — red reinforcement */
+.btn-danger:hover,
+.btn-danger:focus {
+    background-color: #b91c1c !important;
+    border-color: #991b1b !important;
+    color: #fff !important;
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus {
+    background-color: #fee2e2 !important;
+    border-color: #dc2626 !important;
+    color: #991b1b !important;
+}
+
+.btn-delete:hover,
+.btn-delete:focus {
+    background-color: #b91c1c !important;
+    border-color: #991b1b !important;
+    color: #fff !important;
+    text-decoration: none;
+}
+
+.btn-archive:hover,
+.btn-archive:focus {
+    background-color: #374151 !important;
+    border-color: #1f2937 !important;
+    color: #fff !important;
+}

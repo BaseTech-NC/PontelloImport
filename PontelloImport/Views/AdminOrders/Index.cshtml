@@ -214,27 +214,6 @@
 
 <div class="container-fluid mt-4" style="max-width: 1200px;">
 
-    <!-- Pending attention banner -->
-    @if ((int)(ViewData["TotalPendingCount"] ?? 0) > 0)
-    {
-        var s = (int)(ViewData["SubmittedOrderCount"] ?? 0);
-        var a = (int)(ViewData["ActionRequiredCount"] ?? 0);
-        <div class="d-flex align-items-center gap-2 px-3 py-2 mb-4 rounded"
-             style="background: rgba(2,128,144,0.06); border-left: 3px solid #028090; font-size: 0.875rem;">
-            <span style="color: #028090;">●</span>
-            <span class="text-muted">
-                @if (s > 0) { <span>@s order@(s == 1 ? "" : "s") awaiting review</span> }
-                @if (s > 0 && a > 0) { <span class="mx-1">·</span> }
-                @if (a > 0) { <span>@a require action</span> }
-            </span>
-            <a asp-action="Index" asp-route-status="Submitted"
-               class="ms-auto text-decoration-none"
-               style="color: #028090; font-size: 0.8rem;">
-                Review →
-            </a>
-        </div>
-    }
-
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
@@ -345,7 +324,7 @@
                     <tbody>
                         @foreach (var order in Model)
                         {
-                            <tr>
+                            <tr class="order-row">
                                 <td style="font-weight: 600;">@order.PONumber</td>
                                 <td style="color: #374151;">@order.DealerCompanyName</td>
                                 <td style="color: #4B5563;">@order.OrderDate.ToString("MMM d, yyyy")</td>

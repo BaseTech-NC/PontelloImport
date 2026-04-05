@@ -1,9 +1,12 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
 using PontelloImport.Models;
+using PontelloImport.Services;
+using PontelloImport.ViewModels;
 
 namespace PontelloImport.Controllers
 {
@@ -11,23 +14,84 @@ namespace PontelloImport.Controllers
     public class AdminDealersController : AdminBaseController
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _emailService;
+        private readonly ILogger<AdminDealersController> _logger;
 
-        public AdminDealersController(PontelloDbContext context, UserManager<ApplicationUser> userManager)
+        public AdminDealersController(
+            PontelloDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IEmailService emailService,
+            ILogger<AdminDealersController> logger)
             : base(context)
         {
             _userManager = userManager;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         // GET: /AdminDealers
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(
+            string? tab    = "pending",
+            string? search = null,
+            string? region = null,
+            string? from   = null,
+            string? to     = null,
+            int     page   = 1)
         {
-            var applications = await _context.DealerApplications
+            const int PageSize = 20;
+
+            var all = await _context.DealerApplications
                 .Include(a => a.SubmittedAddress)
-                .OrderBy(a => a.Status == "Pending" ? 0 : a.Status == "Approved" ? 1 : 2)
-                .ThenByDescending(a => a.SubmittedDate)
+                .OrderByDescending(a => a.SubmittedDate)
                 .ToListAsync();
 
-            return View(applications);
+            // Tab counts (unfiltered by search/region/date)
+            ViewData["CountPending"]  = all.Count(a => a.Status == "Pending");
+            ViewData["CountApproved"] = all.Count(a => a.Status == "Approved");
+            ViewData["CountRejected"] = all.Count(a => a.Status == "Rejected");
+            ViewData["CountAll"]      = all.Count;
+
+            // Apply tab filter
+            var filtered = all.AsEnumerable();
+            if (tab == "pending")  filtered = filtered.Where(a => a.Status == "Pending");
+            else if (tab == "approved") filtered = filtered.Where(a => a.Status == "Approved");
+            else if (tab == "rejected") filtered = filtered.Where(a => a.Status == "Rejected");
+
+            // Search
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.Trim().ToLower();
+                filtered = filtered.Where(a =>
+                    (a.FirstName + " " + a.LastName).ToLower().Contains(q) ||
+                    (a.Company?.ToLower().Contains(q) ?? false) ||
+                    (a.Email?.ToLower().Contains(q) ?? false) ||
+                    (a.SubmittedCompanyName?.ToLower().Contains(q) ?? false) ||
+                    (a.City?.ToLower().Contains(q) ?? false) ||
+                    (a.ProvinceState?.ToLower().Contains(q) ?? false) ||
+                    (a.SubmittedAddress?.City?.ToLower().Contains(q) ?? false) ||
+                    (a.SubmittedAddress?.Province?.ToLower().Contains(q) ?? false));
+            }
+
+            // Date range
+            if (DateTime.TryParse(from, out var fromDate))
+                filtered = filtered.Where(a => a.SubmittedDate >= fromDate.ToUniversalTime());
+            if (DateTime.TryParse(to, out var toDate))
+                filtered = filtered.Where(a => a.SubmittedDate <= toDate.AddDays(1).ToUniversalTime());
+
+            var list   = filtered.ToList();
+            var total  = list.Count;
+            var paged  = list.Skip((page - 1) * PageSize).Take(PageSize).ToList();
+
+            ViewData["Tab"]        = tab;
+            ViewData["Search"]     = search;
+            ViewData["Region"]     = region;
+            ViewData["From"]       = from;
+            ViewData["To"]         = to;
+            ViewData["Page"]       = page;
+            ViewData["TotalPages"] = (int)Math.Ceiling(total / (double)PageSize);
+            ViewData["TotalCount"] = total;
+
+            return View(paged);
         }
 
         // GET: /AdminDealers/ReviewApplication/5
@@ -43,53 +107,74 @@ namespace PontelloImport.Controllers
             return View(application);
         }
 
+        // ── Password generator ───────────────────────────────────────────────
+        private string GenerateTempPassword(string firstName, string phone)
+        {
+            var clean = new string(
+                firstName.Where(char.IsLetter).ToArray());
+            var name = clean.Length > 0
+                ? char.ToUpper(clean[0]) + clean.Substring(1).ToLower()
+                : "Dealer";
+            var digits = new string(
+                phone.Where(char.IsDigit).ToArray());
+            var last4 = digits.Length >= 4
+                ? digits.Substring(digits.Length - 4)
+                : new Random().Next(1000, 9999).ToString();
+            return $"{name}@{last4}!";
+        }
+
         // POST: /AdminDealers/ApproveApplication
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ApproveApplication(int id, string assignedPassword)
+        public async Task<IActionResult> ApproveApplication(int id)
         {
-            var application = await _context.DealerApplications
-                .Include(a => a.SubmittedAddress)
-                .FirstOrDefaultAsync(a => a.ApplicationID == id);
+            var app = await _context.DealerApplications
+                .FindAsync(id);
+            if (app == null) return NotFound();
 
-            if (application == null) return NotFound();
-
-            if (string.IsNullOrWhiteSpace(assignedPassword))
+            var existing = await _userManager
+                .FindByEmailAsync(app.Email);
+            if (existing != null)
             {
-                TempData["Error"] = "A password is required to create the dealer account.";
-                return RedirectToAction(nameof(ReviewApplication), new { id });
+                TempData["Error"] =
+                    "An account with this email already exists.";
+                return RedirectToAction(
+                    nameof(ReviewApplication), new { id });
             }
 
-            // Create ApplicationUser
+            var tempPassword = GenerateTempPassword(
+                app.FirstName, app.Phone ?? "0000");
+
             var user = new ApplicationUser
             {
-                UserName = application.SubmittedEmail,
-                Email = application.SubmittedEmail,
-                FirstName = application.SubmittedContactName.Split(' ').FirstOrDefault() ?? application.SubmittedContactName,
-                LastName = application.SubmittedContactName.Contains(' ')
-                    ? string.Join(' ', application.SubmittedContactName.Split(' ').Skip(1))
-                    : "",
+                UserName = app.Email,
+                Email = app.Email,
+                FirstName = app.FirstName,
+                LastName = app.LastName,
                 UserType = "Dealer",
                 EmailConfirmed = true
             };
 
-            var result = await _userManager.CreateAsync(user, assignedPassword);
+            var result = await _userManager
+                .CreateAsync(user, tempPassword);
             if (!result.Succeeded)
             {
-                TempData["Error"] = "Could not create account: " + string.Join("; ", result.Errors.Select(e => e.Description));
-                return RedirectToAction(nameof(ReviewApplication), new { id });
+                TempData["Error"] = string.Join(", ",
+                    result.Errors.Select(e => e.Description));
+                return RedirectToAction(
+                    nameof(ReviewApplication), new { id });
             }
 
             await _userManager.AddToRoleAsync(user, "Dealer");
 
-            // Create billing address (copy from application)
+            // Create billing address from application fields
             var billing = new Address
             {
-                Street   = application.SubmittedAddress?.Street   ?? "",
-                City     = application.SubmittedAddress?.City     ?? "",
-                Province = application.SubmittedAddress?.Province ?? "",
-                PostalCode = application.SubmittedAddress?.PostalCode ?? "",
-                Country  = "Canada"
+                Street = app.Address ?? app.SubmittedAddress?.Street ?? "",
+                City = app.City ?? app.SubmittedAddress?.City ?? "",
+                Province = app.ProvinceState ?? app.SubmittedAddress?.Province ?? "",
+                PostalCode = app.PostalZipCode ?? app.SubmittedAddress?.PostalCode ?? "",
+                Country = "Canada"
             };
             _context.Addresses.Add(billing);
             await _context.SaveChangesAsync();
@@ -99,35 +184,58 @@ namespace PontelloImport.Controllers
                 .FirstOrDefaultAsync(t => t.TermCode == "NET30")
                 ?? await _context.PaymentTerms.FirstOrDefaultAsync();
 
-            // Create Dealer record
             var dealer = new Dealer
             {
                 ApplicationUserID = user.Id,
-                CompanyName       = application.SubmittedCompanyName,
-                ContactPhone      = application.SubmittedContactPhone,
-                BillingAddressID  = billing.AddressID,
-                PaymentTermsID    = terms?.PaymentTermsID ?? 1,
-                BusinessNumber    = application.BusinessNumber,
-                IsTaxExempt       = false
+                CompanyName = app.Company ?? $"{app.FirstName} {app.LastName}",
+                ContactPhone = app.Phone ?? app.SubmittedContactPhone ?? "",
+                BillingAddressID = billing.AddressID,
+                PaymentTermsID = terms?.PaymentTermsID ?? 1,
+                IsTaxExempt = false
             };
             _context.Dealers.Add(dealer);
 
-            // Update application status
-            application.Status       = "Approved";
-            application.ReviewedBy   = User.Identity?.Name ?? "Admin";
-            application.ReviewedDate = DateTime.UtcNow;
-            application.ApprovedDealerID = dealer.DealerID; // will be set after save
+            app.Status = "Approved";
+            app.ReviewedDate = DateTime.UtcNow;
+            app.ReviewedBy = User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
 
             await _context.SaveChangesAsync();
 
             // Set ApprovedDealerID now that dealer.DealerID is assigned
-            application.ApprovedDealerID = dealer.DealerID;
+            app.ApprovedDealerID = dealer.DealerID;
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Account created for {application.SubmittedCompanyName}. " +
-                                  $"Email: {application.SubmittedEmail} / Password: {assignedPassword} — " +
-                                  "Send these credentials to the dealer.";
-            return RedirectToAction(nameof(Index));
+            bool emailSent = false;
+            try
+            {
+                await _emailService.SendDealerApprovedAsync(
+                    app.Email, app.FirstName, tempPassword);
+                emailSent = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to send approval email to {Email}", app.Email);
+            }
+
+            TempData["ApprovedName"]     = $"{app.FirstName} {app.LastName}";
+            TempData["ApprovedCompany"]  = app.Company ?? "";
+            TempData["ApprovedEmail"]    = app.Email;
+            TempData["ApprovedPassword"] = tempPassword;
+            TempData["ApprovedRefId"]    = $"APP-{app.ApplicationID:D5}";
+            TempData["EmailSent"]        = emailSent;
+
+            return RedirectToAction(nameof(ApprovalConfirmation), new { id });
+        }
+
+        // GET: /AdminDealers/ApprovalConfirmation/5
+        [HttpGet]
+        public IActionResult ApprovalConfirmation(int id)
+        {
+            if (TempData["ApprovedEmail"] == null)
+                return RedirectToAction(nameof(Index));
+            return View();
         }
 
         // POST: /AdminDealers/RejectApplication
@@ -138,10 +246,10 @@ namespace PontelloImport.Controllers
             var application = await _context.DealerApplications.FindAsync(id);
             if (application == null) return NotFound();
 
-            application.Status       = "Rejected";
-            application.ReviewedBy   = User.Identity?.Name ?? "Admin";
+            application.Status = "Rejected";
+            application.ReviewedBy = User.Identity?.Name ?? "Admin";
             application.ReviewedDate = DateTime.UtcNow;
-            application.ReviewNotes  = reason;
+            application.ReviewNotes = reason;
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "Application rejected.";
@@ -183,18 +291,18 @@ namespace PontelloImport.Controllers
 
             var allItems = dealers.Select(d => new DealerSummaryViewModel
             {
-                Dealer     = d,
-                User       = d.ApplicationUserID != null && userDict.ContainsKey(d.ApplicationUserID)
-                                 ? userDict[d.ApplicationUserID] : null,
-                IsActive   = IsActive(d),
+                Dealer = d,
+                User = d.ApplicationUserID != null && userDict.ContainsKey(d.ApplicationUserID)
+                           ? userDict[d.ApplicationUserID] : null,
+                IsActive = IsActive(d),
                 OrderCount = d.Orders.Count
             }).ToList();
 
-            ViewData["TotalDealers"]     = allItems.Count;
-            ViewData["ActiveDealers"]    = allItems.Count(i => i.IsActive);
+            ViewData["TotalDealers"] = allItems.Count;
+            ViewData["ActiveDealers"] = allItems.Count(i => i.IsActive);
             ViewData["SuspendedDealers"] = allItems.Count(i => !i.IsActive);
-            ViewData["Search"]           = search;
-            ViewData["Status"]           = status;
+            ViewData["Search"] = search;
+            ViewData["Status"] = status;
 
             var filtered = allItems.AsEnumerable();
 
@@ -241,10 +349,10 @@ namespace PontelloImport.Controllers
 
             var vm = new DealerProfileViewModel
             {
-                Dealer          = dealer,
-                User            = user,
-                IsActive        = isActive,
-                RecentOrders    = dealer.Orders.OrderByDescending(o => o.CreatedDate).Take(10).ToList(),
+                Dealer = dealer,
+                User = user,
+                IsActive = isActive,
+                RecentOrders = dealer.Orders.OrderByDescending(o => o.CreatedDate).Take(10).ToList(),
                 TotalOrderCount = dealer.Orders.Count,
                 TotalOrderValue = dealer.Orders.Sum(o => o.TotalAmount),
                 AllPaymentTerms = allPaymentTerms
@@ -306,9 +414,9 @@ namespace PontelloImport.Controllers
             if (dealer == null) return NotFound();
 
             dealer.PaymentTermsID = paymentTermsId;
-            dealer.IsTaxExempt    = isTaxExempt;
-            dealer.ModifiedDate   = DateTime.UtcNow;
-            dealer.ModifiedBy     = User.Identity?.Name;
+            dealer.IsTaxExempt = isTaxExempt;
+            dealer.ModifiedDate = DateTime.UtcNow;
+            dealer.ModifiedBy = User.Identity?.Name;
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "Dealer terms updated.";

@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
 using PontelloImport.Models;
+using PontelloImport.Services;
+using QuestPDF.Infrastructure;
+
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 // Use absolute paths so SQLite files land in the app root on both local and Azure (D:\home\site\wwwroot)
 var contentRoot = builder.Environment.ContentRootPath;
 var connectionString = $"Data Source={Path.Combine(contentRoot, "ApplicationDatabase.db")}";
@@ -45,6 +47,12 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// Email service
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+// PDF service
+builder.Services.AddScoped<IPdfService, PdfService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -55,7 +63,6 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -84,7 +91,6 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<PontelloDbContext>();
     var appDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    // Migrations in their own block so Azure stdout captures the failure point clearly
     try
     {
         db.Database.Migrate();
@@ -123,7 +129,7 @@ static async Task SeedAuthAsync(
     PontelloDbContext db)
 {
     // Seed roles
-    string[] roles = { "SuperAdmin", "Admin", "Dealer" };
+    string[] roles = { "SuperAdmin", "Admin", "Dealer", "Staff" };
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
@@ -161,11 +167,21 @@ static async Task SeedAuthAsync(
         return user;
     }
 
-    // Admins
+    // SuperAdmins
     await EnsureUser("jesse@pontelloimports.com", "Jesse", "Pontello",
         "SuperAdmin", "Admin@Pontello2026!", new[] { "SuperAdmin", "Admin" });
     await EnsureUser("kelly@pontelloimports.com", "Kelly", "Vlaar",
         "Admin", "Admin@Pontello2026!", new[] { "Admin" });
+
+    // Admin portal account
+    await EnsureUser("admin@pontelloimports.com", "Portal", "Admin",
+        "Admin", "Admin@Portal2026!", new[] { "Admin" });
+
+    // Staff accounts
+    await EnsureUser("staff1@pontelloimports.com", "Staff", "One",
+        "Staff", "Staff@Portal2026!", new[] { "Staff" });
+    await EnsureUser("staff2@pontelloimports.com", "Staff", "Two",
+        "Staff", "Staff@Portal2026!", new[] { "Staff" });
 
     // Helper: ensure Dealer record exists for an ApplicationUser
     async Task EnsureDealerRecord(
@@ -175,13 +191,11 @@ static async Task SeedAuthAsync(
         var user = await userManager.FindByEmailAsync(email);
         if (user == null) return;
 
-        // Skip if dealer record already exists
         if (db.Dealers.Any(d => d.ApplicationUserID == user.Id)) return;
 
-        // Need a default PaymentTerms (Net 30)
         var terms = db.PaymentTerms.FirstOrDefault(t => t.TermCode == "NET30")
                     ?? db.PaymentTerms.FirstOrDefault();
-        if (terms == null) return; // PaymentTerms not yet seeded — skip
+        if (terms == null) return;
 
         var billing = new Address
         {

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Sign In — Pontello Imports";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var isDev = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
 }
 
 <div class="row justify-content-center" style="margin-top:3rem;">
@@ -11,27 +12,27 @@
         <div class="text-center mb-4">
             <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height:52px;" class="mb-3" />
             <h1 style="font-size:1.35rem; font-weight:600; color:#111827;">Sign In</h1>
-            <p class="text-muted" style="font-size:0.9rem;">Pontello Imports Dealer Portal</p>
+            <p class="text-muted" style="font-size:0.9rem;">Sign in to your account</p>
         </div>
 
         <div class="card shadow-sm" style="border:1px solid #E5E7EB; border-radius:12px;">
             <div class="card-body p-4">
 
-                <form method="post">
+                <form id="loginForm" method="post">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="ReturnUrl" />
 
                     <div class="mb-3">
                         <label asp-for="Input.Email" class="form-label fw-semibold" style="font-size:0.875rem;">Email</label>
-                        <input asp-for="Input.Email" class="form-control" autocomplete="username"
+                        <input asp-for="Input.Email" id="Input_Email" class="form-control" autocomplete="username"
                                placeholder="you@example.com" style="border-radius:8px;" />
                         <span asp-validation-for="Input.Email" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Input.Password" class="form-label fw-semibold" style="font-size:0.875rem;">Password</label>
-                        <input asp-for="Input.Password" class="form-control" autocomplete="current-password"
+                        <input asp-for="Input.Password" id="Input_Password" class="form-control" autocomplete="current-password"
                                placeholder="••••••••" style="border-radius:8px;" />
                         <span asp-validation-for="Input.Password" class="text-danger small"></span>
                     </div>
@@ -41,14 +42,63 @@
                         <label asp-for="Input.RememberMe" class="form-check-label" style="font-size:0.875rem;">Remember me</label>
                     </div>
 
-                    <button type="submit" class="btn w-100 fw-semibold"
+                    <button type="submit" id="loginSubmit" class="btn w-100 fw-semibold"
                             style="background:#0D3D38; color:#ffffff; border-radius:8px; padding:0.65rem;">
                         Sign In
                     </button>
+
+                    <div style="text-align:center;margin-top:10px;">
+                        <a asp-page="./ForgotPassword"
+                           style="font-size:12px;color:#028090;text-decoration:none;">
+                            Forgot your password?
+                        </a>
+                    </div>
                 </form>
 
             </div>
         </div>
+
+        @if (isDev)
+        {
+            <div class="mt-3">
+                <details>
+                    <summary class="text-muted" style="font-size:0.8rem; cursor:pointer;">
+                        Dev quick-login
+                    </summary>
+                    <div class="card mt-2 border-0 shadow-sm" style="border-radius:10px;">
+                        <div class="card-body p-3">
+                            <p class="text-muted mb-2" style="font-size:0.75rem;">Click to fill credentials and log in</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        onclick="quickLogin('jesse@pontelloimports.com','Admin@Pontello2026!')">
+                                    Jesse (SuperAdmin)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-warning"
+                                        onclick="quickLogin('kelly@pontelloimports.com','Admin@Pontello2026!')">
+                                    Kelly (Admin)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                        onclick="quickLogin('admin@pontelloimports.com','Admin@Portal2026!')">
+                                    Portal Admin
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        onclick="quickLogin('staff1@pontelloimports.com','Staff@Portal2026!')">
+                                    Staff 1
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success"
+                                        onclick="quickLogin('dealer1@testdealer.com','Dealer@Test2026!')">
+                                    Dealer 1
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success"
+                                        onclick="quickLogin('dealer2@testdealer.com','Dealer@Test2026!')">
+                                    Dealer 2
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        }
 
         <div class="text-center mt-3" style="font-size:0.875rem; color:#6B7280;">
             Not a dealer yet?
@@ -62,4 +112,14 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    @if (isDev)
+    {
+        <script>
+            function quickLogin(email, pass) {
+                document.getElementById('Input_Email').value = email;
+                document.getElementById('Input_Password').value = pass;
+                document.getElementById('loginSubmit').click();
+            }
+        </script>
+    }
 }

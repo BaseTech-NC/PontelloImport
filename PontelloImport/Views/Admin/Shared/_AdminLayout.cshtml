@@ -38,7 +38,8 @@
             }
             @if (TempData["Warning"] != null)
             {
-                <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+                <div class="alert alert-dismissible fade show mt-3" role="alert"
+                     style="background:#F0F9FF;border-left:3px solid #0284C7;color:#0C4A6E;border-radius:6px;">
                     @TempData["Warning"]
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>

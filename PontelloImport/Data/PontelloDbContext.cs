@@ -58,6 +58,9 @@ namespace PontelloImport.Data
 		public DbSet<Address> Addresses { get; set; }
 		public DbSet<PaymentTerms> PaymentTerms { get; set; }
 
+		// DbSets — Notifications
+		public DbSet<Notification> Notifications { get; set; }
+
 		// DbSets — Order Management
 		public DbSet<Order> Orders { get; set; }
 		public DbSet<OrderLine> OrderLines { get; set; }

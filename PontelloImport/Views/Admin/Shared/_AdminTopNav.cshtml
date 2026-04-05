@@ -1,14 +1,31 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@using Microsoft.AspNetCore.Identity
+@using PontelloImport.Models
+@inject UserManager<ApplicationUser> UserManager
 @{
+    var currentUser = await UserManager.GetUserAsync(User);
+    var displayName = currentUser?.FirstName
+        ?? User.Identity?.Name?.Split('@')[0]
+        ?? "Admin";
+    var fullName = currentUser != null
+        ? $"{currentUser.FirstName} {currentUser.LastName}".Trim()
+        : displayName;
+    var initials = displayName.Length > 0
+        ? displayName[0].ToString().ToUpper()
+        : "?";
+    var role = User.IsInRole("SuperAdmin")
+        ? "Super Admin"
+        : User.IsInRole("Admin")
+            ? "Admin" : "Staff";
+    var roleColor = User.IsInRole("SuperAdmin")
+        ? "#dc2626"
+        : User.IsInRole("Admin")
+            ? "#028090" : "#6b7280";
 }
+
 <nav class="w-100 d-flex align-items-center justify-content-between px-3">
 
-     @* Left *@
+    @* Mobile logo *@
     <div class="d-lg-none">
-        @* <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports" class="img-fluid" width="55" height="45" /> *@
-        @* <a href="@Url.Action("Index", "Home")"><img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports Logo" /></a> *@
         <a href="@Url.Action("Index", "Home")">
             <img src="~/images/pontello-Imports-Logo.png"
                  alt="Pontello Imports Logo"
@@ -18,8 +35,15 @@
         </a>
     </div>
 
-    @* Right  *@
+    @* Right controls *@
     <div class="d-flex align-items-center gap-3 ms-auto">
+
+        @* Notifications bell *@
+        @{
+            var notifications = ViewData["AdminNotifications"] as List<PontelloImport.Models.Notification>
+                                ?? new List<PontelloImport.Models.Notification>();
+            var unreadCount = (int)(ViewData["AdminUnreadCount"] ?? 0);
+        }
         <div class="dropdown">
             <button class="btn btn-link p-1 position-relative"
                     type="button"
@@ -32,101 +56,165 @@
                     <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2z"/>
                     <path d="M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/>
                 </svg>
-                @if ((int)(ViewData["TotalPendingCount"] ?? 0) > 0)
+                @if (unreadCount > 0)
                 {
-                    <span class="position-absolute top-0 start-100 translate-middle p-1 rounded-circle"
-                          style="background-color: #028090; width: 8px; height: 8px;
-                                 transform: translate(-60%, 10%) !important;">
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                          style="background:#028090; font-size:0.6rem; min-width:16px; padding:2px 4px;
+                                 transform: translate(-70%, 0%) !important;">
+                        @(unreadCount > 9 ? "9+" : unreadCount.ToString())
                     </span>
                 }
             </button>
 
             <ul class="dropdown-menu dropdown-menu-end shadow"
-                style="min-width: 280px; font-size: 0.875rem;">
+                style="min-width:320px; font-size:0.875rem; max-height:420px; overflow-y:auto;">
 
-                <li class="px-3 py-2 border-bottom">
+                <li class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
                     <span class="fw-semibold text-dark">Notifications</span>
+                    @if (notifications.Any())
+                    {
+                        <div class="d-flex gap-2">
+                            @if (unreadCount > 0)
+                            {
+                                <form asp-controller="Notifications" asp-action="MarkAllRead" method="post"
+                                      asp-route-returnUrl="@Context.Request.Path">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-link p-0"
+                                            style="font-size:0.75rem; color:#028090; text-decoration:none;">
+                                        Mark all read
+                                    </button>
+                                </form>
+                            }
+                            <form asp-controller="Notifications" asp-action="DeleteAll" method="post"
+                                  asp-route-returnUrl="@Context.Request.Path">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-link p-0"
+                                        style="font-size:0.75rem; color:#9CA3AF; text-decoration:none;"
+                                        onclick="return confirm('Clear all notifications?')">
+                                    Clear all
+                                </button>
+                            </form>
+                        </div>
+                    }
                 </li>
 
-                @{
-                    var s = (int)(ViewData["SubmittedOrderCount"] ?? 0);
-                    var a = (int)(ViewData["ActionRequiredCount"] ?? 0);
-                }
-
-                @if (s == 0 && a == 0)
+                @if (!notifications.Any())
                 {
-                    <li class="px-3 py-3 text-center text-muted">
-                        <small>No pending items</small>
+                    <li class="px-3 py-4 text-center text-muted">
+                        <small>No notifications</small>
                     </li>
                 }
-
-                @if (s > 0)
+                else
                 {
-                    <li>
-                        <a class="dropdown-item py-2"
-                           asp-controller="AdminOrders"
-                           asp-action="Index"
-                           asp-route-status="Submitted">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                      style="width:28px; height:28px; background: #E0F5F5; color: #028090; font-size: 11px; font-weight: 700;">
-                                    @s
+                    foreach (var n in notifications)
+                    {
+                        var bgStyle = n.IsRead ? "" : "background:#F0FDF4;";
+                        <li style="@bgStyle border-bottom:1px solid #F3F4F6;">
+                            <div class="dropdown-item py-2 px-3 d-flex align-items-start gap-2"
+                                 style="white-space:normal; cursor:default;">
+
+                                @* Icon by type *@
+                                <span class="flex-shrink-0 mt-1">
+                                    @if (n.Type == "OrderSubmitted")
+                                    {
+                                        <span style="color:#028090;">📦</span>
+                                    }
+                                    else if (n.Type == "ApplicationSubmitted")
+                                    {
+                                        <span style="color:#7C3AED;">📋</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:#6B7280;">🔔</span>
+                                    }
                                 </span>
-                                <div>
-                                    <div class="fw-medium text-dark" style="font-size:0.82rem;">New Order@(s == 1 ? "" : "s") Submitted</div>
-                                    <div class="text-muted" style="font-size:0.75rem;">Awaiting your review</div>
+
+                                <div class="flex-grow-1">
+                                    <div style="font-size:0.82rem; color:#111827; line-height:1.4;">
+                                        @if (!string.IsNullOrEmpty(n.ActionUrl))
+                                        {
+                                            <a href="@n.ActionUrl" style="color:#111827; text-decoration:none;">@n.Message</a>
+                                        }
+                                        else
+                                        {
+                                            @n.Message
+                                        }
+                                    </div>
+                                    <div class="text-muted" style="font-size:0.72rem;">
+                                        @{
+                                            var diff = DateTime.UtcNow - n.CreatedDate;
+                                            string relTime;
+                                            if (diff.TotalMinutes < 2)       relTime = "just now";
+                                            else if (diff.TotalHours < 1)    relTime = $"{(int)diff.TotalMinutes}m ago";
+                                            else if (diff.TotalDays < 1)     relTime = $"{(int)diff.TotalHours}h ago";
+                                            else if (diff.TotalDays < 7)     relTime = $"{(int)diff.TotalDays}d ago";
+                                            else                              relTime = n.CreatedDate.ToLocalTime().ToString("MMM d");
+                                        }
+                                        @relTime
+                                    </div>
+                                </div>
+
+                                <div class="flex-shrink-0 d-flex flex-column gap-1">
+                                    @if (!n.IsRead)
+                                    {
+                                        <form asp-controller="Notifications" asp-action="MarkRead"
+                                              asp-route-id="@n.NotificationID"
+                                              asp-route-returnUrl="@Context.Request.Path"
+                                              method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-link p-0"
+                                                    style="font-size:0.7rem; color:#028090; text-decoration:none;"
+                                                    title="Mark as read">✓</button>
+                                        </form>
+                                    }
+                                    <form asp-controller="Notifications" asp-action="Delete"
+                                          asp-route-id="@n.NotificationID"
+                                          asp-route-returnUrl="@Context.Request.Path"
+                                          method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-link p-0"
+                                                style="font-size:0.7rem; color:#9CA3AF; text-decoration:none;"
+                                                title="Dismiss">✕</button>
+                                    </form>
                                 </div>
                             </div>
-                        </a>
-                    </li>
+                        </li>
+                    }
                 }
-
-                @if (a > 0)
-                {
-                    <li>
-                        <a class="dropdown-item py-2"
-                           asp-controller="AdminOrders"
-                           asp-action="Index"
-                           asp-route-status="ActionRequired">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                      style="width:28px; height:28px; background: #FFF7ED; color: #EA580C; font-size: 11px; font-weight: 700;">
-                                    @a
-                                </span>
-                                <div>
-                                    <div class="fw-medium text-dark" style="font-size:0.82rem;">Order@(a == 1 ? "" : "s") Requiring Action</div>
-                                    <div class="text-muted" style="font-size:0.75rem;">Needs resolution</div>
-                                </div>
-                            </div>
-                        </a>
-                    </li>
-                }
-
-                <li class="border-top">
-                    <a class="dropdown-item py-2 text-center"
-                       style="font-size:0.8rem; color:#028090;"
-                       asp-controller="AdminOrders"
-                       asp-action="Index">
-                        View all orders →
-                    </a>
-                </li>
-
             </ul>
         </div>
 
+        @* User avatar + dropdown *@
         <div class="dropdown">
-            <a data-bs-toggle="dropdown">
-                <img src="https://img.freepik.com/premium-vector/man-avatar-profile-picture-isolated-background-avatar-profile-picture-man_1293239-4855.jpg" class="rounded-circle img-fluid" width="40" height="40" alt="User menu" />
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
+            <button class="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                <span class="rounded-circle d-flex align-items-center justify-content-center fw-semibold"
+                      style="width:34px;height:34px;background:#0D3D38;color:#02C39A;font-size:0.875rem;flex-shrink:0;">
+                    @initials
+                </span>
+                <span class="d-none d-md-inline text-dark fw-medium" style="font-size:0.875rem;">
+                    @displayName
+                </span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:220px;font-size:0.875rem;">
+                <li class="px-3 py-2 border-bottom">
+                    <div class="fw-semibold text-dark">@fullName</div>
+                    <div class="text-muted" style="font-size:0.8rem;">@currentUser?.Email</div>
+                    <span class="badge mt-1" style="background:@roleColor;font-size:0.7rem;">@role</span>
+                </li>
                 <li>
-                    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post" class="d-inline">
+                    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="dropdown-item">Sign Out</button>
+                        <button type="submit" class="dropdown-item py-2">
+                            <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                        </button>
                     </form>
                 </li>
             </ul>
         </div>
+
     </div>
 
 </nav>
