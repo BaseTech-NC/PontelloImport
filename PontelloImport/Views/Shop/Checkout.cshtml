@@ -3,12 +3,15 @@
 @{
     ViewData["Title"] = "Checkout";
     var dealer = ViewBag.Dealer as PontelloImport.Models.Dealer;
-    var dealerAddresses = ViewBag.DealerAddresses as List<PontelloImport.Models.Address>
-                          ?? new List<PontelloImport.Models.Address>();
+    var allAddr = ViewBag.AllAddresses as List<PontelloImport.Models.Address>
+                  ?? new List<PontelloImport.Models.Address>();
     var billingAddresses = ViewBag.BillingAddresses as List<PontelloImport.Models.Address>
-                           ?? dealerAddresses;
+                           ?? new List<PontelloImport.Models.Address>();
     var shippingAddresses = ViewBag.ShippingAddresses as List<PontelloImport.Models.Address>
-                            ?? dealerAddresses;
+                            ?? new List<PontelloImport.Models.Address>();
+    // Fallback: typed filter may be empty if all addresses are a type not yet used
+    if (!billingAddresses.Any() && allAddr.Any()) billingAddresses = allAddr;
+    if (!shippingAddresses.Any() && allAddr.Any()) shippingAddresses = allAddr;
     var defaultId = (int?)ViewBag.DefaultAddressId;
     var items = Model.CartItems.ToList();
     var subtotal = items.Sum(ci => ci.Quantity * (ci.ProductVariant?.Price ?? 0m));
@@ -48,7 +51,9 @@
                             var v = item.ProductVariant;
                             var lineTotal = item.Quantity * (v?.Price ?? 0m);
                             var optValues = new[] { v?.Option1Value, v?.Option2Value, v?.Option3Value, v?.Option4Value, v?.Option5Value }
-                                .Where(o => !string.IsNullOrWhiteSpace(o));
+                                .Where(o => !string.IsNullOrWhiteSpace(o) &&
+                                            !string.Equals(o, "Default Title", StringComparison.OrdinalIgnoreCase) &&
+                                            !string.Equals(o, "Title", StringComparison.OrdinalIgnoreCase));
                             var variantLabel = optValues.Any() ? string.Join(" / ", optValues) : "";
 
                             <tr>
@@ -92,7 +97,7 @@
         <div class="card mt-3">
             <div class="card-header fw-semibold">Addresses</div>
             <div class="card-body">
-                @if (billingAddresses.Any())
+                @if (allAddr.Any())
                 {
                     <div class="mb-3">
                         <label class="form-label fw-semibold" style="font-size:0.875rem;">
@@ -150,7 +155,8 @@
                 {
                     <div class="pi-notice pi-notice-warning">
                         No addresses on file.
-                        <a href="/DealerAccount/ManageAccount" style="color:var(--pi-warning);">
+                        <a href="/DealerAccount/ManageAccount"
+                           style="color:var(--pi-warning);font-weight:500;">
                             Add an address before checking out
                         </a>
                     </div>

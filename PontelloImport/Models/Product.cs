@@ -12,10 +12,10 @@ namespace PontelloImport.Models
         [Required, MaxLength(100)]
         public string Handle { get; set; }
 
-        public int VendorID { get; set; }
+        public int? VendorID { get; set; }
         public Vendor? Vendor { get; set; }
 
-        public int ProductCategoryID { get; set; }
+        public int? ProductCategoryID { get; set; }
         public ProductCategory? ProductCategory { get; set; }
 
         public int? ProductTypeID { get; set; }

@@ -81,7 +81,7 @@
                                     data-original-qty="@line.Quantity"
                                     id="row-@line.OrderLineID">
                                     <td>@line.ProductTitle</td>
-                                    <td class="text-muted">@(line.VariantTitle ?? "—")</td>
+                                    <td class="text-muted">@DisplayHelpers.VariantDisplay(line.VariantTitle)</td>
                                     <td><code class="text-dark">@line.SKU</code></td>
                                     <td class="text-end">@line.UnitPrice.ToString("C")</td>
                                     <td class="text-center">

@@ -87,20 +87,7 @@
                                 {
                                     <tr>
                                         <td>@line.ProductTitle</td>
-                                        <td class="text-muted">
-                                            @{
-                                                var adminDisplayVariant = (line.VariantTitle == "Default Title" || line.VariantTitle == "Title")
-                                                    ? "" : line.VariantTitle;
-                                            }
-                                            @if (!string.IsNullOrEmpty(adminDisplayVariant))
-                                            {
-                                                @adminDisplayVariant
-                                            }
-                                            else if (string.IsNullOrEmpty(adminDisplayVariant) && string.IsNullOrEmpty(line.VariantTitle))
-                                            {
-                                                <span>—</span>
-                                            }
-                                        </td>
+                                        <td class="text-muted">@DisplayHelpers.VariantDisplay(line.VariantTitle)</td>
                                         <td><code class="text-dark">@line.SKU</code></td>
                                         <td class="text-center">@line.Quantity</td>
                                         <td class="text-end">@line.UnitPrice.ToString("C")</td>

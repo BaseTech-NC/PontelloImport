@@ -345,6 +345,7 @@ namespace PontelloImport.Controllers
                                  ?? allAddresses.FirstOrDefault();
 
             ViewBag.DealerAddresses = allAddresses;
+            ViewBag.AllAddresses = allAddresses;
             ViewBag.BillingAddresses = billingAddresses;
             ViewBag.ShippingAddresses = shippingAddresses;
             ViewBag.DefaultAddressId = defaultAddress?.AddressID;
