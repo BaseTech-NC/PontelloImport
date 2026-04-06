@@ -1,7 +1,9 @@
 @model PontelloImport.Models.DealerApplication
+@using PontelloImport.Models
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewBag.Title = "Review Application";
+    var paymentTerms = ViewBag.PaymentTerms as List<PaymentTerms> ?? new List<PaymentTerms>();
 
     var displayName = !string.IsNullOrWhiteSpace(Model.Company)
         ? Model.Company
@@ -107,6 +109,35 @@
                 </div>
                 <form asp-action="ApproveApplication" asp-route-id="@Model.ApplicationID" method="post">
                     @Html.AntiForgeryToken()
+
+                    <div class="pi-card mb-3">
+                        <div class="pi-section-label">Account settings (set before approving)</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Payment Terms</label>
+                                <select name="paymentTermsId" class="form-select">
+                                    @foreach (var term in paymentTerms)
+                                    {
+                                        <option value="@term.PaymentTermsID">@term.TermName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Tax Status</label>
+                                <div class="mt-2">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="isTaxExempt" id="taxExempt"
+                                               value="true" class="form-check-input">
+                                        <label for="taxExempt" class="form-check-label">Tax exempt</label>
+                                    </div>
+                                    <div style="font-size:11px;color:var(--pi-text-2);margin-top:4px;">
+                                        Check if dealer is HST exempt
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-success">
                         <i class="bi bi-check-circle me-1"></i> Approve Application
                     </button>

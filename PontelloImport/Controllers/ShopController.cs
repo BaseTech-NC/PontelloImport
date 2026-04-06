@@ -321,18 +321,33 @@ namespace PontelloImport.Controllers
 
             ViewBag.Dealer = dealer;
 
-            // All addresses for shipping selector
-            var dealerAddresses = await _context.Addresses
+            // All addresses for checkout address selection
+            var allAddresses = await _context.Addresses
                 .Where(a => a.DealerID == dealerId.Value)
                 .ToListAsync();
-            // Include billing/shipping if not already in the list
+            // Include legacy billing/shipping if not already in the list
             if (dealer?.BillingAddress != null &&
-                dealerAddresses.All(a => a.AddressID != dealer.BillingAddressID))
-                dealerAddresses.Insert(0, dealer.BillingAddress);
+                allAddresses.All(a => a.AddressID != dealer.BillingAddressID))
+                allAddresses.Insert(0, dealer.BillingAddress);
             if (dealer?.ShippingAddress != null &&
-                dealerAddresses.All(a => a.AddressID != dealer.ShippingAddressID))
-                dealerAddresses.Add(dealer.ShippingAddress);
-            ViewBag.DealerAddresses = dealerAddresses;
+                allAddresses.All(a => a.AddressID != dealer.ShippingAddressID))
+                allAddresses.Add(dealer.ShippingAddress);
+
+            var billingAddresses = allAddresses
+                .Where(a => a.AddressType == "Billing" || a.AddressType == "Both"
+                         || a.AddressType == null)
+                .ToList();
+            var shippingAddresses = allAddresses
+                .Where(a => a.AddressType == "Shipping" || a.AddressType == "Both"
+                         || a.AddressType == null)
+                .ToList();
+            var defaultAddress = allAddresses.FirstOrDefault(a => a.IsDefault)
+                                 ?? allAddresses.FirstOrDefault();
+
+            ViewBag.DealerAddresses = allAddresses;
+            ViewBag.BillingAddresses = billingAddresses;
+            ViewBag.ShippingAddresses = shippingAddresses;
+            ViewBag.DefaultAddressId = defaultAddress?.AddressID;
 
             var flaggedItems = cart.CartItems
                 .Where(i => i.ProductVariant.InventoryQuantity < i.Quantity)
@@ -578,10 +593,18 @@ namespace PontelloImport.Controllers
         {
             var order = await _context.Orders
                 .Include(o => o.OrderLines)
+                .Include(o => o.Dealer)
                 .FirstOrDefaultAsync(o => o.OrderID == id);
 
             if (order == null)
                 return NotFound();
+
+            if (order.Dealer != null)
+            {
+                var dealerUser = await _userManager.FindByIdAsync(order.Dealer.ApplicationUserID!);
+                if (dealerUser != null)
+                    ViewData["DealerEmail"] = dealerUser.Email;
+            }
 
             return View(order);
         }
@@ -765,6 +788,40 @@ namespace PontelloImport.Controllers
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(OrderHistory));
+        }
+
+        // POST: /Shop/DealerMarkNotificationReadJson/5  (AJAX)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DealerMarkNotificationReadJson(int id)
+        {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return Json(new { ok = false });
+
+            var n = await _context.Notifications.FindAsync(id);
+            if (n != null && n.DealerID == dealerId.Value)
+            {
+                n.IsRead = true;
+                await _context.SaveChangesAsync();
+            }
+            return Json(new { ok = true });
+        }
+
+        // POST: /Shop/DealerDismissNotificationJson/5  (AJAX)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DealerDismissNotificationJson(int id)
+        {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return Json(new { ok = false });
+
+            var n = await _context.Notifications.FindAsync(id);
+            if (n != null && n.DealerID == dealerId.Value)
+            {
+                _context.Notifications.Remove(n);
+                await _context.SaveChangesAsync();
+            }
+            return Json(new { ok = true });
         }
     }
 }

@@ -221,11 +221,24 @@ namespace PontelloImport.Services
         public async Task SendPurchaseOrderAsync(
             string dealerEmail, string dealerName,
             string adminEmail, string poNumber,
-            byte[] pdfBytes)
+            byte[] pdfBytes,
+            bool isRevised = false)
         {
             var cfg = _config.GetSection("EmailConfiguration");
-            var subject = $"Purchase Order #{poNumber} — Pontello Imports";
+            var subject = isRevised
+                ? $"Revised Purchase Order {poNumber} — Pontello Imports"
+                : $"Purchase Order #{poNumber} — Pontello Imports";
             var fileName = $"PO-{poNumber}.pdf";
+
+            var dealerBody = isRevised
+                ? $"<p style='color:#4b5563;font-size:14px;line-height:1.6;'>" +
+                  $"Pontello Imports has updated your order. " +
+                  $"Please find the revised purchase order " +
+                  $"<strong>{poNumber}</strong> attached.</p>"
+                : $"<p style='color:#4b5563;font-size:14px;line-height:1.6;'>" +
+                  $"Your purchase order <strong>PO #{poNumber}</strong> has been " +
+                  $"submitted to Pontello Imports and is under review. " +
+                  $"Please find your purchase order attached.</p>";
 
             var dealerHtml = $@"
             <div style='font-family:sans-serif;max-width:560px;margin:0 auto;'>
@@ -237,11 +250,7 @@ namespace PontelloImport.Services
                 <p style='color:#111827;font-size:15px;margin:0 0 12px;'>
                   Hi {dealerName},
                 </p>
-                <p style='color:#4b5563;font-size:14px;line-height:1.6;'>
-                  Your purchase order <strong>PO #{poNumber}</strong> has been
-                  submitted to Pontello Imports and is under review.
-                  Please find your purchase order attached.
-                </p>
+                {dealerBody}
                 <p style='color:#9ca3af;font-size:12px;margin-top:20px;'>
                   Questions? Call us at 647-964-6833 or
                   email jesse@pontelloimports.com

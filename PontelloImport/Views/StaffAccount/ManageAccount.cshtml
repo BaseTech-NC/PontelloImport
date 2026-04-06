@@ -1,0 +1,133 @@
+@model PontelloImport.Models.ApplicationUser
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "My Account";
+    var roles = ViewBag.Roles as IList<string> ?? new List<string>();
+    var initials = (!string.IsNullOrEmpty(Model?.FirstName) ? Model.FirstName[0].ToString() : "?").ToUpper();
+    string RoleBadgeClass(string role) => role switch {
+        "SuperAdmin" => "pi-badge-cancelled",
+        "Admin"      => "pi-badge-admin",
+        _            => "pi-badge-staff"
+    };
+}
+
+<div class="container-fluid mt-4" style="max-width:640px;">
+
+    <div class="mb-4">
+        <h1 style="font-weight:600;color:var(--pi-text-1);font-size:1.4rem;margin-bottom:2px;">
+            My Account
+        </h1>
+        <p style="color:var(--pi-text-2);font-size:0.875rem;margin:0;">
+            Update your phone number and password.
+        </p>
+    </div>
+
+    <!-- Profile card -->
+    <div class="pi-card mb-4">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div style="width:64px;height:64px;border-radius:50%;
+                        background:var(--pi-primary-lt);color:var(--pi-primary);
+                        font-size:1.5rem;font-weight:700;flex-shrink:0;
+                        display:flex;align-items:center;justify-content:center;
+                        border:2px solid var(--pi-primary);">
+                @initials
+            </div>
+            <div>
+                <div style="font-size:1.1rem;font-weight:600;color:var(--pi-text-1);">
+                    @Model?.FirstName @Model?.LastName
+                </div>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                    @foreach (var role in roles)
+                    {
+                        <span class="pi-badge @RoleBadgeClass(role)" style="font-size:11px;">@role</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="pi-section-label">Contact Details</div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:0.875rem;">Email</label>
+            <input class="form-control" value="@Model?.Email" readonly
+                   style="background:#f8fafc;color:#6b7280;" />
+            <div class="form-text">
+                To change your email address, contact your SuperAdmin.
+            </div>
+        </div>
+
+        <form asp-action="UpdatePhone" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label class="form-label fw-semibold" style="font-size:0.875rem;">Phone</label>
+                <input type="tel" name="phone" class="form-control"
+                       value="@Model?.PhoneNumber"
+                       placeholder="e.g. 416-555-0100" />
+            </div>
+            <button type="submit" class="pi-btn pi-btn-primary pi-btn-sm">
+                Save
+            </button>
+        </form>
+    </div>
+
+    <!-- Change Password card -->
+    <div class="pi-card">
+        <div class="pi-section-label">Change Password</div>
+
+        <form asp-action="ChangePassword" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label class="form-label" style="font-size:0.875rem;">Current Password</label>
+                <div class="input-group">
+                    <input type="password" id="staffCurrentPwd" name="currentPassword"
+                           class="form-control" required />
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="togglePwd('staffCurrentPwd', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" style="font-size:0.875rem;">New Password</label>
+                <div class="input-group">
+                    <input type="password" id="staffNewPwd" name="newPassword"
+                           class="form-control" required minlength="6" />
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="togglePwd('staffNewPwd', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" style="font-size:0.875rem;">Confirm New Password</label>
+                <div class="input-group">
+                    <input type="password" id="staffConfirmPwd" name="confirmPassword"
+                           class="form-control" required minlength="6" />
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="togglePwd('staffConfirmPwd', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="pi-btn pi-btn-primary pi-btn-sm">
+                Update Password
+            </button>
+        </form>
+    </div>
+
+</div>

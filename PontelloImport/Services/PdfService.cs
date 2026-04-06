@@ -2,6 +2,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using PontelloImport.Models;
+using Microsoft.AspNetCore.Hosting;
 
 namespace PontelloImport.Services
 {
@@ -12,6 +13,13 @@ namespace PontelloImport.Services
 
     public class PdfService : IPdfService
     {
+        private readonly IWebHostEnvironment _env;
+
+        public PdfService(IWebHostEnvironment env)
+        {
+            _env = env;
+        }
+
         public byte[] GeneratePurchaseOrder(Order order, string? dealerEmail = null)
         {
             return Document.Create(container =>
@@ -34,37 +42,50 @@ namespace PontelloImport.Services
             {
                 container.Row(row =>
                 {
+                    // Left: logo + company info
                     row.RelativeItem().Column(col =>
                     {
+                        var logoPath = Path.Combine(
+                            _env.WebRootPath, "images", "pontello-Imports-Logo.png");
+                        if (File.Exists(logoPath))
+                        {
+                            var logoBytes = File.ReadAllBytes(logoPath);
+                            col.Item().Width(80).Image(logoBytes);
+                            col.Item().Height(4);
+                        }
                         col.Item().Text("PONTELLO IMPORTS")
-                            .Bold().FontSize(18)
+                            .Bold().FontSize(14)
                             .FontColor("#0D3D38");
                         col.Item().Text("141 Eastchester Avenue")
-                            .FontSize(9).FontColor("#6B7280");
+                            .FontSize(8).FontColor("#6B7280");
                         col.Item().Text("St. Catharines, ON  L2P 2Z5")
-                            .FontSize(9).FontColor("#6B7280");
-                        col.Item().Text("647-964-6833")
-                            .FontSize(9).FontColor("#6B7280");
-                        col.Item().Text("jesse@pontelloimports.com")
-                            .FontSize(9).FontColor("#6B7280");
+                            .FontSize(8).FontColor("#6B7280");
+                        col.Item().Text("647-964-6833  |  jesse@pontelloimports.com")
+                            .FontSize(8).FontColor("#6B7280");
                     });
 
-                    row.ConstantItem(160).Column(col =>
+                    // Right: PO title block
+                    row.ConstantItem(180).Column(col =>
                     {
-                        col.Item().AlignRight()
+                        col.Item().AlignCenter()
                             .Text("PURCHASE ORDER")
-                            .Bold().FontSize(20)
+                            .Bold().FontSize(22)
                             .FontColor("#028090");
-                        col.Item().AlignRight()
-                            .Text($"PO # {order.OrderNumber}")
-                            .Bold().FontSize(12)
+                        col.Item().Height(4);
+                        col.Item().AlignCenter()
+                            .Text($"# {order.PONumber}")
+                            .Bold().FontSize(16)
                             .FontColor("#111827");
-                        col.Item().AlignRight()
+                        col.Item().Height(4);
+                        col.Item().AlignCenter()
                             .Text($"Date: {order.OrderDate:MMMM d, yyyy}")
                             .FontSize(9).FontColor("#6B7280");
-                        col.Item().AlignRight()
-                            .Text($"Due: {order.PaymentDueDate?.ToString("MMMM d, yyyy") ?? "TBD"}")
-                            .FontSize(9).FontColor("#6B7280");
+                        if (order.PaymentDueDate.HasValue)
+                        {
+                            col.Item().AlignCenter()
+                                .Text($"Due: {order.PaymentDueDate.Value:MMMM d, yyyy}")
+                                .FontSize(9).FontColor("#6B7280");
+                        }
                     });
                 });
             }
@@ -80,88 +101,121 @@ namespace PontelloImport.Services
                         .LineHorizontal(1)
                         .LineColor("#028090");
 
-                    // Bill To / Ship To
+                    // Determine if billing and shipping are effectively the same
+                    var billAddr = order.Dealer?.BillingAddress;
+                    var shipAddr = order.Dealer?.ShippingAddress;
+                    bool sameAddress = shipAddr == null ||
+                        (billAddr != null &&
+                         string.Equals(shipAddr.Street, billAddr.Street, StringComparison.OrdinalIgnoreCase) &&
+                         string.Equals(shipAddr.City, billAddr.City, StringComparison.OrdinalIgnoreCase) &&
+                         string.Equals(shipAddr.PostalCode, billAddr.PostalCode, StringComparison.OrdinalIgnoreCase));
+
+                    var displayAddr = sameAddress ? billAddr : null;
+
+                    // Address + Order Details row
                     col.Item().Row(row =>
                     {
-                        row.RelativeItem().Column(c =>
+                        if (sameAddress)
                         {
-                            c.Item().Text("BILL TO")
-                                .Bold().FontSize(8)
-                                .FontColor("#6B7280")
-                                .LetterSpacing(1);
-                            c.Item().Text(order.Dealer?.CompanyName ?? order.DealerCompanyName)
-                                .Bold().FontSize(11);
-                            if (!string.IsNullOrEmpty(dealerEmail))
-                                c.Item().Text(dealerEmail).FontColor("#6B7280");
-                            if (order.Dealer?.BillingAddress != null)
+                            // Single combined address block
+                            row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text(order.Dealer.BillingAddress.Street);
-                                c.Item().Text(
-                                    $"{order.Dealer.BillingAddress.City}, " +
-                                    $"{order.Dealer.BillingAddress.Province} " +
-                                    $"{order.Dealer.BillingAddress.PostalCode}");
-                            }
-                        });
+                                c.Item().Text("Bill to")
+                                    .Bold().FontSize(10)
+                                    .FontColor("#111827");
+                                c.Item().PaddingBottom(4);
+                                c.Item().Text(order.Dealer?.CompanyName ?? order.DealerCompanyName)
+                                    .Bold().FontSize(11).FontColor("#111827");
+                                if (!string.IsNullOrEmpty(dealerEmail))
+                                    c.Item().Text(dealerEmail).FontSize(9).FontColor("#6B7280");
+                                if (billAddr != null)
+                                {
+                                    c.Item().Text(billAddr.Street).FontSize(9).FontColor("#6B7280");
+                                    c.Item().Text(
+                                        $"{billAddr.City}, " +
+                                        $"{billAddr.Province} " +
+                                        $"{billAddr.PostalCode}").FontSize(9).FontColor("#6B7280");
+                                    c.Item().Text(billAddr.Country ?? "Canada")
+                                        .FontSize(9).FontColor("#6B7280");
+                                }
+                            });
+                        }
+                        else
+                        {
+                            // Separate Bill To
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("Bill to")
+                                    .Bold().FontSize(10)
+                                    .FontColor("#111827");
+                                c.Item().PaddingBottom(4);
+                                c.Item().Text(order.Dealer?.CompanyName ?? order.DealerCompanyName)
+                                    .Bold().FontSize(11).FontColor("#111827");
+                                if (!string.IsNullOrEmpty(dealerEmail))
+                                    c.Item().Text(dealerEmail).FontSize(9).FontColor("#6B7280");
+                                if (billAddr != null)
+                                {
+                                    c.Item().Text(billAddr.Street).FontSize(9).FontColor("#6B7280");
+                                    c.Item().Text(
+                                        $"{billAddr.City}, " +
+                                        $"{billAddr.Province} " +
+                                        $"{billAddr.PostalCode}").FontSize(9).FontColor("#6B7280");
+                                }
+                            });
+
+                            row.ConstantItem(20);
+
+                            // Separate Ship To
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("Ship to")
+                                    .Bold().FontSize(10)
+                                    .FontColor("#111827");
+                                c.Item().PaddingBottom(4);
+                                if (shipAddr != null)
+                                {
+                                    c.Item().Text(order.Dealer?.CompanyName ?? "")
+                                        .Bold().FontSize(11).FontColor("#111827");
+                                    c.Item().Text(shipAddr.Street).FontSize(9).FontColor("#6B7280");
+                                    c.Item().Text(
+                                        $"{shipAddr.City}, " +
+                                        $"{shipAddr.Province} " +
+                                        $"{shipAddr.PostalCode}").FontSize(9).FontColor("#6B7280");
+                                }
+                            });
+                        }
 
                         row.ConstantItem(20);
 
-                        row.RelativeItem().Column(c =>
+                        // ORDER DETAILS — plain key:value rows, no cell backgrounds
+                        row.ConstantItem(150).Column(c =>
                         {
-                            c.Item().Text("SHIP TO")
+                            c.Item().Text("ORDER DETAILS")
                                 .Bold().FontSize(8)
                                 .FontColor("#6B7280")
                                 .LetterSpacing(1);
-                            var shipAddr = order.Dealer?.ShippingAddress
-                                           ?? order.Dealer?.BillingAddress;
-                            if (shipAddr != null)
-                            {
-                                c.Item().Text(order.Dealer?.CompanyName ?? "")
-                                    .Bold().FontSize(11);
-                                c.Item().Text(shipAddr.Street);
-                                c.Item().Text(
-                                    $"{shipAddr.City}, " +
-                                    $"{shipAddr.Province} " +
-                                    $"{shipAddr.PostalCode}");
-                            }
-                            else
-                            {
-                                c.Item().Text("Same as billing")
-                                    .FontColor("#6B7280").FontSize(9);
-                            }
-                        });
+                            c.Item().Height(4);
 
-                        row.ConstantItem(20);
+                            void DetailRow(string label, string value, string? valueColor = null)
+                            {
+                                c.Item().BorderBottom(0.5f).BorderColor("#F1F5F9")
+                                    .Row(r =>
+                                    {
+                                        r.RelativeItem().Padding(3)
+                                            .Text(label).FontSize(8).FontColor("#6B7280");
+                                        r.RelativeItem().Padding(3).AlignRight()
+                                            .Text(value).Bold().FontSize(8)
+                                            .FontColor(valueColor ?? "#111827");
+                                    });
+                            }
 
-                        row.ConstantItem(140).Column(c =>
-                        {
-                            c.Item().Text("ORDER INFO")
-                                .Bold().FontSize(8)
-                                .FontColor("#6B7280")
-                                .LetterSpacing(1);
-                            c.Item().Row(r =>
-                            {
-                                r.RelativeItem().Text("Payment Terms:")
-                                    .FontColor("#6B7280");
-                                r.RelativeItem().AlignRight()
-                                    .Text(order.PaymentTerms?.TermName ?? "Net 30")
-                                    .Bold();
-                            });
-                            c.Item().Row(r =>
-                            {
-                                r.RelativeItem().Text("Tax Exempt:")
-                                    .FontColor("#6B7280");
-                                r.RelativeItem().AlignRight()
-                                    .Text(order.IsTaxExempt ? "Yes" : "No")
-                                    .Bold();
-                            });
-                            c.Item().Row(r =>
-                            {
-                                r.RelativeItem().Text("Status:")
-                                    .FontColor("#6B7280");
-                                r.RelativeItem().AlignRight()
-                                    .Text(order.Status)
-                                    .Bold().FontColor("#028090");
-                            });
+                            DetailRow("Payment Terms",
+                                order.PaymentTerms?.TermName ?? "Net 30");
+                            DetailRow("Tax Status",
+                                order.IsTaxExempt ? "Tax Exempt" : "Taxable",
+                                order.IsTaxExempt ? "#059669" : "#111827");
+                            DetailRow("Order Status",
+                                order.Status, "#028090");
                         });
                     });
 
@@ -213,9 +267,10 @@ namespace PontelloImport.Services
                             table.Cell().Element(DataCell).Column(dc =>
                             {
                                 dc.Item().Text(line.ProductTitle).Bold();
-                                if (!string.IsNullOrEmpty(line.VariantTitle) &&
-                                    line.VariantTitle != "Default Title")
-                                    dc.Item().Text(line.VariantTitle)
+                                var vt = line.VariantTitle;
+                                if (!string.IsNullOrEmpty(vt) &&
+                                    vt != "Default Title" && vt != "Title")
+                                    dc.Item().Text(vt)
                                         .FontSize(8).FontColor("#6B7280");
                             });
 
@@ -266,7 +321,7 @@ namespace PontelloImport.Services
                         TotalRow("Shipping",
                             order.ShippingCost.HasValue
                                 ? $"${order.ShippingCost.Value:F2}"
-                                : "TBD");
+                                : "Calculated after fulfillment");
 
                         totals.Item().PaddingVertical(4)
                             .LineHorizontal(1.5f).LineColor("#028090");
@@ -279,13 +334,21 @@ namespace PontelloImport.Services
                     col.Item().PaddingTop(8).Column(n =>
                     {
                         n.Item().Text("Notes").Bold().FontSize(9).FontColor("#6B7280");
-                        n.Item().Text(
-                            order.IsTaxExempt
-                                ? "Tax exempt order — no HST applied."
-                                : "HST applies to all Canadian orders.")
+                        n.Item().Height(2);
+                        if (order.IsTaxExempt)
+                        {
+                            n.Item().Text("• Tax exempt order — no HST applied.")
+                                .FontSize(8).FontColor("#9CA3AF");
+                        }
+                        else
+                        {
+                            n.Item().Text("• HST applies to all Canadian orders.")
+                                .FontSize(8).FontColor("#9CA3AF");
+                        }
+                        n.Item().Text("• Shipping calculated after order processing.")
                             .FontSize(8).FontColor("#9CA3AF");
                         if (order.TrackingNumber != null)
-                            n.Item().Text($"Tracking: {order.TrackingNumber}")
+                            n.Item().Text($"• Tracking: {order.TrackingNumber}")
                                 .FontSize(8).FontColor("#9CA3AF");
                     });
                 });
@@ -296,7 +359,7 @@ namespace PontelloImport.Services
                 container.Row(row =>
                 {
                     row.RelativeItem().Text(
-                        "Thank you for your business. Questions? 647-964-6833")
+                        "Thank you for your business.  Questions? 647-964-6833 | jesse@pontelloimports.com")
                         .FontSize(8).FontColor("#9CA3AF");
                     row.ConstantItem(60).AlignRight().Text(x =>
                     {

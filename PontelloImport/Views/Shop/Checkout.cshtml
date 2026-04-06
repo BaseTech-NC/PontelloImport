@@ -5,6 +5,11 @@
     var dealer = ViewBag.Dealer as PontelloImport.Models.Dealer;
     var dealerAddresses = ViewBag.DealerAddresses as List<PontelloImport.Models.Address>
                           ?? new List<PontelloImport.Models.Address>();
+    var billingAddresses = ViewBag.BillingAddresses as List<PontelloImport.Models.Address>
+                           ?? dealerAddresses;
+    var shippingAddresses = ViewBag.ShippingAddresses as List<PontelloImport.Models.Address>
+                            ?? dealerAddresses;
+    var defaultId = (int?)ViewBag.DefaultAddressId;
     var items = Model.CartItems.ToList();
     var subtotal = items.Sum(ci => ci.Quantity * (ci.ProductVariant?.Price ?? 0m));
     var isTaxExempt = dealer?.IsTaxExempt ?? false;
@@ -44,12 +49,15 @@
                             var lineTotal = item.Quantity * (v?.Price ?? 0m);
                             var optValues = new[] { v?.Option1Value, v?.Option2Value, v?.Option3Value, v?.Option4Value, v?.Option5Value }
                                 .Where(o => !string.IsNullOrWhiteSpace(o));
-                            var variantLabel = optValues.Any() ? string.Join(" / ", optValues) : "Default";
+                            var variantLabel = optValues.Any() ? string.Join(" / ", optValues) : "";
 
                             <tr>
                                 <td class="fw-semibold">@(v?.Product?.Title ?? "—")</td>
                                 <td>
-                                    <span class="d-block">@variantLabel</span>
+                                    @if (!string.IsNullOrEmpty(variantLabel))
+                                    {
+                                        <span class="d-block">@variantLabel</span>
+                                    }
                                     <span class="text-muted small">SKU: @(v?.SKU ?? "—")</span>
                                 </td>
                                 <td class="text-center">@item.Quantity</td>
@@ -67,17 +75,7 @@
             <div class="card">
                 <div class="card-header fw-semibold">Billing Information</div>
                 <div class="card-body">
-                    <p class="mb-1 fw-semibold">@dealer.CompanyName</p>
-                    @if (dealer.BillingAddress != null)
-                    {
-                        var a = dealer.BillingAddress;
-                        <p class="mb-0 text-muted">
-                            @a.Street<br />
-                            @a.City, @a.Province &nbsp; @a.PostalCode<br />
-                            @a.Country
-                        </p>
-                    }
-                    <hr class="my-2" />
+                    <p class="mb-2 fw-semibold">@dealer.CompanyName</p>
                     <p class="mb-0">
                         <strong>Payment Terms:</strong>
                         @(dealer.PaymentTerms?.TermName ?? "—")
@@ -89,6 +87,84 @@
                 </div>
             </div>
         }
+
+        @* Address selection *@
+        <div class="card mt-3">
+            <div class="card-header fw-semibold">Addresses</div>
+            <div class="card-body">
+                @if (billingAddresses.Any())
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:0.875rem;">
+                            Billing Address
+                        </label>
+                        <select name="BillingAddressId" class="form-select form-select-sm">
+                            @foreach (var a in billingAddresses)
+                            {
+                                <option value="@a.AddressID"
+                                        selected="@(a.AddressID == defaultId ? "selected" : null)">
+                                    @a.Street, @a.City @a.Province @a.PostalCode
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="form-check">
+                            <input type="checkbox" id="sameAddr" class="form-check-input"
+                                   checked onchange="toggleShippingAddr(this)" />
+                            <label for="sameAddr" class="form-check-label"
+                                   style="font-size:13px;">
+                                Shipping address same as billing
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="shippingAddrSection" style="display:none;">
+                        @if (shippingAddresses.Any())
+                        {
+                            <label class="form-label fw-semibold" style="font-size:0.875rem;">
+                                Shipping Address
+                            </label>
+                            <select name="ShippingAddressId" class="form-select form-select-sm">
+                                @foreach (var a in shippingAddresses)
+                                {
+                                    <option value="@a.AddressID">
+                                        @a.Street, @a.City @a.Province @a.PostalCode
+                                    </option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <div class="pi-notice pi-notice-info">
+                                No shipping address on file.
+                                <a href="/DealerAccount/ManageAccount" style="color:var(--pi-info);">
+                                    Add one in Manage Account
+                                </a>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="pi-notice pi-notice-warning">
+                        No addresses on file.
+                        <a href="/DealerAccount/ManageAccount" style="color:var(--pi-warning);">
+                            Add an address before checking out
+                        </a>
+                    </div>
+                }
+
+                <div style="margin-top:8px;font-size:12px;color:var(--pi-text-2);">
+                    Need a different address?
+                    <a href="/DealerAccount/ManageAccount"
+                       style="color:var(--pi-primary);text-decoration:none;font-weight:500;">
+                        Add one in your account →
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="col-lg-4">
@@ -130,35 +206,6 @@
                     </ul>
                 </div>
 
-                @if (dealerAddresses.Count > 1)
-                {
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:0.875rem;">
-                            Shipping Address
-                        </label>
-                        <div>
-                            <input type="checkbox" id="sameAsBilling" checked
-                                   onchange="toggleShipping(this)" />
-                            <label for="sameAsBilling" class="ms-1" style="font-size:0.875rem;">
-                                Ship to my primary address
-                            </label>
-                        </div>
-                        <div id="altShippingSection" style="display:none;margin-top:10px;">
-                            <select name="ShippingAddressId" class="form-select form-select-sm">
-                                @foreach (var addr in dealerAddresses)
-                                {
-                                    <option value="@addr.AddressID">
-                                        @addr.Street, @addr.City @addr.PostalCode
-                                    </option>
-                                }
-                            </select>
-                            <div style="font-size:11px;color:#6b7280;margin-top:4px;">
-                                Select from your saved addresses above.
-                            </div>
-                        </div>
-                    </div>
-                }
-
                 <form asp-action="SubmitOrder" method="post">
                     @Html.AntiForgeryToken()
                     <button type="submit" class="btn btn-success w-100 btn-lg">
@@ -176,8 +223,8 @@
 
 @section Scripts {
     <script>
-    function toggleShipping(cb) {
-        document.getElementById('altShippingSection').style.display =
+    function toggleShippingAddr(cb) {
+        document.getElementById('shippingAddrSection').style.display =
             cb.checked ? 'none' : 'block';
     }
     </script>

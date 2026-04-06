@@ -1,0 +1,214 @@
+@model PontelloImport.Models.ApplicationUser
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Staff Details";
+    var roles = ViewBag.Roles as IList<string> ?? new List<string>();
+    var activity = ViewBag.RecentActivity as List<PontelloImport.Models.OrderHistory>
+                   ?? new List<PontelloImport.Models.OrderHistory>();
+
+    var roleLabel = roles.Contains("SuperAdmin") ? "Super Admin"
+        : roles.Contains("Admin") ? "Admin"
+        : roles.Contains("Staff") ? "Staff"
+        : roles.FirstOrDefault() ?? "—";
+    var roleColor = roles.Contains("SuperAdmin") ? "#dc2626"
+        : roles.Contains("Admin") ? "#028090" : "#6b7280";
+    var initials = (!string.IsNullOrEmpty(Model.FirstName) ? Model.FirstName[0].ToString() : "")
+                 + (!string.IsNullOrEmpty(Model.LastName) ? Model.LastName[0].ToString() : "");
+    var isLocked = Model.LockoutEnabled && Model.LockoutEnd.HasValue
+                   && Model.LockoutEnd.Value > DateTimeOffset.UtcNow;
+    var isSuperAdmin = roles.Contains("SuperAdmin");
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-3 align-items-center">
+        <div class="col">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-1"></i> Back to Staff
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+
+        @* Left column: profile card + actions *@
+        <div class="col-lg-4">
+
+            @* Profile card *@
+            <div class="card mb-4">
+                <div class="card-body text-center pt-4">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold mb-3"
+                         style="width:64px;height:64px;background:#0D3D38;color:#02C39A;font-size:1.4rem;">
+                        @initials.ToUpper()
+                    </div>
+                    <h5 class="mb-0">@Model.FirstName @Model.LastName</h5>
+                    <div class="text-muted small mb-2">@Model.Email</div>
+                    <span class="badge" style="background:@roleColor;">@roleLabel</span>
+                    @if (isLocked)
+                    {
+                        <span class="badge bg-danger ms-1">Inactive</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success ms-1">Active</span>
+                    }
+                </div>
+            </div>
+
+            @if (!isSuperAdmin)
+            {
+                @* Change Role *@
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold" style="font-size:0.875rem;">Change Role</div>
+                    <div class="card-body">
+                        <form asp-action="ChangeRole" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@Model.Id" />
+                            <div class="d-flex gap-2 align-items-center">
+                                <select name="newRole" class="form-select form-select-sm">
+                                    @if (roles.Contains("Admin"))
+                                    {
+                                        <option value="Admin" selected>Admin</option>
+                                        <option value="Staff">Staff</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Admin">Admin</option>
+                                        <option value="Staff" selected>Staff</option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">
+                                    Update
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                @* Change Email *@
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold" style="font-size:0.875rem;">Change Email</div>
+                    <div class="card-body">
+                        <form asp-action="ChangeStaffEmail" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@Model.Id" />
+                            <div class="mb-2">
+                                <input type="email" name="newEmail"
+                                       class="form-control form-control-sm"
+                                       value="@Model.Email"
+                                       placeholder="New email address" />
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                                Update Email
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                @* Suspend / Reinstate *@
+                <div class="card">
+                    <div class="card-header fw-semibold" style="font-size:0.875rem;">Account Access</div>
+                    <div class="card-body">
+                        @if (isLocked)
+                        {
+                            <form asp-action="ReactivateUser" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="userId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-success w-100">
+                                    Reinstate Account
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="DeactivateUser" method="post"
+                                  onsubmit="return confirm('Suspend this account?')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="userId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                    Suspend Account
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Right column: recent activity *@
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header fw-semibold" style="font-size:0.875rem;">
+                    Recent Activity
+                    <span class="text-muted fw-normal ms-1">(last 20 actions)</span>
+                </div>
+                @if (!activity.Any())
+                {
+                    <div class="card-body text-muted small">No recorded activity yet.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Order</th>
+                                    <th>Action</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var h in activity)
+                                {
+                                    <tr>
+                                        <td class="text-nowrap text-muted small">
+                                            @h.ChangedDate.ToLocalTime().ToString("MMM d, yyyy HH:mm")
+                                        </td>
+                                        <td>
+                                            @if (h.Order != null)
+                                            {
+                                                <a asp-controller="AdminOrders"
+                                                   asp-action="Details"
+                                                   asp-route-id="@h.OrderID"
+                                                   class="text-decoration-none">
+                                                    @h.Order.PONumber
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge"
+                                                  style="background:#E5F9F6;color:#028090;font-size:0.75rem;">
+                                                @h.ChangeType
+                                            </span>
+                                        </td>
+                                        <td class="small text-muted">@h.ChangeDescription</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>

@@ -58,7 +58,7 @@
     <!-- Table -->
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="pi-table">
                 <thead class="table-light">
                     <tr>
                         <th>Company Name</th>
@@ -120,7 +120,9 @@
                                               method="post" class="d-inline"
                                               onsubmit="return confirm('Suspend this dealer account?')">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Suspend</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Prevent this dealer from logging in.">Suspend</button>
                                         </form>
                                     }
                                     else
@@ -128,7 +130,9 @@
                                         <form asp-action="ReinstateDealer" asp-route-id="@item.Dealer.DealerID"
                                               method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-success">Reinstate</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-success"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Restore this dealer's access.">Reinstate</button>
                                         </form>
                                     }
                                 </div>

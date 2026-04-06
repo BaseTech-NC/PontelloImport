@@ -12,6 +12,23 @@
     </p>
 </div>
 
+@{
+    var dealerEmail = ViewData["DealerEmail"] as string ?? User.Identity?.Name ?? "";
+}
+<div class="row justify-content-center mb-3">
+    <div class="col-lg-8">
+        <div class="pi-notice pi-notice-success" style="margin-top:0;">
+            <div>
+                <strong>Purchase order emailed</strong>
+                <div style="margin-top:3px;font-size:13px;">
+                    A copy of PO #@Model.PONumber has been sent to <strong>@dealerEmail</strong>.
+                    Please check your inbox — it may take a few minutes to arrive.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-lg-8">
 
@@ -36,7 +53,14 @@
                             <tr>
                                 <td class="text-muted small">@line.SKU</td>
                                 <td>@line.ProductTitle</td>
-                                <td>@(line.VariantTitle ?? "—")</td>
+                                <td>
+                                    @{
+                                        var cvt = line.VariantTitle;
+                                        var cvtDisplay = (string.IsNullOrEmpty(cvt) || cvt == "Default Title" || cvt == "Title")
+                                            ? "—" : cvt;
+                                    }
+                                    <span style="color:var(--pi-text-2);font-size:12px;">@cvtDisplay</span>
+                                </td>
                                 <td class="text-center">@line.Quantity</td>
                                 <td class="text-end">$@line.UnitPrice.ToString("F2")</td>
                                 <td class="text-end fw-semibold">$@line.LineTotal.ToString("F2")</td>

@@ -100,7 +100,7 @@
             </div>
 
             <!-- Edit Terms -->
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-bottom py-3">
                     <h5 class="mb-0 fw-semibold">Edit Terms</h5>
                 </div>
@@ -126,6 +126,33 @@
                             <label class="form-check-label small" for="isTaxExempt">Tax Exempt</label>
                         </div>
                         <button type="submit" class="btn btn-sm btn-dark">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Change Login Email -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-semibold">Change Login Email</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="ChangeDealerEmail" asp-route-id="@dealer.DealerID" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="row g-2 align-items-end">
+                            <div class="col">
+                                <label class="form-label small">New email address</label>
+                                <input type="email" name="newEmail" class="form-control form-control-sm"
+                                       placeholder="newemail@company.com" required />
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="pi-btn pi-btn-ghost pi-btn-sm">
+                                    Update Email
+                                </button>
+                            </div>
+                        </div>
+                        <div style="font-size:11px;color:var(--pi-text-2);margin-top:6px;">
+                            Both old and new email addresses will be notified of this change.
+                        </div>
                     </form>
                 </div>
             </div>

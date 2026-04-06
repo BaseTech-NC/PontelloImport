@@ -104,6 +104,11 @@ namespace PontelloImport.Controllers
 
             if (application == null) return NotFound();
 
+            var paymentTerms = await _context.PaymentTerms
+                .OrderBy(t => t.DisplayOrder)
+                .ToListAsync();
+            ViewBag.PaymentTerms = paymentTerms;
+
             return View(application);
         }
 
@@ -126,7 +131,8 @@ namespace PontelloImport.Controllers
         // POST: /AdminDealers/ApproveApplication
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ApproveApplication(int id)
+        public async Task<IActionResult> ApproveApplication(int id,
+            int paymentTermsId = 1, bool isTaxExempt = false)
         {
             var app = await _context.DealerApplications
                 .FindAsync(id);
@@ -179,10 +185,15 @@ namespace PontelloImport.Controllers
             _context.Addresses.Add(billing);
             await _context.SaveChangesAsync();
 
-            // Default payment terms (Net 30)
-            var terms = await _context.PaymentTerms
-                .FirstOrDefaultAsync(t => t.TermCode == "NET30")
-                ?? await _context.PaymentTerms.FirstOrDefaultAsync();
+            // Use admin-selected payment terms, falling back to default if not found
+            var selectedTerms = await _context.PaymentTerms
+                .FirstOrDefaultAsync(t => t.PaymentTermsID == paymentTermsId);
+            if (selectedTerms == null)
+            {
+                selectedTerms = await _context.PaymentTerms
+                    .FirstOrDefaultAsync(t => t.TermCode == "NET30")
+                    ?? await _context.PaymentTerms.FirstOrDefaultAsync();
+            }
 
             var dealer = new Dealer
             {
@@ -190,8 +201,8 @@ namespace PontelloImport.Controllers
                 CompanyName = app.Company ?? $"{app.FirstName} {app.LastName}",
                 ContactPhone = app.Phone ?? app.SubmittedContactPhone ?? "",
                 BillingAddressID = billing.AddressID,
-                PaymentTermsID = terms?.PaymentTermsID ?? 1,
-                IsTaxExempt = false
+                PaymentTermsID = selectedTerms?.PaymentTermsID ?? paymentTermsId,
+                IsTaxExempt = isTaxExempt
             };
             _context.Dealers.Add(dealer);
 
@@ -217,6 +228,23 @@ namespace PontelloImport.Controllers
             {
                 _logger.LogError(ex,
                     "Failed to send approval email to {Email}", app.Email);
+            }
+
+            // Also notify admin Gmail about the new dealer
+            try
+            {
+                await _emailService.SendAsync(
+                    "noreply.pontelloimports@gmail.com",
+                    "Pontello Admin",
+                    $"New dealer approved — {app.FirstName} {app.LastName}",
+                    $"<p>Dealer account created.</p>" +
+                    $"<p>Email: {app.Email}<br>" +
+                    $"Temp password: {tempPassword}</p>" +
+                    $"<p>Company: {app.Company ?? "—"}</p>");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send admin approval notification");
             }
 
             TempData["ApprovedName"]     = $"{app.FirstName} {app.LastName}";
@@ -403,6 +431,74 @@ namespace PontelloImport.Controllers
 
             TempData["Success"] = $"{dealer.CompanyName} account reinstated.";
             return RedirectToAction(nameof(Dealers));
+        }
+
+        // POST: /AdminDealers/ChangeDealerEmail/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeDealerEmail(int id, string newEmail)
+        {
+            var dealer = await _context.Dealers
+                .FirstOrDefaultAsync(d => d.DealerID == id);
+            if (dealer == null) return NotFound();
+
+            if (dealer.ApplicationUserID == null)
+            {
+                TempData["Error"] = "Dealer has no associated user account.";
+                return RedirectToAction(nameof(DealerProfile), new { id });
+            }
+
+            var user = await _userManager.FindByIdAsync(dealer.ApplicationUserID);
+            if (user == null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(newEmail) || !newEmail.Contains('@'))
+            {
+                TempData["Error"] = "Invalid email address.";
+                return RedirectToAction(nameof(DealerProfile), new { id });
+            }
+
+            var existing = await _userManager.FindByEmailAsync(newEmail);
+            if (existing != null && existing.Id != user.Id)
+            {
+                TempData["Error"] = "That email is already registered.";
+                return RedirectToAction(nameof(DealerProfile), new { id });
+            }
+
+            var oldEmail = user.Email ?? "";
+
+            user.Email = newEmail;
+            user.UserName = newEmail;
+            user.NormalizedEmail = newEmail.ToUpperInvariant();
+            user.NormalizedUserName = newEmail.ToUpperInvariant();
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                TempData["Error"] = string.Join(", ", result.Errors.Select(e => e.Description));
+                return RedirectToAction(nameof(DealerProfile), new { id });
+            }
+
+            // Notify old email
+            try
+            {
+                await _emailService.SendAsync(oldEmail, dealer.CompanyName,
+                    "Your Pontello Imports login email changed",
+                    $"<p>Your login email has been updated by Pontello Imports.</p>" +
+                    $"<p>New login email: {newEmail}</p>" +
+                    $"<p>If you did not request this, contact 647-964-6833 immediately.</p>");
+
+                await _emailService.SendAsync(newEmail, dealer.CompanyName,
+                    "Welcome — your Pontello Imports login email is confirmed",
+                    $"<p>Your Pontello Imports dealer account is now linked to this email address.</p>" +
+                    $"<p>Use this email to sign in: {newEmail}</p>");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Email change notify failed for dealer {Id}", id);
+            }
+
+            TempData["Success"] = $"Email updated from {oldEmail} to {newEmail}. Both addresses notified.";
+            return RedirectToAction(nameof(DealerProfile), new { id });
         }
 
         // POST: /AdminDealers/UpdateDealerTerms/5

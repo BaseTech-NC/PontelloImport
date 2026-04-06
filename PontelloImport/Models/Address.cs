@@ -21,7 +21,11 @@ namespace PontelloImport.Models
         [Required, MaxLength(50)]
         public string Country { get; set; } = "Canada";
 
-        public bool IsPrimary { get; set; } = false;
+        public bool IsDefault { get; set; } = false;
+
+        /// <summary>"Billing", "Shipping", or "Both"</summary>
+        [MaxLength(20)]
+        public string AddressType { get; set; } = "Both";
 
         // Optional link back to the owning dealer (for multi-address support)
         public int? DealerID { get; set; }

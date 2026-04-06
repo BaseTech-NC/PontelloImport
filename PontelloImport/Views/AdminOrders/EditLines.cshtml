@@ -34,6 +34,28 @@
     <form method="post" asp-action="EditLines" asp-route-id="@Model.OrderID">
         @Html.AntiForgeryToken()
 
+        <!-- Reason for editing -->
+        <div class="pi-card" style="margin-bottom:16px;">
+            <label class="form-label" style="font-weight:500;">
+                Reason for editing
+                <span style="color:var(--pi-danger);">*</span>
+            </label>
+            <select name="editReason" class="form-select mb-2" id="reasonSelect"
+                    onchange="handleReason(this.value)">
+                <option value="">Select a reason...</option>
+                <option value="Inventory shortage">Inventory shortage</option>
+                <option value="Product discontinued">Product discontinued</option>
+                <option value="Pricing correction">Pricing correction</option>
+                <option value="Dealer request">Dealer request</option>
+                <option value="Other">Other</option>
+            </select>
+            <textarea name="editNote" id="editNote" class="form-control" rows="2"
+                      placeholder="Add details..." style="font-size:13px;"></textarea>
+            <div style="font-size:11px;color:var(--pi-text-2);margin-top:4px;">
+                This note is logged and visible to the dealer.
+            </div>
+        </div>
+
         <div class="card mb-4">
             <!-- FIX 1: replace blue card-header -->
             <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
@@ -55,26 +77,47 @@
                         <tbody>
                             @foreach (var line in Model.OrderLines)
                             {
-                                <tr>
+                                <tr data-line-id="@line.OrderLineID"
+                                    data-original-qty="@line.Quantity"
+                                    id="row-@line.OrderLineID">
                                     <td>@line.ProductTitle</td>
                                     <td class="text-muted">@(line.VariantTitle ?? "—")</td>
                                     <td><code class="text-dark">@line.SKU</code></td>
                                     <td class="text-end">@line.UnitPrice.ToString("C")</td>
                                     <td class="text-center">
                                         <input type="hidden" name="lineIds" value="@line.OrderLineID" />
-                                        <input type="number" name="quantities"
-                                               value="@line.Quantity"
-                                               min="0" max="9999"
-                                               data-line-id="@line.OrderLineID"
-                                               oninput="handleQtyChange(this)"
-                                               class="form-control form-control-sm text-center mx-auto"
-                                               style="width:80px;" />
+                                        <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
+                                            <input type="number" name="quantities"
+                                                   id="qty-@line.OrderLineID"
+                                                   data-line-id="@line.OrderLineID"
+                                                   data-original="@line.Quantity"
+                                                   value="@line.Quantity"
+                                                   min="0" max="9999"
+                                                   oninput="handleQtyInput(this)"
+                                                   onblur="handleQtyBlur(this)"
+                                                   class="form-control form-control-sm text-center mx-auto"
+                                                   style="width:80px;" />
+                                            <button type="button"
+                                                    id="remove-@line.OrderLineID"
+                                                    onclick="removeLine(@line.OrderLineID)"
+                                                    style="display:none;background:none;border:none;
+                                                           color:var(--pi-danger);cursor:pointer;
+                                                           padding:4px;border-radius:4px;
+                                                           transition:background 0.12s;"
+                                                    onmouseover="this.style.background='var(--pi-danger-lt)'"
+                                                    onmouseout="this.style.background='none'"
+                                                    title="Remove this line">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                     stroke="currentColor" stroke-width="2">
+                                                    <polyline points="3 6 5 6 21 6"/>
+                                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                                    <path d="M10 11v6M14 11v6"/>
+                                                    <path d="M9 6V4h6v2"/>
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </td>
-                                    <td>
-                                        <span class="remove-label text-danger" style="display:none;font-size:11px;">
-                                            will be removed
-                                        </span>
-                                    </td>
+                                    <td></td>
                                 </tr>
                             }
                         </tbody>
@@ -106,15 +149,6 @@
             </div>
         </div>
 
-        <div class="mb-4">
-            <label for="adminNote" class="form-label fw-semibold">
-                Admin Note <span class="text-muted fw-normal small">(optional)</span>
-            </label>
-            <textarea id="adminNote" name="adminNote" class="form-control" rows="2"
-                      maxlength="500"
-                      placeholder="e.g. Adjusted quantity per dealer request."></textarea>
-        </div>
-
         <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-save me-1"></i> Save Changes
@@ -129,23 +163,69 @@
 
 @section Scripts {
 <script>
-    // FIX 3 Part A: qty=0 fades and hides the row
-    function handleQtyChange(input) {
-        const val = parseInt(input.value);
-        const row = input.closest('tr');
-        if (isNaN(val) || val <= 0) {
-            input.value = 0;
-            if (row) {
-                row.style.opacity = '0.4';
-                row.style.transition = 'opacity 0.2s';
-                const label = row.querySelector('.remove-label');
-                if (label) label.style.display = 'inline';
-                setTimeout(() => { row.style.display = 'none'; }, 600);
-            }
+    function handleReason(val) {
+        var note = document.getElementById('editNote');
+        var presets = {
+            'Inventory shortage':
+                'One or more items have limited stock. Quantities have been adjusted.',
+            'Product discontinued':
+                'One or more products are no longer available. Please contact us at ' +
+                '647-964-6833 to discuss alternatives.'
+        };
+        if (presets[val] && note.value === '')
+            note.value = presets[val];
+    }
+
+    function handleQtyInput(input) {
+        const lineId = input.dataset.lineId;
+        const val = input.value;
+        const row = document.getElementById('row-' + lineId);
+        const removeBtn = document.getElementById('remove-' + lineId);
+
+        if (val === '' || val === null) {
+            row.style.opacity = '1';
+            row.style.textDecoration = 'none';
+            if (removeBtn) removeBtn.style.display = 'none';
+            return;
+        }
+
+        const num = parseInt(val);
+        if (num === 0) {
+            row.style.opacity = '0.6';
+            Array.from(row.querySelectorAll('td')).forEach(td => {
+                td.style.textDecoration = 'line-through';
+                td.style.color = 'var(--pi-danger)';
+            });
+            input.style.textDecoration = 'none';
+            input.style.color = 'var(--pi-danger)';
+            if (removeBtn) removeBtn.style.display = 'inline-flex';
         } else {
-            if (row) row.style.opacity = '1';
-            const label = row.querySelector('.remove-label');
-            if (label) label.style.display = 'none';
+            row.style.opacity = '1';
+            Array.from(row.querySelectorAll('td')).forEach(td => {
+                td.style.textDecoration = 'none';
+                td.style.color = '';
+            });
+            input.style.color = '';
+            if (removeBtn) removeBtn.style.display = 'none';
+        }
+    }
+
+    function handleQtyBlur(input) {
+        const val = input.value.trim();
+        if (val === '') {
+            input.value = input.dataset.original;
+            handleQtyInput(input);
+        }
+    }
+
+    function removeLine(lineId) {
+        const row = document.getElementById('row-' + lineId);
+        const input = document.getElementById('qty-' + lineId);
+        if (input) input.value = '0';
+        if (row) {
+            row.style.transition = 'opacity 0.3s ease';
+            row.style.opacity = '0';
+            setTimeout(() => { row.style.display = 'none'; }, 300);
         }
     }
 

@@ -2,6 +2,8 @@
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewBag.Title = "Staff Accounts";
+    var search = ViewBag.Search as string ?? "";
+    var roleFilter = ViewBag.RoleFilter as string ?? "";
 }
 
 <div class="container-fluid mt-4">
@@ -16,9 +18,68 @@
         </div>
     </div>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form method="get" class="row g-2 mb-3 align-items-end">
+        <div class="col-sm-5">
+            <input type="text" name="search" class="form-control form-control-sm"
+                   placeholder="Search by name or email"
+                   value="@search" />
+        </div>
+        <div class="col-sm-3">
+            <select name="role" class="form-select form-select-sm">
+                <option value="">All Roles</option>
+                @if (roleFilter == "SuperAdmin")
+                {
+                    <option value="SuperAdmin" selected>Super Admin</option>
+                }
+                else
+                {
+                    <option value="SuperAdmin">Super Admin</option>
+                }
+                @if (roleFilter == "Admin")
+                {
+                    <option value="Admin" selected>Admin</option>
+                }
+                else
+                {
+                    <option value="Admin">Admin</option>
+                }
+                @if (roleFilter == "Staff")
+                {
+                    <option value="Staff" selected>Staff</option>
+                }
+                else
+                {
+                    <option value="Staff">Staff</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+            @if (!string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(roleFilter))
+            {
+                <a asp-action="Index" class="btn btn-sm btn-link text-muted ms-1">Clear</a>
+            }
+        </div>
+    </form>
+
     <div class="card">
         <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
+            <table class="pi-table">
                 <thead class="table-light">
                     <tr>
                         <th>Name</th>
@@ -42,7 +103,12 @@
                             : "bg-secondary";
 
                         <tr>
-                            <td class="fw-semibold">@user.FirstName @user.LastName</td>
+                            <td class="fw-semibold">
+                                <a asp-action="Details" asp-route-id="@user.Id"
+                                   class="text-decoration-none text-dark">
+                                    @user.FirstName @user.LastName
+                                </a>
+                            </td>
                             <td>@user.Email</td>
                             <td>
                                 <span class="badge @roleBadgeClass">@roleLabel</span>
@@ -57,7 +123,9 @@
                                     <span class="badge bg-success">Active</span>
                                 }
                             </td>
-                            <td>
+                            <td class="text-end">
+                                <a asp-action="Details" asp-route-id="@user.Id"
+                                   class="btn btn-sm btn-outline-secondary me-1">Details</a>
                                 @if (!roles.Contains("SuperAdmin"))
                                 {
                                     if (isLocked)

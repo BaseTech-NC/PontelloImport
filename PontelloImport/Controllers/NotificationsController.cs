@@ -58,6 +58,34 @@ namespace PontelloImport.Controllers
             return RedirectToAction("Index", "AdminOrders");
         }
 
+        // POST: /Notifications/MarkReadAjax — AJAX endpoint for notification UI
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkReadAjax(int id)
+        {
+            var n = await _context.Notifications.FindAsync(id);
+            if (n != null && n.DealerID == null)
+            {
+                n.IsRead = true;
+                await _context.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
+        // POST: /Notifications/DeleteAjax — AJAX endpoint for notification UI
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAjax(int id)
+        {
+            var n = await _context.Notifications.FindAsync(id);
+            if (n != null && n.DealerID == null)
+            {
+                _context.Notifications.Remove(n);
+                await _context.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
         // POST: /Notifications/DeleteAll
         [HttpPost]
         [ValidateAntiForgeryToken]

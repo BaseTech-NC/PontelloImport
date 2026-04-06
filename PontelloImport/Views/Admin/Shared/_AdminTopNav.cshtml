@@ -45,7 +45,7 @@
             var unreadCount = (int)(ViewData["AdminUnreadCount"] ?? 0);
         }
         <div class="dropdown">
-            <button class="btn btn-link p-1 position-relative"
+            <button class="nav-icon-btn position-relative"
                     type="button"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
@@ -58,7 +58,7 @@
                 </svg>
                 @if (unreadCount > 0)
                 {
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                    <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
                           style="background:#028090; font-size:0.6rem; min-width:16px; padding:2px 4px;
                                  transform: translate(-70%, 0%) !important;">
                         @(unreadCount > 9 ? "9+" : unreadCount.ToString())
@@ -106,77 +106,58 @@
                 }
                 else
                 {
-                    foreach (var n in notifications)
+                    @foreach (var n in notifications)
                     {
-                        var bgStyle = n.IsRead ? "" : "background:#F0FDF4;";
-                        <li style="@bgStyle border-bottom:1px solid #F3F4F6;">
-                            <div class="dropdown-item py-2 px-3 d-flex align-items-start gap-2"
-                                 style="white-space:normal; cursor:default;">
-
-                                @* Icon by type *@
-                                <span class="flex-shrink-0 mt-1">
-                                    @if (n.Type == "OrderSubmitted")
-                                    {
-                                        <span style="color:#028090;">📦</span>
-                                    }
-                                    else if (n.Type == "ApplicationSubmitted")
-                                    {
-                                        <span style="color:#7C3AED;">📋</span>
-                                    }
-                                    else
-                                    {
-                                        <span style="color:#6B7280;">🔔</span>
-                                    }
-                                </span>
-
-                                <div class="flex-grow-1">
-                                    <div style="font-size:0.82rem; color:#111827; line-height:1.4;">
-                                        @if (!string.IsNullOrEmpty(n.ActionUrl))
-                                        {
-                                            <a href="@n.ActionUrl" style="color:#111827; text-decoration:none;">@n.Message</a>
-                                        }
-                                        else
-                                        {
-                                            @n.Message
-                                        }
-                                    </div>
-                                    <div class="text-muted" style="font-size:0.72rem;">
-                                        @{
-                                            var diff = DateTime.UtcNow - n.CreatedDate;
-                                            string relTime;
-                                            if (diff.TotalMinutes < 2)       relTime = "just now";
-                                            else if (diff.TotalHours < 1)    relTime = $"{(int)diff.TotalMinutes}m ago";
-                                            else if (diff.TotalDays < 1)     relTime = $"{(int)diff.TotalHours}h ago";
-                                            else if (diff.TotalDays < 7)     relTime = $"{(int)diff.TotalDays}d ago";
-                                            else                              relTime = n.CreatedDate.ToLocalTime().ToString("MMM d");
-                                        }
-                                        @relTime
-                                    </div>
-                                </div>
-
-                                <div class="flex-shrink-0 d-flex flex-column gap-1">
-                                    @if (!n.IsRead)
-                                    {
-                                        <form asp-controller="Notifications" asp-action="MarkRead"
-                                              asp-route-id="@n.NotificationID"
-                                              asp-route-returnUrl="@Context.Request.Path"
-                                              method="post">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-link p-0"
-                                                    style="font-size:0.7rem; color:#028090; text-decoration:none;"
-                                                    title="Mark as read">✓</button>
-                                        </form>
-                                    }
-                                    <form asp-controller="Notifications" asp-action="Delete"
-                                          asp-route-id="@n.NotificationID"
-                                          asp-route-returnUrl="@Context.Request.Path"
-                                          method="post">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-link p-0"
-                                                style="font-size:0.7rem; color:#9CA3AF; text-decoration:none;"
-                                                title="Dismiss">✕</button>
-                                    </form>
-                                </div>
+                        <li class="pi-notif @(!n.IsRead ? "unread" : "")"
+                            data-id="@n.NotificationID"
+                            data-read="@n.IsRead.ToString().ToLower()">
+                            <div class="pi-notif-title">
+                                @(n.Type switch {
+                                    "OrderSubmitted"      => "New order submitted",
+                                    "ApplicationSubmitted"=> "Dealer application",
+                                    "OrderConfirmed"      => "Order confirmed",
+                                    "IssueFlagged"        => "Issue flagged",
+                                    _                     => n.Type
+                                })
+                            </div>
+                            <div class="pi-notif-msg">@n.Message</div>
+                            <div class="pi-notif-actions">
+                                @if (!string.IsNullOrEmpty(n.ActionUrl))
+                                {
+                                    <a href="@n.ActionUrl"
+                                       onclick="markRead(@n.NotificationID, event)"
+                                       class="pi-notif-btn pi-notif-review">
+                                        Review
+                                    </a>
+                                }
+                                @if (!n.IsRead)
+                                {
+                                    <button id="read-@n.NotificationID"
+                                            onclick="markReadOnly(@n.NotificationID)"
+                                            class="pi-notif-btn pi-notif-read">
+                                        Mark read
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="pi-notif-btn pi-notif-read done">Read ✓</span>
+                                }
+                                <button id="dismiss-@n.NotificationID"
+                                        onclick="dismissNotif(@n.NotificationID, event)"
+                                        class="pi-notif-dismiss @(n.IsRead ? "visible" : "")"
+                                        title="Dismiss">×</button>
+                            </div>
+                            <div class="pi-notif-time">
+                                @{
+                                    var diff = DateTime.UtcNow - n.CreatedDate;
+                                    string relTime;
+                                    if (diff.TotalMinutes < 2)      relTime = "just now";
+                                    else if (diff.TotalHours < 1)   relTime = $"{(int)diff.TotalMinutes}m ago";
+                                    else if (diff.TotalDays < 1)    relTime = $"{(int)diff.TotalHours}h ago";
+                                    else if (diff.TotalDays < 7)    relTime = $"{(int)diff.TotalDays}d ago";
+                                    else                             relTime = n.CreatedDate.ToLocalTime().ToString("MMM d");
+                                }
+                                @relTime
                             </div>
                         </li>
                     }
@@ -190,8 +171,7 @@
                     type="button"
                     data-bs-toggle="dropdown"
                     aria-expanded="false">
-                <span class="rounded-circle d-flex align-items-center justify-content-center fw-semibold"
-                      style="width:34px;height:34px;background:#0D3D38;color:#02C39A;font-size:0.875rem;flex-shrink:0;">
+                <span class="nav-user-avatar">
                     @initials
                 </span>
                 <span class="d-none d-md-inline text-dark fw-medium" style="font-size:0.875rem;">
@@ -204,6 +184,14 @@
                     <div class="text-muted" style="font-size:0.8rem;">@currentUser?.Email</div>
                     <span class="badge mt-1" style="background:@roleColor;font-size:0.7rem;">@role</span>
                 </li>
+                <li>
+                    <a class="dropdown-item py-2"
+                       asp-controller="StaffAccount"
+                       asp-action="ManageAccount">
+                        <i class="bi bi-person me-2"></i> My Account
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1" /></li>
                 <li>
                     <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
                         @Html.AntiForgeryToken()
@@ -218,3 +206,78 @@
     </div>
 
 </nav>
+
+<script>
+var _notifToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+async function markReadOnly(id) {
+    try {
+        await fetch('/Notifications/MarkReadAjax', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(_notifToken)
+        });
+    } catch(e) {}
+    var btn = document.getElementById('read-' + id);
+    if (btn) {
+        btn.className = 'pi-notif-btn pi-notif-read done';
+        btn.textContent = 'Read \u2713';
+        btn.onclick = null;
+    }
+    var dismiss = document.getElementById('dismiss-' + id);
+    if (dismiss) dismiss.classList.add('visible');
+    var item = document.querySelector('[data-id="' + id + '"]');
+    if (item) {
+        item.classList.remove('unread');
+        item.dataset.read = 'true';
+    }
+    updateNotifBadge();
+}
+
+async function markRead(id, event) {
+    try {
+        await fetch('/Notifications/MarkReadAjax', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(_notifToken)
+        });
+    } catch(e) {}
+    updateNotifBadge();
+}
+
+async function dismissNotif(id, event) {
+    event.stopPropagation();
+    var item = document.querySelector('[data-id="' + id + '"]');
+    var isUnread = item && item.dataset.read === 'false';
+    if (isUnread) {
+        if (!confirm('This notification is unread. Dismiss anyway?')) return;
+    }
+    try {
+        await fetch('/Notifications/DeleteAjax', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(_notifToken)
+        });
+    } catch(e) {}
+    if (item) item.remove();
+    updateNotifBadge();
+}
+
+function updateNotifBadge() {
+    var unread = document.querySelectorAll('.pi-notif.unread').length;
+    var badge = document.getElementById('notif-badge');
+    if (badge) {
+        if (unread <= 0) badge.style.display = 'none';
+        else badge.textContent = unread > 9 ? '9+' : unread;
+    }
+}
+</script>

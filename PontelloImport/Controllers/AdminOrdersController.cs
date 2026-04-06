@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
 using PontelloImport.Models;
 using PontelloImport.Services;
+using System.Security.Claims;
 
 namespace PontelloImport.Controllers
 {
@@ -13,17 +14,20 @@ namespace PontelloImport.Controllers
     {
         private readonly ILogger<AdminOrdersController> _logger;
         private readonly IEmailService _emailService;
+        private readonly IPdfService _pdfService;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public AdminOrdersController(
             PontelloDbContext context,
             ILogger<AdminOrdersController> logger,
             IEmailService emailService,
+            IPdfService pdfService,
             UserManager<ApplicationUser> userManager)
             : base(context)
         {
             _logger = logger;
             _emailService = emailService;
+            _pdfService = pdfService;
             _userManager = userManager;
         }
 
@@ -203,7 +207,7 @@ namespace PontelloImport.Controllers
             var order = await _context.Orders.FindAsync(id);
             if (order == null) return NotFound();
 
-            if (order.Status != "Submitted")
+            if (order.Status != "Submitted" && order.Status != "ActionRequired")
             {
                 TempData["Error"] = $"Cannot initiate edit on an order with status '{order.Status}'.";
                 return RedirectToAction(nameof(Details), new { id });
@@ -259,9 +263,31 @@ namespace PontelloImport.Controllers
             });
             QueueDealerNotification(order.DealerID,
                 "IssueFlagged",
-                $"Order #{order.OrderNumber} requires attention. Pontello Imports has flagged an issue — please contact us.");
+                $"Action required — PO #{order.OrderNumber}: {reason.Trim()}. Please contact Pontello Imports at 647-964-6833.");
 
             await _context.SaveChangesAsync();
+
+            var (flagEmail, flagCompany) = await GetDealerEmailAsync(order);
+            if (flagEmail != null)
+            {
+                try
+                {
+                    await _emailService.SendAsync(flagEmail, flagCompany,
+                        $"Action required on Order #{order.OrderNumber}",
+                        $"<div style='font-family:sans-serif;max-width:560px;'>" +
+                        $"<p>There is an issue with your order <strong>PO #{order.OrderNumber}</strong>.</p>" +
+                        $"<p><strong>Issue:</strong> {reason.Trim()}</p>" +
+                        $"<p>Please contact Pontello Imports:<br>" +
+                        $"Phone: 647-964-6833<br>" +
+                        $"Email: jesse@pontelloimports.com</p>" +
+                        $"</div>");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "FlagIssue email failed for order {Po}", order.OrderNumber);
+                }
+            }
+
             TempData["Success"] = "Issue flagged. Dealer has been notified to contact Pontello.";
             return RedirectToAction(nameof(Details), new { id });
         }
@@ -396,10 +422,26 @@ namespace PontelloImport.Controllers
                 .FirstOrDefaultAsync(o => o.OrderID == id);
             if (order == null) return NotFound();
 
-            if (order.Status != "ActionRequired")
+            if (order.Status != "Submitted" && order.Status != "ActionRequired")
             {
-                TempData["Error"] = "Order lines can only be edited for ActionRequired orders.";
+                TempData["Error"] = "Only Submitted or Action Required orders can be edited.";
                 return RedirectToAction(nameof(Details), new { id });
+            }
+
+            // Auto-transition Submitted → ActionRequired when admin opens for editing
+            if (order.Status == "Submitted")
+            {
+                order.Status = "ActionRequired";
+                order.DealerHasViewed = false;
+                _context.OrderHistories.Add(new OrderHistory
+                {
+                    OrderID = id,
+                    VersionNumber = order.VersionNumber,
+                    ChangeType = "EditInitiated",
+                    ChangeDescription = "Order opened for editing by admin.",
+                    ChangedBy = CurrentUser
+                });
+                await _context.SaveChangesAsync();
             }
 
             return View(order);
@@ -408,16 +450,17 @@ namespace PontelloImport.Controllers
         // POST: /AdminOrders/EditLines/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditLines(int id, int[] lineIds, int[] quantities, string? adminNote)
+        public async Task<IActionResult> EditLines(int id, int[] lineIds, int[] quantities,
+            string? editReason = null, string? editNote = null)
         {
             var order = await _context.Orders
                 .Include(o => o.OrderLines)
                 .FirstOrDefaultAsync(o => o.OrderID == id);
             if (order == null) return NotFound();
 
-            if (order.Status != "ActionRequired")
+            if (order.Status != "Submitted" && order.Status != "ActionRequired")
             {
-                TempData["Error"] = "Order lines can only be edited for ActionRequired orders.";
+                TempData["Error"] = "Only Submitted or Action Required orders can be edited.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
@@ -486,18 +529,70 @@ namespace PontelloImport.Controllers
             order.TaxAmount = order.IsTaxExempt ? null : Math.Round(order.SubtotalAmount * (order.TaxRate ?? 0.13m), 2);
             order.TotalAmount = order.SubtotalAmount + (order.TaxAmount ?? 0m) + (order.ShippingCost ?? 0m);
 
+            var fullNote = editReason != null
+                ? (editNote != null
+                    ? $"{editReason}: {editNote}"
+                    : editReason)
+                : editNote ?? $"Order lines updated. {modifiedCount} line{(modifiedCount != 1 ? "s" : "")} modified.";
+
+            // Increment version for revised PO
+            order.VersionNumber = order.VersionNumber + 1;
+            var revisedPo = $"{order.OrderNumber}-{order.VersionNumber}";
+
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,
                 VersionNumber = order.VersionNumber,
                 ChangeType = "AdminModified",
-                ChangeDescription = !string.IsNullOrWhiteSpace(adminNote)
-                    ? adminNote.Trim()
-                    : $"Order lines updated. {modifiedCount} line{(modifiedCount != 1 ? "s" : "")} modified.",
+                ChangeDescription = fullNote,
                 ChangedBy = CurrentUser
             });
 
             await _context.SaveChangesAsync();
+
+            // Notify dealer about the modification
+            QueueDealerNotification(order.DealerID,
+                "OrderModified",
+                $"Pontello Imports updated your order PO #{revisedPo}. {fullNote}");
+            await _context.SaveChangesAsync();
+
+            // Send revised PO email with PDF
+            try
+            {
+                var fullOrder = await _context.Orders
+                    .Include(o => o.OrderLines)
+                    .Include(o => o.Dealer)
+                        .ThenInclude(d => d!.ApplicationUser)
+                    .Include(o => o.Dealer)
+                        .ThenInclude(d => d!.BillingAddress)
+                    .Include(o => o.Dealer)
+                        .ThenInclude(d => d!.ShippingAddress)
+                    .Include(o => o.PaymentTerms)
+                    .FirstOrDefaultAsync(o => o.OrderID == id);
+
+                if (fullOrder != null)
+                {
+                    var dealerEmail = fullOrder.Dealer?.ApplicationUser?.Email;
+                    var companyName = fullOrder.Dealer?.CompanyName ?? fullOrder.DealerCompanyName;
+
+                    if (dealerEmail != null)
+                    {
+                        var pdfBytes = _pdfService.GeneratePurchaseOrder(fullOrder, dealerEmail);
+                        await _emailService.SendPurchaseOrderAsync(
+                            dealerEmail,
+                            companyName,
+                            "noreply.pontelloimports@gmail.com",
+                            revisedPo,
+                            pdfBytes,
+                            isRevised: true);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Revised PO email failed for order {Po}", order.OrderNumber);
+            }
+
             TempData["Success"] = "Order lines updated.";
             return RedirectToAction(nameof(Details), new { id });
         }
@@ -747,6 +842,54 @@ namespace PontelloImport.Controllers
             return Ok();
         }
 
+        // POST: /AdminOrders/MarkInvoicedDirect/5 — invoice without requiring Shipped status
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkInvoicedDirect(int id)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            if (order.Status != "Confirmed" && order.Status != "Shipped")
+            {
+                TempData["Error"] = $"Cannot invoice an order with status '{order.Status}'.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            order.Status = "Invoiced";
+            order.DealerHasViewed = false;
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID = id,
+                VersionNumber = order.VersionNumber,
+                ChangeType = "Invoiced",
+                ChangeDescription = "Order invoiced directly (without shipping)",
+                ChangedBy = CurrentUser
+            });
+            QueueDealerNotification(order.DealerID,
+                "OrderInvoiced",
+                $"Invoice ready for order #{order.OrderNumber}. Please review your order history.");
+
+            await _context.SaveChangesAsync();
+
+            var (email, companyName) = await GetDealerEmailAsync(order);
+            if (email != null)
+            {
+                try
+                {
+                    await _emailService.SendOrderStatusChangedAsync(
+                        email, companyName, order.OrderNumber, "Invoiced");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
+                }
+            }
+
+            TempData["Success"] = "Order marked as invoiced.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         // POST: /AdminOrders/MarkInvoiced/5
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -792,6 +935,81 @@ namespace PontelloImport.Controllers
             }
 
             TempData["Success"] = "Order marked as invoiced.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: /AdminOrders/UpdateInvoicedShipping/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateInvoicedShipping(
+            int id,
+            decimal? shippingAmount,
+            string? trackingNumber)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderLines)
+                .Include(o => o.Dealer)
+                    .ThenInclude(d => d!.ApplicationUser)
+                .Include(o => o.Dealer)
+                    .ThenInclude(d => d!.BillingAddress)
+                .Include(o => o.Dealer)
+                    .ThenInclude(d => d!.ShippingAddress)
+                .Include(o => o.PaymentTerms)
+                .FirstOrDefaultAsync(o => o.OrderID == id);
+
+            if (order == null) return NotFound();
+
+            if (order.Status != "Invoiced")
+                return RedirectToAction(nameof(Details), new { id });
+
+            order.ShippingCost = shippingAmount;
+            order.TrackingNumber = trackingNumber;
+
+            if (shippingAmount.HasValue)
+                order.TotalAmount = order.SubtotalAmount
+                    + (order.TaxAmount ?? 0m)
+                    + shippingAmount.Value;
+
+            order.VersionNumber = order.VersionNumber + 1;
+            var revisedPo = $"{order.OrderNumber}-{order.VersionNumber}";
+
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID = id,
+                VersionNumber = order.VersionNumber,
+                ChangeType = "ShippingUpdated",
+                ChangeDescription =
+                    $"Shipping updated after invoicing. " +
+                    $"Amount: ${shippingAmount:F2}. Revised PO: {revisedPo}",
+                ChangedBy = CurrentUser
+            });
+
+            await _context.SaveChangesAsync();
+
+            var dealerEmail = order.Dealer?.ApplicationUser?.Email;
+            var companyName = order.Dealer?.CompanyName ?? order.DealerCompanyName;
+
+            if (dealerEmail != null)
+            {
+                try
+                {
+                    var pdfBytes = _pdfService.GeneratePurchaseOrder(order, dealerEmail);
+                    await _emailService.SendPurchaseOrderAsync(
+                        dealerEmail,
+                        companyName,
+                        "noreply.pontelloimports@gmail.com",
+                        revisedPo,
+                        pdfBytes,
+                        isRevised: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Revised PO email failed for order {Id}", id);
+                }
+            }
+
+            TempData["Success"] =
+                $"Shipping updated. Revised PO {revisedPo} emailed to dealer.";
             return RedirectToAction(nameof(Details), new { id });
         }
     }

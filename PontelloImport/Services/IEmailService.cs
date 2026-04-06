@@ -19,6 +19,7 @@ namespace PontelloImport.Services
         Task SendPurchaseOrderAsync(
             string dealerEmail, string dealerName,
             string adminEmail, string poNumber,
-            byte[] pdfBytes);
+            byte[] pdfBytes,
+            bool isRevised = false);
     }
 }

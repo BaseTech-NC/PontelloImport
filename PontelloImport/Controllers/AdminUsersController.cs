@@ -25,23 +25,125 @@ namespace PontelloImport.Controllers
         }
 
         // GET: /AdminUsers
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, string? role)
         {
-            var allUsers = await _userManager.Users
-                .OrderBy(u => u.LastName)
-                .ThenBy(u => u.FirstName)
-                .ToListAsync();
+            var query = _userManager.Users.OrderBy(u => u.LastName).ThenBy(u => u.FirstName);
+            var allUsers = await query.ToListAsync();
 
-            // Exclude Dealer-role users
             var staffUsers = new List<(ApplicationUser User, IList<string> Roles)>();
             foreach (var user in allUsers)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                if (!roles.Contains("Dealer"))
-                    staffUsers.Add((User: user, Roles: roles));
+                if (roles.Contains("Dealer")) continue;
+
+                // role filter
+                if (!string.IsNullOrEmpty(role) && !roles.Contains(role)) continue;
+
+                // search filter
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var s = search.ToLower();
+                    if (!user.FirstName.ToLower().Contains(s) &&
+                        !user.LastName.ToLower().Contains(s) &&
+                        !(user.Email?.ToLower().Contains(s) ?? false))
+                        continue;
+                }
+
+                staffUsers.Add((User: user, Roles: roles));
             }
 
+            ViewBag.Search = search;
+            ViewBag.RoleFilter = role;
             return View(staffUsers);
+        }
+
+        // GET: /AdminUsers/Details/id
+        [HttpGet]
+        public async Task<IActionResult> Details(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var recentActivity = await _context.OrderHistories
+                .Where(h => h.ChangedBy == id)
+                .Include(h => h.Order)
+                .OrderByDescending(h => h.ChangedDate)
+                .Take(20)
+                .ToListAsync();
+
+            ViewBag.Roles = roles;
+            ViewBag.RecentActivity = recentActivity;
+            return View(user);
+        }
+
+        // POST: /AdminUsers/ChangeRole
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeRole(string userId, string newRole)
+        {
+            if (newRole != "Admin" && newRole != "Staff")
+            {
+                TempData["Error"] = "Invalid role. Must be Admin or Staff.";
+                return RedirectToAction(nameof(Details), new { id = userId });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound();
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            if (currentRoles.Contains("SuperAdmin"))
+            {
+                TempData["Error"] = "Cannot change the role of a SuperAdmin.";
+                return RedirectToAction(nameof(Details), new { id = userId });
+            }
+
+            // Remove existing non-SuperAdmin roles and assign new one
+            var rolesToRemove = currentRoles.Where(r => r != "SuperAdmin").ToList();
+            await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+            await _userManager.AddToRoleAsync(user, newRole);
+
+            user.UserType = newRole;
+            await _userManager.UpdateAsync(user);
+
+            TempData["Success"] = $"{user.FirstName} {user.LastName} is now {newRole}.";
+            return RedirectToAction(nameof(Details), new { id = userId });
+        }
+
+        // POST: /AdminUsers/ChangeStaffEmail
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeStaffEmail(string userId, string newEmail)
+        {
+            if (string.IsNullOrWhiteSpace(newEmail))
+            {
+                TempData["Error"] = "Email cannot be empty.";
+                return RedirectToAction(nameof(Details), new { id = userId });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound();
+
+            var existing = await _userManager.FindByEmailAsync(newEmail);
+            if (existing != null && existing.Id != userId)
+            {
+                TempData["Error"] = "That email is already in use by another account.";
+                return RedirectToAction(nameof(Details), new { id = userId });
+            }
+
+            user.Email = newEmail;
+            user.UserName = newEmail;
+            user.NormalizedEmail = newEmail.ToUpper();
+            user.NormalizedUserName = newEmail.ToUpper();
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+                TempData["Success"] = $"Email updated to {newEmail}.";
+            else
+                TempData["Error"] = string.Join(", ", result.Errors.Select(e => e.Description));
+
+            return RedirectToAction(nameof(Details), new { id = userId });
         }
 
         // GET: /AdminUsers/CreateStaff

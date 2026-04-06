@@ -1,0 +1,254 @@
+@model PontelloImport.ViewModels.AdminDashboardViewModel
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Dashboard";
+}
+
+@functions {
+    string StatusBadge(string status) => status switch
+    {
+        "Submitted"      => "pi-badge pi-badge-submitted",
+        "Confirmed"      => "pi-badge pi-badge-confirmed",
+        "ActionRequired" => "pi-badge pi-badge-action",
+        "Shipped"        => "pi-badge pi-badge-shipped",
+        "Invoiced"       => "pi-badge pi-badge-invoiced",
+        "Cancelled"      => "pi-badge pi-badge-cancelled",
+        _                => "pi-badge pi-badge-pending"
+    };
+
+    string GetBadgeClass(string type) => type switch {
+        "Submitted"     => "pi-badge-submitted",
+        "Confirmed"     => "pi-badge-confirmed",
+        "FlaggedIssue"  => "pi-badge-action",
+        "Shipped"       => "pi-badge-shipped",
+        "Invoiced"      => "pi-badge-invoiced",
+        "Cancelled"     => "pi-badge-cancelled",
+        "EditInitiated" => "pi-badge-pending",
+        "AdminModified" => "pi-badge-pending",
+        "Resolved"      => "pi-badge-confirmed",
+        _               => "pi-badge-submitted"
+    };
+
+    string GetLabel(string type) => type switch {
+        "Submitted"     => "Submitted",
+        "Confirmed"     => "Confirmed",
+        "FlaggedIssue"  => "Flagged",
+        "Shipped"       => "Shipped",
+        "Invoiced"      => "Invoiced",
+        "Cancelled"     => "Cancelled",
+        "EditInitiated" => "Edit started",
+        "AdminModified" => "Lines edited",
+        "Resolved"      => "Resolved",
+        _               => type
+    };
+
+    string TimeAgo(DateTime utc)
+    {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalMinutes < 1)  return "just now";
+        if (diff.TotalHours  < 1)   return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalDays   < 1)   return $"{(int)diff.TotalHours}h ago";
+        return $"{(int)diff.TotalDays}d ago";
+    }
+}
+
+<div class="container-fluid mt-4" style="max-width:1200px;">
+
+    <div class="mb-4">
+        <h1 style="font-weight:600;color:var(--pi-text-1);font-size:1.4rem;margin-bottom:2px;">Dashboard</h1>
+        <p style="color:var(--pi-text-2);font-size:0.875rem;margin:0;">@DateTime.Today.ToString("dddd, MMMM d, yyyy")</p>
+    </div>
+
+    @* Pending application notice *@
+    @if (Model.PendingApplications > 0)
+    {
+        <div class="pi-notice pi-notice-warning mb-4">
+            <strong>@Model.PendingApplications dealer application@(Model.PendingApplications == 1 ? "" : "s") awaiting review.</strong>
+            <a href="/AdminDealers/Index" style="color:var(--pi-warning);margin-left:8px;">Review now →</a>
+        </div>
+    }
+
+    @* Stat cards *@
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="pi-stat">
+                <div class="pi-stat-label">Orders Today</div>
+                <div class="pi-stat-value">@Model.OrdersToday</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="pi-stat" style="border-top-color:var(--pi-warning);">
+                <div class="pi-stat-label">Pending Review</div>
+                <div class="pi-stat-value">@Model.PendingReview</div>
+                @if (Model.ActionRequired > 0)
+                {
+                    <div class="pi-stat-sub">@Model.ActionRequired action required</div>
+                }
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="pi-stat" style="border-top-color:var(--pi-success);">
+                <div class="pi-stat-label">Revenue This Month</div>
+                <div class="pi-stat-value">@Model.RevenueThisMonth.ToString("C0")</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="pi-stat">
+                <div class="pi-stat-label">Active Dealers</div>
+                <div class="pi-stat-value">@Model.ActiveDealers</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        @* Left column *@
+        <div class="col-lg-8">
+
+            @* Needs attention *@
+            <div class="pi-card mb-4">
+                <div class="pi-card-header">Needs attention</div>
+                @if (!Model.RecentOrders.Any())
+                {
+                    <p style="color:var(--pi-text-2);font-size:13px;margin:0;">No orders currently need attention.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="pi-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-po">PO #</th>
+                                    <th class="col-dealer">Dealer</th>
+                                    <th class="col-amount">Amount</th>
+                                    <th class="col-badge">Status</th>
+                                    <th class="col-date">Time</th>
+                                    <th class="col-action" aria-label="Actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in Model.RecentOrders)
+                                {
+                                    <tr>
+                                        <td style="font-weight:600;">@order.OrderNumber</td>
+                                        <td>@order.DealerCompanyName</td>
+                                        <td class="text-end">@order.TotalAmount.ToString("C")</td>
+                                        <td><span class="@StatusBadge(order.Status)">@order.Status</span></td>
+                                        <td class="muted">@TimeAgo(order.CreatedDate)</td>
+                                        <td class="text-end">
+                                            <a asp-controller="AdminOrders" asp-action="Details" asp-route-id="@order.OrderID"
+                                               class="pi-btn pi-btn-primary pi-btn-sm">Review</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            @* Recent activity *@
+            <div class="pi-card">
+                <div class="pi-card-header">Recent activity</div>
+                @if (!Model.RecentActivity.Any())
+                {
+                    <p style="color:var(--pi-text-2);font-size:13px;margin:0;">No recent activity.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="pi-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-badge">Action</th>
+                                    <th class="col-po">Order</th>
+                                    <th>Description</th>
+                                    <th class="col-dealer">Who</th>
+                                    <th class="col-date">When</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var h in Model.RecentActivity.Take(5))
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="pi-badge @GetBadgeClass(h.ChangeType)">
+                                                @GetLabel(h.ChangeType)
+                                            </span>
+                                        </td>
+                                        <td class="muted">@h.Order?.OrderNumber</td>
+                                        <td style="max-width:200px;overflow:hidden;
+                                                   text-overflow:ellipsis;white-space:nowrap;"
+                                            title="@h.ChangeDescription">
+                                            @h.ChangeDescription
+                                        </td>
+                                        <td class="muted" style="font-size:12px;">@h.ChangedBy</td>
+                                        <td class="muted" style="font-size:12px;">@TimeAgo(h.ChangedDate)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="text-align:right;margin-top:8px;">
+                        <a asp-controller="AuditHistory" asp-action="Index"
+                           style="font-size:12px;color:var(--pi-primary);
+                                  text-decoration:none;font-weight:500;">
+                            View full audit history &rarr;
+                        </a>
+                    </div>
+                }
+            </div>
+
+        </div>
+
+        @* Right column *@
+        <div class="col-lg-4">
+
+            @* Quick actions *@
+            <div class="pi-card mb-4">
+                <div class="pi-card-header">Quick actions</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <a asp-controller="ProductVariants" asp-action="Create"
+                       class="pi-btn pi-btn-secondary" style="justify-content:center;">New Product</a>
+                    <a asp-controller="AdminOrders" asp-action="Index"
+                       class="pi-btn pi-btn-ghost" style="justify-content:center;">View All Orders</a>
+                    <a asp-controller="AdminDealers" asp-action="Dealers"
+                       class="pi-btn pi-btn-ghost" style="justify-content:center;">Manage Dealers</a>
+                    <a asp-controller="AdminDealers" asp-action="Index"
+                       class="pi-btn pi-btn-ghost" style="justify-content:center;">
+                        Applications
+                        @if (Model.PendingApplications > 0)
+                        {
+                            <span class="pi-badge pi-badge-action" style="font-size:10px;">@Model.PendingApplications</span>
+                        }
+                    </a>
+                </div>
+            </div>
+
+            @* Order breakdown *@
+            <div class="pi-card">
+                <div class="pi-card-header">Order breakdown</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:13px;color:var(--pi-text-2);">Submitted</span>
+                        <span style="font-weight:600;font-size:16px;">@Model.SubmittedCount</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:13px;color:var(--pi-text-2);">Confirmed</span>
+                        <span style="font-weight:600;font-size:16px;">@Model.ConfirmedCount</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:13px;color:var(--pi-text-2);">Shipped</span>
+                        <span style="font-weight:600;font-size:16px;">@Model.ShippedCount</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:13px;color:var(--pi-text-2);">Invoiced (this month)</span>
+                        <span style="font-weight:600;font-size:16px;color:var(--pi-success);">@Model.InvoicedThisMonth</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>

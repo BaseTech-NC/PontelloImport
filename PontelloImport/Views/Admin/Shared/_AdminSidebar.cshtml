@@ -15,6 +15,16 @@
     <nav aria-label="Admin navigation" class="d-flex flex-column p-3">
         <ul class="nav nav-pills flex-column gap-1">
 
+            @* Dashboard *@
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Dashboard" ? "active" : "text-dark") d-flex align-items-center gap-2"
+                   asp-area=""
+                   asp-controller="Dashboard"
+                   asp-action="Admin">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                </a>
+            </li>
+
             @* Orders — visible to all admin roles *@
             <li class="nav-item">
                 <a class="nav-link @(controller == "AdminOrders" ? "active" : "text-dark") d-flex align-items-center gap-2"
@@ -86,6 +96,19 @@
                             </li>
                         </ul>
                     </div>
+                </li>
+            }
+
+            @* Reports *@
+            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "Reports" ? "active" : "text-dark") d-flex align-items-center gap-2"
+                       asp-area=""
+                       asp-controller="Reports"
+                       asp-action="Index">
+                        <i class="bi bi-bar-chart-line me-2"></i> Reports
+                    </a>
                 </li>
             }
 

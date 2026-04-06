@@ -21,7 +21,7 @@ namespace PontelloImport.Controllers
         public IActionResult Index()
         {
             if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
-                return RedirectToAction("Index", "AdminOrders");
+                return RedirectToAction("Admin", "Dashboard");
             if (User.IsInRole("Dealer"))
                 return RedirectToAction("Index", "Shop");
             return View();

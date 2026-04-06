@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PontelloImport.Data;
 
@@ -10,9 +11,11 @@ using PontelloImport.Data;
 namespace PontelloImport.Data.PIMigrations
 {
     [DbContext(typeof(PontelloDbContext))]
-    partial class PontelloDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260405221457_AddAddressType")]
+    partial class AddAddressType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.12");
@@ -44,7 +47,7 @@ namespace PontelloImport.Data.PIMigrations
                     b.Property<int?>("DealerID")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsDefault")
+                    b.Property<bool>("IsPrimary")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("ModifiedDate")

@@ -59,8 +59,10 @@
                                 Phone Number <span class="text-danger">*</span>
                             </label>
                             <input asp-for="Phone" class="form-control" style="border-radius:8px;"
-                                   placeholder="e.g. 647-964-6833"
-                                   oninput="validatePhone(this)" />
+                                   placeholder="(XXX)-XXX-XXXX"
+                                   maxlength="14"
+                                   oninput="formatPhone(this)"
+                                   required />
                             <span asp-validation-for="Phone" class="text-danger small"></span>
                             <span id="err-phone" class="text-danger small" style="display:none;"></span>
                         </div>
@@ -197,13 +199,24 @@
             setFieldState(el, 'err-email', ok, 'Please enter a valid email address.');
         }
 
+        function formatPhone(input) {
+            var v = input.value.replace(/\D/g, '').substring(0, 10);
+            var result = '';
+            if (v.length >= 1) result = '(' + v.substring(0, 3);
+            if (v.length >= 4) result += ')-' + v.substring(3, 6);
+            if (v.length >= 7) result += '-' + v.substring(6, 10);
+            input.value = result;
+            var valid = v.length === 10;
+            var err = document.getElementById('err-phone');
+            if (err) {
+                err.style.display = valid ? 'none' : (v.length > 0 ? 'inline' : 'none');
+                err.textContent = valid ? '' : 'Enter a valid 10-digit phone number.';
+            }
+            input.style.borderColor = valid ? '' : (v.length > 0 ? 'var(--pi-danger)' : '');
+        }
+
         function validatePhone(el) {
-            var v = el.value.trim();
-            if (v === '') { setFieldState(el, 'err-phone', true, ''); return; }
-            var fmt = /^[\d\s\-\(\)\+]{7,20}$/.test(v);
-            var digits = (v.match(/\d/g) || []).length;
-            var ok = fmt && digits >= 10;
-            setFieldState(el, 'err-phone', ok, 'Enter a valid phone number with at least 10 digits.');
+            formatPhone(el);
         }
 
         function validatePostal(el) {
