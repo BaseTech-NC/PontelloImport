@@ -1,0 +1,71 @@
+@model PontelloImport.ViewModels.CreateStaffViewModel
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Create Staff Account";
+}
+
+<div class="container-fluid mt-4" style="max-width:600px;">
+    <div class="row mb-4 align-items-center">
+        <div class="col-auto">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Staff
+            </a>
+        </div>
+        <div class="col">
+            <h1 class="h4 mb-0">Create Staff Account</h1>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-4">
+            <form asp-action="CreateStaff" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3" role="alert"></div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label asp-for="FirstName" class="form-label fw-semibold"></label>
+                        <input asp-for="FirstName" class="form-control" style="border-radius:8px;" />
+                        <span asp-validation-for="FirstName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="LastName" class="form-label fw-semibold"></label>
+                        <input asp-for="LastName" class="form-control" style="border-radius:8px;" />
+                        <span asp-validation-for="LastName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Email" class="form-label fw-semibold"></label>
+                        <input asp-for="Email" class="form-control" style="border-radius:8px;"
+                               placeholder="staff@pontelloimports.com" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Role" class="form-label fw-semibold"></label>
+                        <select asp-for="Role" class="form-select" style="border-radius:8px;">
+                            <option value="Staff">Staff</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                        <div class="form-text">
+                            <strong>Admin</strong> — can manage products, dealers, and orders.<br />
+                            <strong>Staff</strong> — can view and process orders only.
+                        </div>
+                        <span asp-validation-for="Role" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 mb-3" style="font-size:0.875rem;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    A temporary password will be auto-generated and displayed after creation.
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-person-plus me-1"></i> Create Account
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

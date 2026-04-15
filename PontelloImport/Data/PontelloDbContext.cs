@@ -58,6 +58,9 @@ namespace PontelloImport.Data
 		public DbSet<Address> Addresses { get; set; }
 		public DbSet<PaymentTerms> PaymentTerms { get; set; }
 
+		// DbSets — Notifications
+		public DbSet<Notification> Notifications { get; set; }
+
 		// DbSets — Order Management
 		public DbSet<Order> Orders { get; set; }
 		public DbSet<OrderLine> OrderLines { get; set; }
@@ -85,7 +88,7 @@ namespace PontelloImport.Data
 			modelBuilder.Entity<PaymentTerms>().HasIndex(pt => pt.TermName).IsUnique();
 			modelBuilder.Entity<PaymentTerms>().HasIndex(pt => pt.TermCode).IsUnique();
 
-			modelBuilder.Entity<Order>().HasIndex(o => o.OrderNumber);
+			modelBuilder.Entity<Order>().HasIndex(o => o.OrderNumber).IsUnique();
 
 			modelBuilder.Entity<Cart>().HasIndex(c => c.DealerID).IsUnique();
 
@@ -159,9 +162,6 @@ namespace PontelloImport.Data
 				.HasForeignKey(da => da.ApprovedDealerID)
 				.OnDelete(DeleteBehavior.Restrict);
 
-			modelBuilder.Entity<OrderSequence>().HasData(
-				new OrderSequence { Id = 1, LastUsedNumber = 0 }
-			);
 			}
 
 		// ===== AUTOMATIC AUDIT TRACKING =====

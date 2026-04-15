@@ -1,14 +1,31 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@using Microsoft.AspNetCore.Identity
+@using PontelloImport.Models
+@inject UserManager<ApplicationUser> UserManager
 @{
+    var currentUser = await UserManager.GetUserAsync(User);
+    var displayName = currentUser?.FirstName
+        ?? User.Identity?.Name?.Split('@')[0]
+        ?? "Admin";
+    var fullName = currentUser != null
+        ? $"{currentUser.FirstName} {currentUser.LastName}".Trim()
+        : displayName;
+    var initials = displayName.Length > 0
+        ? displayName[0].ToString().ToUpper()
+        : "?";
+    var role = User.IsInRole("SuperAdmin")
+        ? "Super Admin"
+        : User.IsInRole("Admin")
+            ? "Admin" : "Staff";
+    var roleColor = User.IsInRole("SuperAdmin")
+        ? "#dc2626"
+        : User.IsInRole("Admin")
+            ? "#028090" : "#6b7280";
 }
+
 <nav class="w-100 d-flex align-items-center justify-content-between px-3">
 
-     @* Left *@
+    @* Mobile logo *@
     <div class="d-lg-none">
-        @* <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports" class="img-fluid" width="55" height="45" /> *@
-        @* <a href="@Url.Action("Index", "Home")"><img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports Logo" /></a> *@
         <a href="@Url.Action("Index", "Home")">
             <img src="~/images/pontello-Imports-Logo.png"
                  alt="Pontello Imports Logo"
@@ -18,18 +35,249 @@
         </a>
     </div>
 
-    @* Right  *@
+    @* Right controls *@
     <div class="d-flex align-items-center gap-3 ms-auto">
-        <i class="bi bi-bell fs-5"></i>
 
+        @* Notifications bell *@
+        @{
+            var notifications = ViewData["AdminNotifications"] as List<PontelloImport.Models.Notification>
+                                ?? new List<PontelloImport.Models.Notification>();
+            var unreadCount = (int)(ViewData["AdminUnreadCount"] ?? 0);
+        }
         <div class="dropdown">
-            <a data-bs-toggle="dropdown">
-                <img src="https://img.freepik.com/premium-vector/man-avatar-profile-picture-isolated-background-avatar-profile-picture-man_1293239-4855.jpg" class="rounded-circle img-fluid" width="40" height="40" alt="User menu" />
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="/Home/ExitPortal">Exit Admin</a></li>
+            <button class="nav-icon-btn position-relative"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    aria-label="Notifications">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="18" height="18" fill="currentColor"
+                     viewBox="0 0 16 16">
+                    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2z"/>
+                    <path d="M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/>
+                </svg>
+                @if (unreadCount > 0)
+                {
+                    <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                          style="background:#028090; font-size:0.6rem; min-width:16px; padding:2px 4px;
+                                 transform: translate(-70%, 0%) !important;">
+                        @(unreadCount > 9 ? "9+" : unreadCount.ToString())
+                    </span>
+                }
+            </button>
+
+            <ul class="dropdown-menu dropdown-menu-end shadow"
+                style="min-width:320px; font-size:0.875rem; max-height:420px; overflow-y:auto;">
+
+                <li class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold text-dark">Notifications</span>
+                    @if (notifications.Any())
+                    {
+                        <div class="d-flex gap-2">
+                            @if (unreadCount > 0)
+                            {
+                                <form asp-controller="Notifications" asp-action="MarkAllRead" method="post"
+                                      asp-route-returnUrl="@Context.Request.Path">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-link p-0"
+                                            style="font-size:0.75rem; color:#028090; text-decoration:none;">
+                                        Mark all read
+                                    </button>
+                                </form>
+                            }
+                            <form asp-controller="Notifications" asp-action="DeleteAll" method="post"
+                                  asp-route-returnUrl="@Context.Request.Path">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-link p-0"
+                                        style="font-size:0.75rem; color:#9CA3AF; text-decoration:none;"
+                                        onclick="return confirm('Clear all notifications?')">
+                                    Clear all
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </li>
+
+                @if (!notifications.Any())
+                {
+                    <li class="px-3 py-4 text-center text-muted">
+                        <small>No notifications</small>
+                    </li>
+                }
+                else
+                {
+                    @foreach (var n in notifications)
+                    {
+                        <li class="pi-notif @(!n.IsRead ? "unread" : "")"
+                            data-id="@n.NotificationID"
+                            data-read="@n.IsRead.ToString().ToLower()">
+                            <div class="pi-notif-title">
+                                @(n.Type switch {
+                                    "OrderSubmitted"      => "New order submitted",
+                                    "ApplicationSubmitted"=> "Dealer application",
+                                    "OrderConfirmed"      => "Order confirmed",
+                                    "IssueFlagged"        => "Issue flagged",
+                                    _                     => n.Type
+                                })
+                            </div>
+                            <div class="pi-notif-msg">@n.Message</div>
+                            <div class="pi-notif-actions">
+                                @if (!string.IsNullOrEmpty(n.ActionUrl))
+                                {
+                                    <a href="@n.ActionUrl"
+                                       onclick="markRead(@n.NotificationID, event)"
+                                       class="pi-notif-btn pi-notif-review">
+                                        Review
+                                    </a>
+                                }
+                                @if (!n.IsRead)
+                                {
+                                    <button id="read-@n.NotificationID"
+                                            onclick="markReadOnly(@n.NotificationID)"
+                                            class="pi-notif-btn pi-notif-read">
+                                        Mark read
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="pi-notif-btn pi-notif-read done">Read ✓</span>
+                                }
+                                <button id="dismiss-@n.NotificationID"
+                                        onclick="dismissNotif(@n.NotificationID, event)"
+                                        class="pi-notif-dismiss @(n.IsRead ? "visible" : "")"
+                                        title="Dismiss">×</button>
+                            </div>
+                            <div class="pi-notif-time">
+                                @{
+                                    var diff = DateTime.UtcNow - n.CreatedDate;
+                                    string relTime;
+                                    if (diff.TotalMinutes < 2)      relTime = "just now";
+                                    else if (diff.TotalHours < 1)   relTime = $"{(int)diff.TotalMinutes}m ago";
+                                    else if (diff.TotalDays < 1)    relTime = $"{(int)diff.TotalHours}h ago";
+                                    else if (diff.TotalDays < 7)    relTime = $"{(int)diff.TotalDays}d ago";
+                                    else                             relTime = n.CreatedDate.ToLocalTime().ToString("MMM d");
+                                }
+                                @relTime
+                            </div>
+                        </li>
+                    }
+                }
             </ul>
         </div>
+
+        @* User avatar + dropdown *@
+        <div class="dropdown">
+            <button class="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                <span class="nav-user-avatar">
+                    @initials
+                </span>
+                <span class="d-none d-md-inline text-dark fw-medium" style="font-size:0.875rem;">
+                    @displayName
+                </span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:220px;font-size:0.875rem;">
+                <li class="px-3 py-2 border-bottom">
+                    <div class="fw-semibold text-dark">@fullName</div>
+                    <div class="text-muted" style="font-size:0.8rem;">@currentUser?.Email</div>
+                    <span class="badge mt-1" style="background:@roleColor;font-size:0.7rem;">@role</span>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2"
+                       asp-controller="StaffAccount"
+                       asp-action="ManageAccount">
+                        <i class="bi bi-person me-2"></i> My Account
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1" /></li>
+                <li>
+                    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="dropdown-item py-2">
+                            <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+
     </div>
 
 </nav>
+
+<script>
+var _notifToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+async function markReadOnly(id) {
+    try {
+        await fetch('/Notifications/MarkReadAjax', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(_notifToken)
+        });
+    } catch(e) {}
+    var btn = document.getElementById('read-' + id);
+    if (btn) {
+        btn.className = 'pi-notif-btn pi-notif-read done';
+        btn.textContent = 'Read \u2713';
+        btn.onclick = null;
+    }
+    var dismiss = document.getElementById('dismiss-' + id);
+    if (dismiss) dismiss.classList.add('visible');
+    var item = document.querySelector('[data-id="' + id + '"]');
+    if (item) {
+        item.classList.remove('unread');
+        item.dataset.read = 'true';
+    }
+    updateNotifBadge();
+}
+
+async function markRead(id, event) {
+    try {
+        await fetch('/Notifications/MarkReadAjax', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(_notifToken)
+        });
+    } catch(e) {}
+    updateNotifBadge();
+}
+
+async function dismissNotif(id, event) {
+    event.stopPropagation();
+    var item = document.querySelector('[data-id="' + id + '"]');
+    var isUnread = item && item.dataset.read === 'false';
+    if (isUnread) {
+        if (!confirm('This notification is unread. Dismiss anyway?')) return;
+    }
+    try {
+        await fetch('/Notifications/DeleteAjax', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(_notifToken)
+        });
+    } catch(e) {}
+    if (item) item.remove();
+    updateNotifBadge();
+}
+
+function updateNotifBadge() {
+    var unread = document.querySelectorAll('.pi-notif.unread').length;
+    var badge = document.getElementById('notif-badge');
+    if (badge) {
+        if (unread <= 0) badge.style.display = 'none';
+        else badge.textContent = unread > 9 ? '9+' : unread;
+    }
+}
+</script>

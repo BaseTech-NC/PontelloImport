@@ -1,0 +1,136 @@
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Dealer Approved";
+
+    var name      = TempData["ApprovedName"]     as string ?? "—";
+    var company   = TempData["ApprovedCompany"]  as string ?? "";
+    var email     = TempData["ApprovedEmail"]    as string ?? "—";
+    var password  = TempData["ApprovedPassword"] as string ?? "—";
+    var refId     = TempData["ApprovedRefId"]    as string ?? "—";
+    var emailSent = TempData["EmailSent"] is bool b && b;
+}
+
+<div class="container-fluid px-4 mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+
+            <div class="card shadow-sm text-center" style="border:1px solid #D1FAE5; border-radius:16px; padding:2.5rem 2rem;">
+
+                <div class="mb-3">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                          style="width:64px;height:64px;background:#D1FAE5;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#059669" viewBox="0 0 16 16">
+                            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                        </svg>
+                    </span>
+                </div>
+
+                <h1 style="font-size:1.4rem; font-weight:700; color:#065F46;" class="mb-1">
+                    Dealer Account Created
+                </h1>
+                <p class="text-muted mb-4" style="font-size:0.95rem;">
+                    <strong>@name</strong>@(string.IsNullOrWhiteSpace(company) ? "" : $" ({company})") has been approved
+                    and their account is ready to use.
+                </p>
+
+                @* Reference *@
+                <div class="mb-4">
+                    <p class="text-muted mb-1" style="font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;">
+                        Application Reference
+                    </p>
+                    <span style="font-family:monospace; font-size:1rem; font-weight:700;
+                                 color:#028090; background:#E0F7F7; padding:0.25rem 0.8rem;
+                                 border-radius:8px; letter-spacing:0.04em;">
+                        @refId
+                    </span>
+                </div>
+
+                @* Credentials box *@
+                <div class="text-start mb-4" style="background:#F9FAFB; border:1px solid #E5E7EB;
+                            border-radius:12px; padding:1.25rem 1.5rem;">
+                    <p class="fw-semibold mb-3" style="font-size:0.85rem; color:#374151;">
+                        Login Credentials
+                        @if (!emailSent)
+                        {
+                            <span class="badge ms-2 text-dark" style="background:#FEF3C7; font-size:0.7rem;">
+                                ⚠ Email not sent — relay manually
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge ms-2" style="background:#D1FAE5; color:#065F46; font-size:0.7rem;">
+                                ✓ Emailed to dealer
+                            </span>
+                        }
+                    </p>
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="text-muted" style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">
+                                Login Email
+                            </label>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <code style="background:#E0F7F7; color:#028090; padding:0.3rem 0.75rem;
+                                             border-radius:6px; font-size:0.9rem; flex:1;">
+                                    @email
+                                </code>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        style="border-radius:6px; font-size:0.75rem;"
+                                        onclick="copyText('@email', this)">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <label class="text-muted" style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">
+                                Temporary Password
+                            </label>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <code style="background:#FFF7ED; color:#C2410C; padding:0.3rem 0.75rem;
+                                             border-radius:6px; font-size:0.9rem; flex:1;">
+                                    @password
+                                </code>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        style="border-radius:6px; font-size:0.75rem;"
+                                        onclick="copyText('@password', this)">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted mt-3 mb-0" style="font-size:0.78rem;">
+                        The dealer should change their password after their first login.
+                    </p>
+                </div>
+
+                @* Actions *@
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:8px;">
+                        Back to Applications
+                    </a>
+                    <a asp-action="Dealers" class="btn btn-primary" style="border-radius:8px; background:#0D3D38; border-color:#0D3D38;">
+                        View All Dealers
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(function () {
+                var orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-outline-secondary');
+                setTimeout(function () {
+                    btn.textContent = orig;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-secondary');
+                }, 2000);
+            });
+        }
+    </script>
+}

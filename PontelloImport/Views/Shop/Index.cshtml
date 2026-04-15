@@ -147,9 +147,10 @@
 <!-- Filter Bar -->
 <form method="get" asp-action="Index" class="mb-4">
     <div class="d-flex gap-2 flex-wrap align-items-center">
-        <input type="text" name="search" class="shop-input form-control" style="max-width: 280px;"
-               placeholder="Search products…" value="@currentSearch" aria-label="Search products" autocomplete="off" />
-        <label for="categoryFilter" class="visually-hidden">Filter by category</label>
+        <label for="searchProducts" class="form-label mb-0">Search Products</label>
+        <input type="text" id="searchProducts" name="search" class="shop-input form-control" style="max-width: 280px;"
+               placeholder="Search products…" value="@currentSearch" autocomplete="off" />
+        <label for="categoryFilter" class="form-label mb-0">Category</label>
         <select name="categoryId" id="categoryFilter" class="shop-input form-select" style="max-width: 200px;">
             <option value="">All Categories</option>
             @foreach (var cat in categories)

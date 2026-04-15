@@ -8,13 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Data\PIMigrations\**" />
-    <Content Remove="Data\PIMigrations\**" />
-    <EmbeddedResource Remove="Data\PIMigrations\**" />
-    <None Remove="Data\PIMigrations\**" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="MailKit" Version="4.15.1" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.0" />
@@ -25,6 +19,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 	<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.12" />
+	<PackageReference Include="QuestPDF" Version="2025.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\PIMigrations\" />
   </ItemGroup>
 
 </Project>

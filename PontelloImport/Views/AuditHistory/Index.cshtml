@@ -1,0 +1,294 @@
+@model List<PontelloImport.Models.OrderHistory>
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Audit History";
+
+    var search     = ViewData["Search"] as string ?? "";
+    var actionType = ViewData["ActionType"] as string ?? "";
+    var userId     = ViewData["UserId"] as string ?? "";
+    var dateFrom   = ViewData["DateFrom"] as DateTime?;
+    var dateTo     = ViewData["DateTo"] as DateTime?;
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var pageSize   = (int)(ViewData["PageSize"] ?? 25);
+    var totalCount = (int)(ViewData["TotalCount"] ?? 0);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var staffUsers = ViewData["StaffUsers"] as List<PontelloImport.Models.ApplicationUser>
+                     ?? new List<PontelloImport.Models.ApplicationUser>();
+    var actionTypes = ViewData["ActionTypes"] as string[] ?? Array.Empty<string>();
+
+    bool filtersActive = !string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(actionType)
+                      || !string.IsNullOrEmpty(userId) || dateFrom.HasValue || dateTo.HasValue;
+    int startEntry = totalCount == 0 ? 0 : (currentPage - 1) * pageSize + 1;
+    int endEntry   = Math.Min(currentPage * pageSize, totalCount);
+
+    string GetBadgeClass(string type) => type switch {
+        "Submitted"     => "pi-badge-submitted",
+        "Confirmed"     => "pi-badge-confirmed",
+        "FlaggedIssue"  => "pi-badge-action",
+        "Shipped"       => "pi-badge-shipped",
+        "Invoiced"      => "pi-badge-invoiced",
+        "Cancelled"     => "pi-badge-cancelled",
+        "EditInitiated" => "pi-badge-pending",
+        "AdminModified" => "pi-badge-pending",
+        "Resolved"      => "pi-badge-confirmed",
+        _               => "pi-badge-submitted"
+    };
+
+    string GetLabel(string type) => type switch {
+        "Submitted"     => "Submitted",
+        "Confirmed"     => "Confirmed",
+        "FlaggedIssue"  => "Flagged",
+        "Shipped"       => "Shipped",
+        "Invoiced"      => "Invoiced",
+        "Cancelled"     => "Cancelled",
+        "EditInitiated" => "Edit started",
+        "AdminModified" => "Lines edited",
+        "Resolved"      => "Resolved",
+        _               => type
+    };
+
+    string TimeAgo(DateTime dt) {
+        var diff = DateTime.UtcNow - dt.ToUniversalTime();
+        if (diff.TotalMinutes < 1) return "just now";
+        if (diff.TotalHours < 1)   return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalDays < 1)    return $"{(int)diff.TotalHours}h ago";
+        return $"{(int)diff.TotalDays}d ago";
+    }
+}
+
+<div class="container-fluid mt-4" style="max-width:1300px;">
+
+    <!-- Page header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 style="font-weight:600;color:var(--pi-text-1);font-size:1.4rem;margin-bottom:2px;">
+                Audit History
+            </h1>
+            <p style="color:var(--pi-text-2);font-size:0.875rem;margin:0;">
+                Full log of order state changes and actions.
+            </p>
+        </div>
+        <a asp-action="ExportCsv"
+           asp-route-search="@search"
+           asp-route-actionType="@actionType"
+           asp-route-dateFrom="@dateFrom?.ToString("yyyy-MM-dd")"
+           asp-route-dateTo="@dateTo?.ToString("yyyy-MM-dd")"
+           class="pi-btn pi-btn-secondary pi-btn-sm">
+            Export CSV
+        </a>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="pi-card mb-4">
+        <form method="get" asp-action="Index">
+            <div class="row g-2 mb-2">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control form-control-sm"
+                           placeholder="Search order #, dealer, description..."
+                           value="@search" />
+                </div>
+                <div class="col-md-3">
+                    <select name="actionType" class="form-select form-select-sm">
+                        <option value="">All actions</option>
+                        @foreach (var at in actionTypes)
+                        {
+                            <option value="@at" selected="@(actionType == at ? "selected" : null)">@at</option>
+                        }
+                    </select>
+                </div>
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                {
+                    <div class="col-md-3">
+                        <select name="userId" class="form-select form-select-sm">
+                            <option value="">All users</option>
+                            @foreach (var u in staffUsers)
+                            {
+                                <option value="@u.Id" selected="@(userId == u.Id ? "selected" : null)">
+                                    @u.FirstName @u.LastName (@u.Email)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label mb-1" style="font-size:12px;">From</label>
+                    <input type="date" name="dateFrom" class="form-control form-control-sm"
+                           value="@dateFrom?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-auto">
+                    <label class="form-label mb-1" style="font-size:12px;">To</label>
+                    <input type="date" name="dateTo" class="form-control form-control-sm"
+                           value="@dateTo?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="pi-btn pi-btn-primary pi-btn-sm">
+                        Apply Filters
+                    </button>
+                </div>
+                @if (filtersActive)
+                {
+                    <div class="col-auto">
+                        <a asp-action="Index" class="pi-btn pi-btn-ghost pi-btn-sm">
+                            Clear
+                        </a>
+                    </div>
+                }
+            </div>
+        </form>
+    </div>
+
+    <!-- Results summary -->
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <span style="font-size:13px;color:var(--pi-text-2);">
+            @if (totalCount == 0)
+            {
+                <text>No entries found</text>
+            }
+            else
+            {
+                <text>Showing @startEntry–@endEntry of @totalCount entries</text>
+            }
+        </span>
+        @if (filtersActive)
+        {
+            <span class="pi-badge pi-badge-action" style="font-size:10px;">Filtered</span>
+        }
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <span style="font-size:12px;color:var(--pi-text-3);">Per page:</span>
+            @foreach (var ps in new[] { 10, 25, 50 })
+            {
+                <a asp-action="Index"
+                   asp-route-search="@search" asp-route-actionType="@actionType"
+                   asp-route-userId="@userId"
+                   asp-route-dateFrom="@dateFrom?.ToString("yyyy-MM-dd")"
+                   asp-route-dateTo="@dateTo?.ToString("yyyy-MM-dd")"
+                   asp-route-page="1" asp-route-pageSize="@ps"
+                   style="font-size:12px;padding:2px 8px;border-radius:4px;
+                          text-decoration:none;
+                          @(pageSize == ps ? "background:var(--pi-primary);color:#fff;" : "color:var(--pi-primary);")">
+                    @ps
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="pi-card" style="padding:0;overflow:hidden;">
+        @if (!Model.Any())
+        {
+            <div class="text-center py-5">
+                <p style="color:var(--pi-text-2);font-size:14px;margin-bottom:8px;">
+                    No audit entries match your filters.
+                </p>
+                @if (filtersActive)
+                {
+                    <a asp-action="Index" style="color:var(--pi-primary);font-size:13px;">
+                        Clear filters
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="pi-table">
+                    <thead>
+                        <tr>
+                            <th class="col-date">When</th>
+                            <th class="col-badge">Action</th>
+                            <th class="col-po">Order #</th>
+                            <th class="col-dealer">Dealer</th>
+                            <th>Description</th>
+                            <th class="col-dealer">By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var h in Model)
+                        {
+                            var orderId = h.Order?.OrderID ?? h.OrderID;
+                            <tr style="cursor:pointer;"
+                                onclick="window.location='/AdminOrders/Details/@orderId'">
+                                <td class="muted" style="font-size:12px;">
+                                    @h.ChangedDate.ToLocalTime().ToString("MMM d, h:mm tt")<br />
+                                    <span style="color:var(--pi-text-3);font-size:11px;">
+                                        @TimeAgo(h.ChangedDate)
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="pi-badge @GetBadgeClass(h.ChangeType)">
+                                        @GetLabel(h.ChangeType)
+                                    </span>
+                                </td>
+                                <td class="muted" style="font-weight:600;">
+                                    @h.Order?.OrderNumber
+                                </td>
+                                <td class="muted" style="font-size:13px;">
+                                    @h.Order?.Dealer?.CompanyName
+                                </td>
+                                <td style="max-width:300px;overflow:hidden;
+                                           text-overflow:ellipsis;white-space:nowrap;"
+                                    title="@h.ChangeDescription">
+                                    @h.ChangeDescription
+                                </td>
+                                <td class="muted" style="font-size:12px;">
+                                    @h.ChangedBy
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <div class="d-flex align-items-center justify-content-between mt-4">
+            <span style="font-size:13px;color:var(--pi-text-2);">
+                Page @currentPage of @totalPages
+            </span>
+            <div class="d-flex gap-1">
+                <a asp-action="Index"
+                   asp-route-search="@search" asp-route-actionType="@actionType"
+                   asp-route-userId="@userId"
+                   asp-route-dateFrom="@dateFrom?.ToString("yyyy-MM-dd")"
+                   asp-route-dateTo="@dateTo?.ToString("yyyy-MM-dd")"
+                   asp-route-page="1" asp-route-pageSize="@pageSize"
+                   class="pi-btn pi-btn-ghost pi-btn-sm @(currentPage <= 1 ? "disabled" : "")">
+                    &laquo; First
+                </a>
+                <a asp-action="Index"
+                   asp-route-search="@search" asp-route-actionType="@actionType"
+                   asp-route-userId="@userId"
+                   asp-route-dateFrom="@dateFrom?.ToString("yyyy-MM-dd")"
+                   asp-route-dateTo="@dateTo?.ToString("yyyy-MM-dd")"
+                   asp-route-page="@(currentPage - 1)" asp-route-pageSize="@pageSize"
+                   class="pi-btn pi-btn-ghost pi-btn-sm @(currentPage <= 1 ? "disabled" : "")">
+                    &lsaquo; Previous
+                </a>
+                <a asp-action="Index"
+                   asp-route-search="@search" asp-route-actionType="@actionType"
+                   asp-route-userId="@userId"
+                   asp-route-dateFrom="@dateFrom?.ToString("yyyy-MM-dd")"
+                   asp-route-dateTo="@dateTo?.ToString("yyyy-MM-dd")"
+                   asp-route-page="@(currentPage + 1)" asp-route-pageSize="@pageSize"
+                   class="pi-btn pi-btn-ghost pi-btn-sm @(currentPage >= totalPages ? "disabled" : "")">
+                    Next &rsaquo;
+                </a>
+                <a asp-action="Index"
+                   asp-route-search="@search" asp-route-actionType="@actionType"
+                   asp-route-userId="@userId"
+                   asp-route-dateFrom="@dateFrom?.ToString("yyyy-MM-dd")"
+                   asp-route-dateTo="@dateTo?.ToString("yyyy-MM-dd")"
+                   asp-route-page="@totalPages" asp-route-pageSize="@pageSize"
+                   class="pi-btn pi-btn-ghost pi-btn-sm @(currentPage >= totalPages ? "disabled" : "")">
+                    Last &raquo;
+                </a>
+            </div>
+        </div>
+    }
+
+</div>

@@ -30,8 +30,18 @@
 
 @if (Model.Status == "ActionRequired")
 {
-    <div class="alert alert-warning" role="alert">
-        <strong>Action Required</strong> — There is an issue with your order. Please contact us to resolve it before processing can continue.
+    var flaggedIssue = ViewData["FlaggedIssueHistory"] as PontelloImport.Models.OrderHistory;
+    <div style="background:#F0F9FF;border-left:3px solid #0284C7;border-radius:0 6px 6px 0;
+                padding:10px 14px;font-size:13px;color:#0C4A6E;margin-bottom:1rem;" role="alert">
+        <strong>Action Required</strong><br />
+        There is an issue with this order. Please contact Pontello Imports to resolve it.
+        @if (flaggedIssue != null && !string.IsNullOrWhiteSpace(flaggedIssue.ChangeDescription))
+        {
+            <hr class="my-2" style="border-color:#BAE6FD;" />
+            <div><strong>Issue:</strong> @flaggedIssue.ChangeDescription</div>
+        }
+        <hr class="my-2" style="border-color:#BAE6FD;" />
+        <div><strong>Contact:</strong> <a href="mailto:jesse@pontelloimports.com" style="color:#0284C7;">jesse@pontelloimports.com</a></div>
     </div>
 }
 
@@ -57,7 +67,9 @@
                             <tr>
                                 <td class="text-muted small">@line.SKU</td>
                                 <td>@line.ProductTitle</td>
-                                <td>@(line.VariantTitle ?? "—")</td>
+                                <td>
+                                    <small class="text-muted">@DisplayHelpers.VariantDisplay(line.VariantTitle)</small>
+                                </td>
                                 <td class="text-center">@line.Quantity</td>
                                 <td class="text-end">$@line.UnitPrice.ToString("F2")</td>
                                 <td class="text-end fw-semibold">$@line.LineTotal.ToString("F2")</td>

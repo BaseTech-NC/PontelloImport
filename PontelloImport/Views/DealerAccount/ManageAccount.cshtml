@@ -1,0 +1,446 @@
+@model PontelloImport.Models.Dealer
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage Account";
+    var user = ViewBag.User as PontelloImport.Models.ApplicationUser;
+    var addresses = ViewBag.Addresses as List<PontelloImport.Models.Address>
+                    ?? new List<PontelloImport.Models.Address>();
+}
+
+<div class="container mt-4" style="max-width:1000px;">
+
+    <div class="mb-4">
+        <h1 style="font-size:1.4rem;font-weight:600;color:#111827;margin-bottom:0.25rem;">
+            My Account
+        </h1>
+        <p class="text-muted" style="font-size:0.875rem;margin:0;">
+            Manage your contact information, addresses and password.
+        </p>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- LEFT — Contact + Security -->
+        <div class="col-lg-5">
+
+            <!-- Contact Information -->
+            <div class="pi-card mb-4">
+                <div class="pi-card-header">Contact Information</div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size:0.875rem;">First Name</label>
+                    <input class="form-control" value="@user?.FirstName" readonly
+                           style="background:#f8fafc;color:#6b7280;" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size:0.875rem;">Last Name</label>
+                    <input class="form-control" value="@user?.LastName" readonly
+                           style="background:#f8fafc;color:#6b7280;" />
+                </div>
+                <div class="mb-1">
+                    <label class="form-label fw-semibold" style="font-size:0.875rem;">Email</label>
+                    <input class="form-control" value="@user?.Email" readonly
+                           style="background:#f8fafc;color:#6b7280;" />
+                </div>
+                <div class="pi-notice pi-notice-info mb-3" style="font-size:11.5px;">
+                    To change your email address, contact Pontello Imports at
+                    <strong>647-964-6833</strong>
+                </div>
+
+                <form asp-action="UpdateProfile" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:0.875rem;">Phone</label>
+                        <input type="tel" name="phone" class="form-control"
+                               value="@Model?.ContactPhone"
+                               placeholder="e.g. 416-555-0100" />
+                    </div>
+                    <button type="submit" class="pi-btn pi-btn-primary pi-btn-sm">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+
+            <!-- Account Security -->
+            <div class="pi-card">
+                <div class="pi-card-header">Account Security</div>
+                <button class="pi-btn pi-btn-ghost w-100" style="justify-content:center;"
+                        type="button"
+                        onclick="document.getElementById('pwdForm').classList.toggle('d-none')">
+                    Change Password
+                </button>
+
+                <form id="pwdForm" asp-action="ChangePassword" method="post" class="d-none mt-3">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-2">
+                        <label class="form-label" style="font-size:0.875rem;">Current Password</label>
+                        <div class="input-group">
+                            <input type="password" id="currentPwd" name="currentPassword"
+                                   class="form-control" required />
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="togglePwd('currentPwd', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" style="font-size:0.875rem;">New Password</label>
+                        <div class="input-group">
+                            <input type="password" id="newPwd" name="newPassword"
+                                   class="form-control" required minlength="6" />
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="togglePwd('newPwd', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size:0.875rem;">Confirm New Password</label>
+                        <div class="input-group">
+                            <input type="password" id="confirmPwd" name="confirmPassword"
+                                   class="form-control" required minlength="6" />
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="togglePwd('confirmPwd', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="pi-btn pi-btn-primary pi-btn-sm">
+                        Update Password
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- RIGHT — Addresses -->
+        <div class="col-lg-7">
+            <div class="pi-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="pi-card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;">
+                        Addresses
+                    </div>
+                    <button type="button" class="pi-btn pi-btn-primary pi-btn-sm"
+                            onclick="toggleEditForm('addNewAddr')">
+                        + Add Address
+                    </button>
+                </div>
+                <div style="border-bottom:1px solid var(--pi-border);margin-bottom:16px;"></div>
+
+                @if (!addresses.Any())
+                {
+                    <p class="text-muted" style="font-size:0.875rem;">
+                        No addresses on file. Add one below.
+                    </p>
+                }
+
+                @foreach (var addr in addresses)
+                {
+                    <div class="pi-card mb-3"
+                         style="border: 1px solid var(--pi-border);
+                                border-radius: var(--pi-radius);">
+
+                        <!-- Header row: badges + three-dot -->
+                        <div style="display:flex;
+                                    justify-content:space-between;
+                                    align-items:flex-start;
+                                    margin-bottom:10px;">
+
+                            <!-- Type + Default badges -->
+                            <div style="display:flex;gap:6px;
+                                        flex-wrap:wrap;align-items:center;">
+                                @{
+                                    var typeLabel = addr.AddressType switch {
+                                        "Billing"  => "Billing",
+                                        "Shipping" => "Shipping",
+                                        _          => "Billing & Shipping"
+                                    };
+                                    var typeCss = addr.AddressType switch {
+                                        "Billing"  => "pi-badge-info",
+                                        "Shipping" => "pi-badge-staff",
+                                        _          => "pi-badge-confirmed"
+                                    };
+                                }
+                                <span class="pi-badge @typeCss">@typeLabel</span>
+                                @if (addr.IsDefault)
+                                {
+                                    <span class="pi-badge pi-badge-submitted">Default</span>
+                                }
+                            </div>
+
+                            <!-- Three-dot dropdown -->
+                            <div class="dropdown">
+                                <button class="pi-btn pi-btn-ghost pi-btn-sm"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        style="padding:2px 8px;
+                                               font-size:20px;
+                                               font-weight:700;
+                                               line-height:1;
+                                               color:var(--pi-text-2);">
+                                    ⋮
+                                </button>
+
+                                <ul class="dropdown-menu dropdown-menu-end"
+                                    style="min-width:220px;padding:6px;">
+
+                                    <!-- Always: Edit -->
+                                    <li>
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                style="border-radius:5px;font-size:13px;"
+                                                onclick="toggleEdit(@addr.AddressID)">
+                                            Edit address
+                                        </button>
+                                    </li>
+
+                                    @* ── Make Default options (only if NOT already default) ── *@
+                                    @if (!addr.IsDefault)
+                                    {
+                                        <li><hr class="dropdown-divider" style="margin:4px 0;"></li>
+
+                                        @if (addr.AddressType == "Billing")
+                                        {
+                                            <li>
+                                                <form method="post" asp-action="SetDefaultAddress">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="addressId" value="@addr.AddressID">
+                                                    <button type="submit" class="dropdown-item"
+                                                            style="border-radius:5px;font-size:13px;">
+                                                        Make default billing
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        }
+
+                                        @if (addr.AddressType == "Shipping")
+                                        {
+                                            <li>
+                                                <form method="post" asp-action="SetDefaultAddress">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="addressId" value="@addr.AddressID">
+                                                    <button type="submit" class="dropdown-item"
+                                                            style="border-radius:5px;font-size:13px;">
+                                                        Make default shipping
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        }
+
+                                        @if (addr.AddressType == "Both")
+                                        {
+                                            <li>
+                                                <form method="post" asp-action="SetDefaultAddress">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="addressId" value="@addr.AddressID">
+                                                    <button type="submit" class="dropdown-item"
+                                                            style="border-radius:5px;font-size:13px;">
+                                                        Make default billing &amp; shipping
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        }
+                                    }
+
+                                    @* ── Delete (only if more than one address exists) ── *@
+                                    @if (addresses.Count > 1)
+                                    {
+                                        <li><hr class="dropdown-divider" style="margin:4px 0;"></li>
+                                        <li>
+                                            <form method="post" asp-action="DeleteAddress"
+                                                  onsubmit="return confirm('Delete this address? This cannot be undone.')">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="addressId" value="@addr.AddressID">
+                                                <button type="submit" class="dropdown-item"
+                                                        style="border-radius:5px;font-size:13px;
+                                                               color:var(--pi-danger);">
+                                                    Delete address
+                                                </button>
+                                            </form>
+                                        </li>
+                                    }
+
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Address text -->
+                        <div style="font-size:13px;line-height:1.8;color:var(--pi-text-1);">
+                            @addr.Street<br />
+                            @addr.City, @addr.Province @addr.PostalCode<br />
+                            @addr.Country
+                        </div>
+
+                        <!-- Inline edit form (hidden by default) -->
+                        <div id="edit-addr-@addr.AddressID"
+                             style="display:none;
+                                    margin-top:14px;
+                                    padding-top:14px;
+                                    border-top:1px solid var(--pi-border);">
+                            <form method="post" asp-action="UpdateAddress">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="addressId" value="@addr.AddressID">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label class="form-label">Street Address</label>
+                                        <input type="text" name="street" class="form-control"
+                                               value="@addr.Street" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">City</label>
+                                        <input type="text" name="city" class="form-control"
+                                               value="@addr.City">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Province / State</label>
+                                        <input type="text" name="provinceState" class="form-control"
+                                               value="@addr.Province">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Postal / Zip Code</label>
+                                        <input type="text" name="postalZipCode" class="form-control"
+                                               value="@addr.PostalCode">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Country</label>
+                                        <input type="text" name="country" class="form-control"
+                                               value="@addr.Country">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Address type</label>
+                                        <select name="addressType" class="form-select">
+                                            <option value="Both"
+                                                    selected="@(addr.AddressType == "Both" ? "selected" : null)">
+                                                Billing &amp; Shipping
+                                            </option>
+                                            <option value="Billing"
+                                                    selected="@(addr.AddressType == "Billing" ? "selected" : null)">
+                                                Billing only
+                                            </option>
+                                            <option value="Shipping"
+                                                    selected="@(addr.AddressType == "Shipping" ? "selected" : null)">
+                                                Shipping only
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input type="checkbox" name="isDefault"
+                                                   id="isDefault-@addr.AddressID"
+                                                   class="form-check-input"
+                                                   @(addr.IsDefault ? "checked" : "")>
+                                            <label class="form-check-label"
+                                                   for="isDefault-@addr.AddressID"
+                                                   style="font-size:13px;">
+                                                Set as default address
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12" style="display:flex;gap:8px;">
+                                        <button type="submit"
+                                                class="pi-btn pi-btn-primary pi-btn-sm">
+                                            Save changes
+                                        </button>
+                                        <button type="button"
+                                                class="pi-btn pi-btn-ghost pi-btn-sm"
+                                                onclick="toggleEdit(@addr.AddressID)">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                }
+
+                <!-- Add New Address -->
+                <div id="addNewAddr" style="display:none;margin-top:12px;
+                                             border-top:1px solid var(--pi-border);padding-top:12px;">
+                    <div class="pi-section-label">New Address</div>
+                    <form asp-action="AddAddress" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">Street Address</label>
+                                <input type="text" name="street" class="form-control" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">City</label>
+                                <input type="text" name="city" class="form-control" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Province / State</label>
+                                <input type="text" name="provinceState" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Postal / Zip Code</label>
+                                <input type="text" name="postalZipCode" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Country</label>
+                                <input type="text" name="country" class="form-control" value="Canada" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Address Type</label>
+                                <select name="addressType" class="form-select">
+                                    <option value="Both">Billing &amp; Shipping (use for both)</option>
+                                    <option value="Billing">Billing only</option>
+                                    <option value="Shipping">Shipping only</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input type="checkbox" name="isDefault" id="isDefault"
+                                           class="form-check-input" />
+                                    <label for="isDefault" class="form-check-label">
+                                        Set as default address
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="pi-btn pi-btn-primary">
+                                    Save Address
+                                </button>
+                                <button type="button" class="pi-btn pi-btn-ghost"
+                                        onclick="toggleEditForm('addNewAddr')">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleEditForm(id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+        function toggleEdit(id) {
+            var el = document.getElementById('edit-addr-' + id);
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+}

@@ -1,0 +1,234 @@
+@model IEnumerable<PontelloImport.Models.DealerApplication>
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Dealer Applications";
+
+    var tab         = ViewData["Tab"]        as string ?? "pending";
+    var search      = ViewData["Search"]     as string ?? "";
+    var region      = ViewData["Region"]     as string ?? "";
+    var from        = ViewData["From"]       as string ?? "";
+    var to          = ViewData["To"]         as string ?? "";
+    var page        = (int)(ViewData["Page"]       ?? 1);
+    var totalPages  = (int)(ViewData["TotalPages"] ?? 1);
+    var totalCount  = (int)(ViewData["TotalCount"] ?? 0);
+    var cntPending  = (int)(ViewData["CountPending"]  ?? 0);
+    var cntApproved = (int)(ViewData["CountApproved"] ?? 0);
+    var cntRejected = (int)(ViewData["CountRejected"] ?? 0);
+    var cntAll      = (int)(ViewData["CountAll"]      ?? 0);
+}
+
+@functions {
+    static string DisplayCompany(PontelloImport.Models.DealerApplication a)
+        => a.Company ?? a.SubmittedCompanyName ?? $"{a.FirstName} {a.LastName}".Trim();
+
+    static string DisplayContact(PontelloImport.Models.DealerApplication a)
+    {
+        var name = $"{a.FirstName} {a.LastName}".Trim();
+        return !string.IsNullOrWhiteSpace(name) ? name : (a.SubmittedContactName ?? "—");
+    }
+
+    static string DisplayEmail(PontelloImport.Models.DealerApplication a)
+        => a.Email ?? a.SubmittedEmail ?? "—";
+
+    static string DisplayCity(PontelloImport.Models.DealerApplication a)
+        => a.City ?? a.SubmittedAddress?.City ?? "—";
+
+    static string RelativeTime(DateTime utc)
+    {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalMinutes < 2)  return "just now";
+        if (diff.TotalHours  < 1)   return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalDays   < 1)   return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays   < 7)   return $"{(int)diff.TotalDays}d ago";
+        return utc.ToLocalTime().ToString("MMM d, yyyy");
+    }
+}
+
+<div class="container-fluid px-4 mt-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h4 mb-0 fw-bold">Dealer Applications</h1>
+            <p class="text-muted mb-0" style="font-size:0.85rem;">Review and manage incoming dealer applications</p>
+        </div>
+    </div>
+
+    @* ── Tab bar ──────────────────────────────────────────────────────────────── *@
+    <ul class="nav nav-tabs mb-3" style="border-bottom:2px solid #E5E7EB;">
+        @{
+            string TabLink(string t, string label, int cnt, string badgeClass)
+            {
+                var active = tab == t ? "active fw-semibold" : "";
+                var badge  = cnt > 0
+                    ? $"<span class='badge ms-1 {badgeClass}' style='font-size:0.7rem;'>{cnt}</span>"
+                    : "";
+                return $"<li class='nav-item'><a class='nav-link {active}' href='?tab={t}&search={Uri.EscapeDataString(search)}&from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}'>{label}{badge}</a></li>";
+            }
+        }
+        @Html.Raw(TabLink("pending",  "Pending",  cntPending,  "bg-warning text-dark"))
+        @Html.Raw(TabLink("approved", "Approved", cntApproved, "bg-success"))
+        @Html.Raw(TabLink("rejected", "Rejected", cntRejected, "bg-danger"))
+        @Html.Raw(TabLink("all",      "All",      cntAll,      "bg-secondary"))
+    </ul>
+
+    @* ── Filters ─────────────────────────────────────────────────────────────── *@
+    <form method="get" class="row g-2 mb-3">
+        <input type="hidden" name="tab" value="@tab" />
+        <div class="col-sm-5">
+            <input type="text" name="search" value="@search" class="form-control form-control-sm"
+                   placeholder="Search by name, company, city or province…" style="border-radius:8px;" />
+        </div>
+        <div class="col-sm-auto d-flex align-items-center gap-1">
+            <label class="form-label mb-0 small text-nowrap">From</label>
+            <input type="date" name="from" value="@from" class="form-control form-control-sm"
+                   style="border-radius:8px; max-width:150px;" />
+        </div>
+        <div class="col-sm-auto d-flex align-items-center gap-1">
+            <label class="form-label mb-0 small text-nowrap">To</label>
+            <input type="date" name="to" value="@to" class="form-control form-control-sm"
+                   style="border-radius:8px; max-width:150px;" />
+        </div>
+        <div class="col-sm-auto d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-primary" style="border-radius:8px;">Filter</button>
+            <a href="?tab=@tab" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;">Clear</a>
+        </div>
+    </form>
+
+    @* ── Results count ────────────────────────────────────────────────────────── *@
+    <p class="text-muted mb-2" style="font-size:0.82rem;">
+        Showing @Model.Count() of @totalCount application@(totalCount == 1 ? "" : "s")
+    </p>
+
+    @* ── Table ────────────────────────────────────────────────────────────────── *@
+    @if (!Model.Any())
+    {
+        <div class="card text-center py-5" style="border:1px dashed #D1D5DB; border-radius:12px;">
+            <div class="text-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor"
+                     class="bi bi-inbox mb-3 d-block mx-auto" viewBox="0 0 16 16">
+                    <path d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 0 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4H4.98zm9.954 5H10a2.5 2.5 0 0 1-4 0H1.066l.32 2.562a.5.5 0 0 0 .497.438h12.234a.5.5 0 0 0 .496-.438L14.934 9z"/>
+                </svg>
+                <p class="mb-0 fw-semibold">No applications found</p>
+                <p class="text-muted small">Try adjusting your search or filter criteria.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm" style="border:1px solid #E5E7EB; border-radius:12px; overflow:hidden;">
+            <div class="table-responsive">
+                <table class="pi-table">
+                    <thead style="background:#F9FAFB; border-bottom:2px solid #E5E7EB;">
+                        <tr>
+                            <th class="px-3 py-3 fw-semibold text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
+                                Applicant
+                            </th>
+                            <th class="py-3 fw-semibold text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
+                                Company
+                            </th>
+                            <th class="py-3 fw-semibold text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
+                                Location
+                            </th>
+                            <th class="py-3 fw-semibold text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
+                                Submitted
+                            </th>
+                            <th class="py-3 fw-semibold text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
+                                Status
+                            </th>
+                            <th class="py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model)
+                        {
+                            <tr class="dealer-row">
+                                <td class="px-3 py-3">
+                                    <div class="fw-semibold text-dark">@DisplayContact(a)</div>
+                                    <div class="text-muted small">
+                                        <a href="mailto:@DisplayEmail(a)" style="color:#028090;">@DisplayEmail(a)</a>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(a.Phone ?? a.SubmittedContactPhone))
+                                    {
+                                        <div class="text-muted small">@(a.Phone ?? a.SubmittedContactPhone)</div>
+                                    }
+                                </td>
+                                <td class="py-3">
+                                    @{
+                                        var company = DisplayCompany(a);
+                                        if (company != DisplayContact(a))
+                                        {
+                                            <div>@company</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    }
+                                </td>
+                                <td class="py-3 text-muted small">
+                                    @DisplayCity(a)
+                                    @if (!string.IsNullOrWhiteSpace(a.ProvinceState))
+                                    {
+                                        <span>, @a.ProvinceState</span>
+                                    }
+                                </td>
+                                <td class="py-3 text-muted small" title="@a.SubmittedDate.ToLocalTime().ToString("MMM d, yyyy h:mm tt")">
+                                    @RelativeTime(a.SubmittedDate)
+                                </td>
+                                <td class="py-3">
+                                    @if (a.Status == "Pending")
+                                    {
+                                        <span class="badge rounded-pill" style="background:#DBEAFE; color:#1E40AF; font-size:0.72rem;">Pending</span>
+                                    }
+                                    else if (a.Status == "Approved")
+                                    {
+                                        <span class="badge rounded-pill" style="background:#D1FAE5; color:#065F46; font-size:0.72rem;">Approved</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill" style="background:#FEE2E2; color:#991B1B; font-size:0.72rem;">Rejected</span>
+                                    }
+                                </td>
+                                <td class="py-3 text-end pe-3">
+                                    <a asp-action="ReviewApplication" asp-route-id="@a.ApplicationID"
+                                       class="btn btn-sm @(a.Status == "Pending" ? "btn-primary" : "btn-outline-secondary")"
+                                       style="border-radius:8px; font-size:0.8rem; padding:0.3rem 0.75rem;">
+                                        @(a.Status == "Pending" ? "Review" : "View")
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* ── Pagination ───────────────────────────────────────────────────────── *@
+        @if (totalPages > 1)
+        {
+            <nav class="mt-3" aria-label="Applications pagination">
+                <ul class="pagination pagination-sm justify-content-center">
+                    <li class="page-item @(page <= 1 ? "disabled" : "")">
+                        <a class="page-link" href="?tab=@tab&search=@Uri.EscapeDataString(search)&region=@Uri.EscapeDataString(region)&from=@Uri.EscapeDataString(from)&to=@Uri.EscapeDataString(to)&page=@(page-1)">
+                            &laquo;
+                        </a>
+                    </li>
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        <li class="page-item @(p == page ? "active" : "")">
+                            <a class="page-link" href="?tab=@tab&search=@Uri.EscapeDataString(search)&region=@Uri.EscapeDataString(region)&from=@Uri.EscapeDataString(from)&to=@Uri.EscapeDataString(to)&page=@p">
+                                @p
+                            </a>
+                        </li>
+                    }
+                    <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                        <a class="page-link" href="?tab=@tab&search=@Uri.EscapeDataString(search)&region=@Uri.EscapeDataString(region)&from=@Uri.EscapeDataString(from)&to=@Uri.EscapeDataString(to)&page=@(page+1)">
+                            &raquo;
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+
+</div>

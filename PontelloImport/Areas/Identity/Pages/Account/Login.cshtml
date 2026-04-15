@@ -1,0 +1,180 @@
+@page
+@model PontelloImport.Areas.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Sign In — Pontello Imports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var showQuickLogin =
+        Environment.GetEnvironmentVariable("SHOW_QUICK_LOGIN") == "true"
+        || Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+}
+
+<div class="row justify-content-center" style="margin-top:3rem;">
+    <div class="col-sm-8 col-md-5 col-lg-4">
+
+        <div class="text-center mb-4">
+            <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height:52px;" class="mb-3" />
+            <h1 style="font-size:1.35rem; font-weight:600; color:#111827;">Sign In</h1>
+            <p class="text-muted" style="font-size:0.9rem;">Sign in to your account</p>
+        </div>
+
+        <div class="card shadow-sm" style="border:1px solid #E5E7EB; border-radius:12px;">
+            <div class="card-body p-4">
+
+                <form id="loginForm" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ReturnUrl" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label fw-semibold" style="font-size:0.875rem;">Email</label>
+                        <input asp-for="Input.Email" id="Input_Email" class="form-control" autocomplete="username"
+                               placeholder="you@example.com" style="border-radius:8px;" />
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label fw-semibold" style="font-size:0.875rem;">Password</label>
+                        <div style="position:relative;">
+                            <input asp-for="Input.Password" id="Input_Password" class="form-control" autocomplete="current-password"
+                                   placeholder="Password" style="border-radius:8px; padding-right:40px;" />
+                            <button type="button" onclick="togglePwd('Input_Password', this)"
+                                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                                           background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;">
+                                <svg id="eye-Input_Password" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4 form-check">
+                        <input asp-for="Input.RememberMe" class="form-check-input" />
+                        <label asp-for="Input.RememberMe" class="form-check-label" style="font-size:0.875rem;">Remember me</label>
+                    </div>
+
+                    <button type="submit" id="loginSubmit" class="btn w-100 fw-semibold"
+                            style="background:#0D3D38; color:#ffffff; border-radius:8px; padding:0.65rem;">
+                        Sign In
+                    </button>
+
+                    <div style="text-align:center;margin-top:10px;">
+                        <a asp-page="./ForgotPassword"
+                           style="font-size:12px;color:#028090;text-decoration:none;">
+                            Forgot your password?
+                        </a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+        @if (showQuickLogin)
+        {
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--pi-border);">
+
+                <button type="button" onclick="toggleQuickLogin(this)"
+                        style="width:100%;display:flex;justify-content:space-between;align-items:center;
+                               background:none;border:none;padding:6px 2px;cursor:pointer;
+                               color:var(--pi-text-2);font-size:12px;">
+                    <span style="text-transform:uppercase;letter-spacing:0.5px;">Demo quick sign in</span>
+                    <svg id="ql-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" style="transition:transform 0.2s;">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+
+                <div id="quick-login-panel" style="display:none;margin-top:8px;">
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+
+                        <div style="font-size:10px;color:var(--pi-text-3);text-transform:uppercase;
+                                    letter-spacing:0.5px;padding:4px 2px 2px;">
+                            Admin
+                        </div>
+
+                        <button type="button" class="pi-btn pi-btn-ghost"
+                                style="width:100%;justify-content:space-between;font-size:12px;padding:7px 12px;"
+                                onclick="quickLogin('jesse@pontelloimports.com','Admin@Pontello2026!')">
+                            <span>Jesse Pontello</span>
+                            <span class="pi-badge pi-badge-admin" style="font-size:10px;">Super Admin</span>
+                        </button>
+
+                        <button type="button" class="pi-btn pi-btn-ghost"
+                                style="width:100%;justify-content:space-between;font-size:12px;padding:7px 12px;"
+                                onclick="quickLogin('admin@pontelloimports.com','Admin@Portal2026!')">
+                            <span>Portal Admin</span>
+                            <span class="pi-badge pi-badge-admin" style="font-size:10px;">Admin</span>
+                        </button>
+
+                        <button type="button" class="pi-btn pi-btn-ghost"
+                                style="width:100%;justify-content:space-between;font-size:12px;padding:7px 12px;"
+                                onclick="quickLogin('staff1@pontelloimports.com','Staff@Portal2026!')">
+                            <span>Staff One</span>
+                            <span class="pi-badge pi-badge-staff" style="font-size:10px;">Staff</span>
+                        </button>
+
+                        <div style="font-size:10px;color:var(--pi-text-3);text-transform:uppercase;
+                                    letter-spacing:0.5px;padding:8px 2px 2px;">
+                            Dealers
+                        </div>
+
+                        <button type="button" class="pi-btn pi-btn-ghost"
+                                style="width:100%;justify-content:space-between;font-size:12px;padding:7px 12px;"
+                                onclick="quickLogin('dealer1@testdealer.com','Dealer@Test2026!')">
+                            <span>Roman Go-Karts</span>
+                            <span class="pi-badge pi-badge-dealer" style="font-size:10px;">Dealer</span>
+                        </button>
+
+                        <button type="button" class="pi-btn pi-btn-ghost"
+                                style="width:100%;justify-content:space-between;font-size:12px;padding:7px 12px;"
+                                onclick="quickLogin('dealer2@testdealer.com','Dealer@Test2026!')">
+                            <span>Apex Racing Supply</span>
+                            <span class="pi-badge pi-badge-dealer" style="font-size:10px;">Dealer</span>
+                        </button>
+
+                        <button type="button" class="pi-btn pi-btn-ghost"
+                                style="width:100%;justify-content:space-between;font-size:12px;padding:7px 12px;"
+                                onclick="quickLogin('dealer3@testdealer.com','Dealer@Test2026!')">
+                            <span>SpeedZone Karting</span>
+                            <span class="pi-badge pi-badge-dealer" style="font-size:10px;">Dealer</span>
+                        </button>
+
+                    </div>
+                </div>
+
+            </div>
+        }
+
+        <div class="text-center mt-3" style="font-size:0.875rem; color:#6B7280;">
+            Not a dealer yet?
+            <a asp-controller="Home" asp-action="Apply" style="color:#028090; font-weight:500;">
+                Apply for an account
+            </a>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (showQuickLogin)
+    {
+        <script>
+            function toggleQuickLogin(btn) {
+                const panel = document.getElementById('quick-login-panel');
+                const chevron = document.getElementById('ql-chevron');
+                const isOpen = panel.style.display !== 'none';
+                panel.style.display = isOpen ? 'none' : 'block';
+                chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+            }
+
+            function quickLogin(email, password) {
+                document.getElementById('Input_Email').value = email;
+                document.getElementById('Input_Password').value = password;
+                document.querySelector('button[type=submit]').click();
+            }
+        </script>
+    }
+}

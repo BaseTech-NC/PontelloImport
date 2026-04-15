@@ -1,0 +1,147 @@
+@model IEnumerable<PontelloImport.Models.DealerSummaryViewModel>
+@{
+    Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
+    ViewBag.Title = "Dealers";
+
+    var totalDealers     = (int)(ViewData["TotalDealers"]     ?? 0);
+    var activeDealers    = (int)(ViewData["ActiveDealers"]    ?? 0);
+    var suspendedDealers = (int)(ViewData["SuspendedDealers"] ?? 0);
+    var search           = ViewData["Search"]?.ToString() ?? "";
+    var status           = ViewData["Status"]?.ToString()  ?? "";
+}
+
+<div class="container-fluid mt-4">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 fw-semibold">Dealers</h1>
+    </div>
+
+    <!-- Stat chips -->
+    <div class="d-flex gap-3 mb-4">
+        <div class="px-4 py-3 rounded-3 bg-white border" style="min-width:130px;">
+            <div class="text-muted small mb-1">Total</div>
+            <div class="fw-bold fs-4">@totalDealers</div>
+        </div>
+        <div class="px-4 py-3 rounded-3 bg-white border" style="min-width:130px;">
+            <div class="text-muted small mb-1">Active</div>
+            <div class="fw-bold fs-4 text-success">@activeDealers</div>
+        </div>
+        <div class="px-4 py-3 rounded-3 bg-white border" style="min-width:130px;">
+            <div class="text-muted small mb-1">Suspended</div>
+            <div class="fw-bold fs-4 text-danger">@suspendedDealers</div>
+        </div>
+    </div>
+
+    <!-- Filter bar -->
+    <form method="get" asp-action="Dealers" class="d-flex gap-2 mb-4 align-items-end">
+        <div>
+            <label class="form-label small mb-1">Search</label>
+            <input type="text" name="search" value="@search"
+                   class="form-control form-control-sm" placeholder="Company or email" style="width:240px;" />
+        </div>
+        <div>
+            <label class="form-label small mb-1">Status</label>
+            <select name="status" class="form-select form-select-sm" style="width:150px;">
+                <option value="" selected="@(status == "")">All</option>
+                <option value="active" selected="@(status == "active")">Active</option>
+                <option value="suspended" selected="@(status == "suspended")">Suspended</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-sm btn-dark mb-0">Apply</button>
+        @if (!string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(status))
+        {
+            <a asp-action="Dealers" class="btn btn-sm btn-outline-secondary mb-0">Clear</a>
+        }
+    </form>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="pi-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Company Name</th>
+                        <th>Contact Email</th>
+                        <th>Payment Terms</th>
+                        <th>Tax Exempt</th>
+                        <th>Status</th>
+                        <th class="text-center">Orders</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No dealers found.</td>
+                        </tr>
+                    }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="fw-medium">
+                                <a asp-action="DealerProfile" asp-route-id="@item.Dealer.DealerID"
+                                   class="text-dark text-decoration-none">
+                                    @item.Dealer.CompanyName
+                                </a>
+                            </td>
+                            <td class="text-muted small">@(item.User?.Email ?? "—")</td>
+                            <td class="small">@(item.Dealer.PaymentTerms?.TermName ?? "—")</td>
+                            <td>
+                                @if (item.Dealer.IsTaxExempt)
+                                {
+                                    <span class="badge bg-info text-dark">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">No</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Suspended</span>
+                                }
+                            </td>
+                            <td class="text-center">@item.OrderCount</td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="DealerProfile" asp-route-id="@item.Dealer.DealerID"
+                                       class="btn btn-sm btn-outline-secondary">View</a>
+
+                                    @if (item.IsActive)
+                                    {
+                                        <form asp-action="SuspendDealer" asp-route-id="@item.Dealer.DealerID"
+                                              method="post" class="d-inline"
+                                              onsubmit="return confirm('Suspend this dealer account?')">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Prevent this dealer from logging in.">Suspend</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="ReinstateDealer" asp-route-id="@item.Dealer.DealerID"
+                                              method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-success"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Restore this dealer's access.">Reinstate</button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>

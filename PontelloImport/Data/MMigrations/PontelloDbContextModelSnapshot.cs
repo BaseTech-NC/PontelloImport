@@ -7,7 +7,7 @@ using PontelloImport.Data;
 
 #nullable disable
 
-namespace PontelloImport.Data.MMigrations
+namespace PontelloImport.Data.PIMigrations
 {
     [DbContext(typeof(PontelloDbContext))]
     partial class PontelloDbContextModelSnapshot : ModelSnapshot
@@ -23,6 +23,11 @@ namespace PontelloImport.Data.MMigrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AddressType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -35,6 +40,12 @@ namespace PontelloImport.Data.MMigrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("DealerID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("TEXT");
@@ -203,6 +214,10 @@ namespace PontelloImport.Data.MMigrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("ApprovedDealerID")
                         .HasColumnType("INTEGER");
 
@@ -210,8 +225,48 @@ namespace PontelloImport.Data.MMigrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Company")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CompanyDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("DealerID")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostalZipCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProvinceState")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("RequestedPaymentTermsID")
                         .HasColumnType("INTEGER");
@@ -230,21 +285,18 @@ namespace PontelloImport.Data.MMigrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("SubmittedAddressID")
+                    b.Property<int?>("SubmittedAddressID")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("SubmittedCompanyName")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SubmittedContactName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SubmittedContactPhone")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
@@ -252,8 +304,11 @@ namespace PontelloImport.Data.MMigrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SubmittedEmail")
-                        .IsRequired()
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WebsiteSocialMedia")
+                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.HasKey("ApplicationID");
@@ -267,6 +322,42 @@ namespace PontelloImport.Data.MMigrations
                     b.HasIndex("SubmittedAddressID");
 
                     b.ToTable("DealerApplications");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Notification", b =>
+                {
+                    b.Property<int>("NotificationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ActionUrl")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DealerID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("NotificationID");
+
+                    b.HasIndex("DealerID");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.OptionTemplate", b =>
@@ -339,6 +430,9 @@ namespace PontelloImport.Data.MMigrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("DealerHasViewed")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("DealerID")
                         .HasColumnType("INTEGER");
 
@@ -405,7 +499,8 @@ namespace PontelloImport.Data.MMigrations
 
                     b.HasIndex("DealerID");
 
-                    b.HasIndex("OrderNumber");
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
 
                     b.HasIndex("PaymentTermsID");
 
@@ -514,13 +609,6 @@ namespace PontelloImport.Data.MMigrations
                     b.HasKey("Id");
 
                     b.ToTable("OrderSequence");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            LastUsedNumber = 0
-                        });
                 });
 
             modelBuilder.Entity("PontelloImport.Models.PaymentTerms", b =>
@@ -592,13 +680,10 @@ namespace PontelloImport.Data.MMigrations
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ProductCategoryID")
-<<<<<<< HEAD:PontelloImport/Data/MMigrations/PontelloDbContextModelSnapshot.cs
-=======
+                    b.Property<int?>("ProductCategoryID")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("ProductTypeID")
->>>>>>> d51b3375d7885e96df984aa979bd5083c4de4923:PontelloImport/Data/PIMigrations/PontelloDbContextModelSnapshot.cs
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Status")
@@ -612,14 +697,7 @@ namespace PontelloImport.Data.MMigrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
-<<<<<<< HEAD:PontelloImport/Data/MMigrations/PontelloDbContextModelSnapshot.cs
-                    b.Property<string>("Type")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-=======
->>>>>>> d51b3375d7885e96df984aa979bd5083c4de4923:PontelloImport/Data/PIMigrations/PontelloDbContextModelSnapshot.cs
-                    b.Property<int>("VendorID")
+                    b.Property<int?>("VendorID")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("ProductID");
@@ -847,6 +925,11 @@ namespace PontelloImport.Data.MMigrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("StockPolicy")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("VariantImageUrl")
                         .HasColumnType("TEXT");
 
@@ -1007,9 +1090,7 @@ namespace PontelloImport.Data.MMigrations
 
                     b.HasOne("PontelloImport.Models.Address", "SubmittedAddress")
                         .WithMany()
-                        .HasForeignKey("SubmittedAddressID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SubmittedAddressID");
 
                     b.Navigation("ApprovedDealer");
 
@@ -1018,6 +1099,15 @@ namespace PontelloImport.Data.MMigrations
                     b.Navigation("RequestedPaymentTerms");
 
                     b.Navigation("SubmittedAddress");
+                });
+
+            modelBuilder.Entity("PontelloImport.Models.Notification", b =>
+                {
+                    b.HasOne("PontelloImport.Models.Dealer", "Dealer")
+                        .WithMany()
+                        .HasForeignKey("DealerID");
+
+                    b.Navigation("Dealer");
                 });
 
             modelBuilder.Entity("PontelloImport.Models.Order", b =>
@@ -1085,40 +1175,15 @@ namespace PontelloImport.Data.MMigrations
                 {
                     b.HasOne("PontelloImport.Models.ProductCategory", "ProductCategory")
                         .WithMany("Products")
-                        .HasForeignKey("ProductCategoryID")
-<<<<<<< HEAD:PontelloImport/Data/MMigrations/PontelloDbContextModelSnapshot.cs
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-=======
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ProductCategoryID");
 
                     b.HasOne("PontelloImport.Models.ProductType", "ProductType")
                         .WithMany("Products")
                         .HasForeignKey("ProductTypeID");
->>>>>>> d51b3375d7885e96df984aa979bd5083c4de4923:PontelloImport/Data/PIMigrations/PontelloDbContextModelSnapshot.cs
 
                     b.HasOne("PontelloImport.Models.Vendor", "Vendor")
                         .WithMany("Products")
-                        .HasForeignKey("VendorID")
-<<<<<<< HEAD:PontelloImport/Data/MMigrations/PontelloDbContextModelSnapshot.cs
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ProductCategory");
-
-                    b.Navigation("Vendor");
-                });
-
-            modelBuilder.Entity("PontelloImport.Models.ProductAttribute", b =>
-                {
-                    b.HasOne("PontelloImport.Models.ProductVariant", "Variant")
-                        .WithMany("Attributes")
-                        .HasForeignKey("VariantID")
-=======
->>>>>>> d51b3375d7885e96df984aa979bd5083c4de4923:PontelloImport/Data/PIMigrations/PontelloDbContextModelSnapshot.cs
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("VendorID");
 
                     b.Navigation("ProductCategory");
 

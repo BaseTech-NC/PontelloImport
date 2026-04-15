@@ -342,6 +342,13 @@
                                class="form-control" placeholder="0" />
                         <span asp-validation-for="InventoryQuantity" class="text-danger small"></span>
                     </div>
+                    <div class="col-4 mb-3">
+                        <label asp-for="StockPolicy" class="form-label">Backorders</label>
+                        <select asp-for="StockPolicy" class="form-select">
+                            <option value="deny">Deny (block order when out of stock)</option>
+                            <option value="allow">Allow (permit backorders)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="mt-3 pt-3" style="border-top:1px solid #E5E7EB;">
@@ -470,6 +477,7 @@
                                 <th style="min-width:100px;">Price <span class="text-danger">*</span></th>
                                 <th style="min-width:100px;">Your Cost</th>
                                 <th style="min-width:80px;">Stock Qty</th>
+                                <th style="min-width:130px;">Backorders</th>
                                 <th style="min-width:110px;">Barcode</th>
                                 <th></th>
                             </tr>
@@ -508,6 +516,13 @@
                                         <input type="number" name="Variants[@i].Qty" value="@vr.Qty"
                                                class="form-control form-control-sm" min="0"
                                                aria-label="Stock quantity for variant @(i + 1)" />
+                                    </td>
+                                    <td>
+                                        <select name="Variants[@i].StockPolicy" class="form-select form-select-sm"
+                                                aria-label="Backorder policy for variant @(i + 1)">
+                                            <option value="deny" selected="@(vr.StockPolicy != "allow")">Deny</option>
+                                            <option value="allow" selected="@(vr.StockPolicy == "allow")">Allow</option>
+                                        </select>
                                     </td>
                                     <td>
                                         <input type="text" name="Variants[@i].Barcode" value="@(vr.Barcode ?? "")"
@@ -843,6 +858,20 @@
             qtyIn.setAttribute('aria-label', `Stock quantity for variant ${i + 1}`);
             qtyTd.appendChild(qtyIn);
             tr.appendChild(qtyTd);
+
+            // Backorder policy select
+            const stockPolicyTd = document.createElement('td');
+            const stockPolicySel = document.createElement('select');
+            stockPolicySel.name = `Variants[${i}].StockPolicy`;
+            stockPolicySel.className = 'form-select form-select-sm';
+            stockPolicySel.setAttribute('aria-label', `Backorder policy for variant ${i + 1}`);
+            [['deny','Deny'],['allow','Allow']].forEach(([v,t]) => {
+                const opt = document.createElement('option'); opt.value = v; opt.textContent = t;
+                if (v === 'deny') opt.selected = true;
+                stockPolicySel.appendChild(opt);
+            });
+            stockPolicyTd.appendChild(stockPolicySel);
+            tr.appendChild(stockPolicyTd);
 
             // Barcode input
             const barcodeTd = document.createElement('td');

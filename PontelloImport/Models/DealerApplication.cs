@@ -6,19 +6,54 @@ namespace PontelloImport.Models
     {
         public int ApplicationID { get; set; }
 
-        [Required, MaxLength(255)]
-        public string SubmittedCompanyName { get; set; }
+        // ── New fields (current form) ─────────────────────────────────────────
+        [Required, MaxLength(100)]
+        public string FirstName { get; set; } = "";
 
         [Required, MaxLength(100)]
-        public string SubmittedContactName { get; set; }
+        public string LastName { get; set; } = "";
+
+        [Required, MaxLength(100)]
+        public string Email { get; set; } = "";
 
         [Required, MaxLength(20)]
-        public string SubmittedContactPhone { get; set; }
+        public string Phone { get; set; } = "";
 
-        [Required, MaxLength(100)]
-        public string SubmittedEmail { get; set; }
+        [MaxLength(255)]
+        public string? Company { get; set; }
 
-        public int SubmittedAddressID { get; set; }
+        [MaxLength(255)]
+        public string? Address { get; set; }
+
+        [MaxLength(100)]
+        public string? City { get; set; }
+
+        [MaxLength(50)]
+        public string? ProvinceState { get; set; }
+
+        [MaxLength(20)]
+        public string? PostalZipCode { get; set; }
+
+        [MaxLength(1000)]
+        public string? CompanyDescription { get; set; }
+
+        [MaxLength(255)]
+        public string? WebsiteSocialMedia { get; set; }
+
+        // ── Legacy fields (kept for backward compat with old records) ─────────
+        [MaxLength(255)]
+        public string? SubmittedCompanyName { get; set; }
+
+        [MaxLength(100)]
+        public string? SubmittedContactName { get; set; }
+
+        [MaxLength(20)]
+        public string? SubmittedContactPhone { get; set; }
+
+        [MaxLength(100)]
+        public string? SubmittedEmail { get; set; }
+
+        public int? SubmittedAddressID { get; set; }
         public Address? SubmittedAddress { get; set; }
 
         [MaxLength(50)]
@@ -27,6 +62,7 @@ namespace PontelloImport.Models
         public int? RequestedPaymentTermsID { get; set; }
         public PaymentTerms? RequestedPaymentTerms { get; set; }
 
+        // ── Status ────────────────────────────────────────────────────────────
         [Required, MaxLength(20)]
         public string Status { get; set; } = "Pending";
 

@@ -1,12 +1,10 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
 @{
     string controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var pending             = (int)(ViewData["TotalPendingCount"]          ?? 0);
+    var pendingApplications = (int)(ViewData["PendingApplicationCount"]    ?? 0);
 }
-<div class="h-100 ">
+<div class="h-100">
     <div class="sidebar-logo p-3">
-        @* <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports" class="object-fit-contain h-100" /> *@
         <a href="@Url.Action("Index", "Home")">
             <img src="~/images/pontello-Imports-Logo.png"
                  alt="Pontello Imports Logo"
@@ -15,37 +13,133 @@
     </div>
 
     <nav aria-label="Admin navigation" class="d-flex flex-column p-3">
-
         <ul class="nav nav-pills flex-column gap-1">
 
-            @* <li class="nav-item"> *@
-            @*     <a class="nav-link @(controller == "Dashboard" ? "active" : "text-dark")" *@
-            @*        asp-area="" *@
-            @*        asp-controller="Dashboard" *@
-            @*        asp-action="Index"> *@
-            @*         <i class="bi bi-speedometer2 me-2"></i> Dashboard *@
-            @*     </a> *@
-            @* </li> *@
-
+            @* Dashboard *@
             <li class="nav-item">
-                <a class="nav-link @(controller == "ProductVariants" ? "active" : "text-dark")"
+                <a class="nav-link @(controller == "Dashboard" ? "active" : "text-dark") d-flex align-items-center gap-2"
                    asp-area=""
-                   asp-controller="ProductVariants"
-                   asp-action="Index">
-                    <i class="bi bi-box me-2"></i> Products
+                   asp-controller="Dashboard"
+                   asp-action="Admin">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
                 </a>
             </li>
 
+            @* Orders — visible to all admin roles *@
             <li class="nav-item">
-                <a class="nav-link @(controller == "AdminOrders" ? "active" : "text-dark")"
+                <a class="nav-link @(controller == "AdminOrders" ? "active" : "text-dark") d-flex align-items-center gap-2"
                    asp-area=""
                    asp-controller="AdminOrders"
                    asp-action="Index">
                     <i class="bi bi-receipt me-2"></i> Orders
+                    @if (pending > 0)
+                    {
+                        <span class="ms-auto"
+                              style="display:inline-flex;align-items:center;justify-content:center;
+                                     min-width:18px;height:18px;padding:0 5px;
+                                     font-size:10px;font-weight:600;border-radius:9px;
+                                     background-color:rgba(255,255,255,0.15);
+                                     color:rgba(255,255,255,0.9);
+                                     border:1px solid rgba(255,255,255,0.25);">
+                            @pending
+                        </span>
+                    }
                 </a>
             </li>
 
-        </ul>
+            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+            {
+                @* Products *@
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "ProductVariants" ? "active" : "text-dark")"
+                       asp-area=""
+                       asp-controller="ProductVariants"
+                       asp-action="Index">
+                        <i class="bi bi-box me-2"></i> Products
+                    </a>
+                </li>
 
+                @* Dealers dropdown *@
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "AdminDealers" ? "active" : "text-dark") d-flex align-items-center"
+                       data-bs-toggle="collapse"
+                       href="#dealersMenu"
+                       role="button"
+                       aria-expanded="@(controller == "AdminDealers" ? "true" : "false")"
+                       aria-controls="dealersMenu">
+                        <i class="bi bi-people me-2"></i>
+                        <span class="flex-grow-1">Dealers</span>
+                        <i class="bi bi-chevron-down ms-auto" style="font-size:0.7rem;"></i>
+                    </a>
+                    <div class="collapse @(controller == "AdminDealers" ? "show" : "")" id="dealersMenu">
+                        <ul class="nav flex-column ps-3 gap-1 mt-1">
+                            <li class="nav-item">
+                                <a class="nav-link text-dark d-flex align-items-center gap-2 py-1"
+                                   asp-controller="AdminDealers"
+                                   asp-action="Index">
+                                    Applications
+                                    @if (pendingApplications > 0)
+                                    {
+                                        <span class="badge rounded-pill ms-1"
+                                              style="background:#f59e0b;color:#111827;font-size:0.7rem;">
+                                            @pendingApplications
+                                        </span>
+                                    }
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark py-1"
+                                   asp-controller="AdminDealers"
+                                   asp-action="Dealers">
+                                    Manage Dealers
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            }
+
+            @* Reports *@
+            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "Reports" ? "active" : "text-dark") d-flex align-items-center gap-2"
+                       asp-area=""
+                       asp-controller="Reports"
+                       asp-action="Index">
+                        <i class="bi bi-bar-chart-line me-2"></i> Reports
+                    </a>
+                </li>
+            }
+
+            @* Users — SuperAdmin only *@
+            @if (User.IsInRole("SuperAdmin"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "AdminUsers" ? "active" : "text-dark") d-flex align-items-center"
+                       data-bs-toggle="collapse"
+                       href="#usersMenu"
+                       role="button"
+                       aria-expanded="@(controller == "AdminUsers" ? "true" : "false")"
+                       aria-controls="usersMenu">
+                        <i class="bi bi-person-badge me-2"></i>
+                        <span class="flex-grow-1">Users</span>
+                        <i class="bi bi-chevron-down ms-auto" style="font-size:0.7rem;"></i>
+                    </a>
+                    <div class="collapse @(controller == "AdminUsers" ? "show" : "")" id="usersMenu">
+                        <ul class="nav flex-column ps-3 gap-1 mt-1">
+                            <li class="nav-item">
+                                <a class="nav-link text-dark py-1"
+                                   asp-controller="AdminUsers"
+                                   asp-action="Index">
+                                    Staff Accounts
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            }
+
+        </ul>
     </nav>
 </div>

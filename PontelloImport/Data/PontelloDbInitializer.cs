@@ -5,7 +5,7 @@ namespace PontelloImport.Data
 {
     public static class PontelloDbInitializer
     {
-        public static void Seed(IApplicationBuilder applicationBuilder)
+        public static async Task Seed(IApplicationBuilder applicationBuilder)
         {
             using (var serviceScope = applicationBuilder.ApplicationServices.CreateScope())
             {
@@ -14,6 +14,16 @@ namespace PontelloImport.Data
                 if (context == null) return;
 
                 // Schema is managed by EF migrations (Migrate() called in Program.cs)
+
+                // Ensure OrderSequence row exists (not in HasData to avoid migration resets)
+                if (!context.OrderSequence.Any())
+                {
+                    context.OrderSequence.Add(new OrderSequence { Id = 1, LastUsedNumber = 0 });
+                    context.SaveChanges();
+                }
+
+                // Repair any duplicate order numbers and sync the sequence — always runs
+                await RepairDuplicateOrderNumbers(context);
 
                 // Guard: already seeded
                 if (context.Vendors.Any()) return;
@@ -981,11 +991,24 @@ namespace PontelloImport.Data
                     };
                 }
 
+                // Helper: increment OrderSequence and return next number
+                async Task<string> NextOrderNumber()
+                {
+                    var seq = await context.OrderSequence.FirstOrDefaultAsync(s => s.Id == 1);
+                    if (seq == null)
+                    {
+                        seq = new OrderSequence { Id = 1, LastUsedNumber = 0 };
+                        context.OrderSequence.Add(seq);
+                    }
+                    seq.LastUsedNumber++;
+                    await context.SaveChangesAsync();
+                    return seq.LastUsedNumber.ToString("D4");
+                }
+
                 // ---- Orders 0001–0003: Submitted ----
 
                 var order0001 = new Order
                 {
-                    OrderNumber        = "0001",
                     DealerID           = dealers[0].DealerID,
                     DealerCompanyName  = dealers[0].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 2, 11, 0, 0, DateTimeKind.Utc),
@@ -1001,7 +1024,6 @@ namespace PontelloImport.Data
 
                 var order0002 = new Order
                 {
-                    OrderNumber        = "0002",
                     DealerID           = dealers[1].DealerID,
                     DealerCompanyName  = dealers[1].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 7, 14, 0, 0, DateTimeKind.Utc),
@@ -1017,7 +1039,6 @@ namespace PontelloImport.Data
 
                 var order0003 = new Order
                 {
-                    OrderNumber        = "0003",
                     DealerID           = dealers[2].DealerID,
                     DealerCompanyName  = dealers[2].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 12, 10, 0, 0, DateTimeKind.Utc),
@@ -1035,7 +1056,6 @@ namespace PontelloImport.Data
 
                 var order0004 = new Order
                 {
-                    OrderNumber        = "0004",
                     DealerID           = dealers[3].DealerID,
                     DealerCompanyName  = dealers[3].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 13, 10, 0, 0, DateTimeKind.Utc),
@@ -1051,7 +1071,6 @@ namespace PontelloImport.Data
 
                 var order0005 = new Order
                 {
-                    OrderNumber        = "0005",
                     DealerID           = dealers[4].DealerID,
                     DealerCompanyName  = dealers[4].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 16, 9, 0, 0, DateTimeKind.Utc),
@@ -1067,7 +1086,6 @@ namespace PontelloImport.Data
 
                 var order0006 = new Order
                 {
-                    OrderNumber        = "0006",
                     DealerID           = dealers[0].DealerID,
                     DealerCompanyName  = dealers[0].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 19, 14, 30, 0, DateTimeKind.Utc),
@@ -1085,7 +1103,6 @@ namespace PontelloImport.Data
 
                 var order0007 = new Order
                 {
-                    OrderNumber        = "0007",
                     DealerID           = dealers[1].DealerID,
                     DealerCompanyName  = dealers[1].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 17, 10, 0, 0, DateTimeKind.Utc),
@@ -1102,7 +1119,6 @@ namespace PontelloImport.Data
 
                 var order0008 = new Order
                 {
-                    OrderNumber        = "0008",
                     DealerID           = dealers[5].DealerID,
                     DealerCompanyName  = dealers[5].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 19, 9, 0, 0, DateTimeKind.Utc),
@@ -1119,7 +1135,6 @@ namespace PontelloImport.Data
 
                 var order0009 = new Order
                 {
-                    OrderNumber        = "0009",
                     DealerID           = dealers[2].DealerID,
                     DealerCompanyName  = dealers[2].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 20, 10, 0, 0, DateTimeKind.Utc),
@@ -1138,7 +1153,6 @@ namespace PontelloImport.Data
 
                 var order0010 = new Order
                 {
-                    OrderNumber        = "0010",
                     DealerID           = dealers[6].DealerID,
                     DealerCompanyName  = dealers[6].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 16, 11, 0, 0, DateTimeKind.Utc),
@@ -1154,7 +1168,6 @@ namespace PontelloImport.Data
 
                 var order0011 = new Order
                 {
-                    OrderNumber        = "0011",
                     DealerID           = dealers[3].DealerID,
                     DealerCompanyName  = dealers[3].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 17, 10, 0, 0, DateTimeKind.Utc),
@@ -1172,7 +1185,6 @@ namespace PontelloImport.Data
 
                 var order0012 = new Order
                 {
-                    OrderNumber        = "0012",
                     DealerID           = dealers[4].DealerID,
                     DealerCompanyName  = dealers[4].CompanyName,
                     OrderDate          = new DateTime(2026, 2, 26, 11, 0, 0, DateTimeKind.Utc),
@@ -1188,7 +1200,6 @@ namespace PontelloImport.Data
 
                 var order0013 = new Order
                 {
-                    OrderNumber        = "0013",
                     DealerID           = dealers[7].DealerID,
                     DealerCompanyName  = dealers[7].CompanyName,
                     OrderDate          = new DateTime(2026, 3, 1, 10, 0, 0, DateTimeKind.Utc),
@@ -1206,7 +1217,6 @@ namespace PontelloImport.Data
 
                 var order0014 = new Order
                 {
-                    OrderNumber        = "0014",
                     DealerID           = dealers[5].DealerID,
                     DealerCompanyName  = dealers[5].CompanyName,
                     OrderDate          = new DateTime(2026, 3, 1, 9, 0, 0, DateTimeKind.Utc),
@@ -1222,7 +1232,6 @@ namespace PontelloImport.Data
 
                 var order0015 = new Order
                 {
-                    OrderNumber        = "0015",
                     DealerID           = dealers[6].DealerID,
                     DealerCompanyName  = dealers[6].CompanyName,
                     OrderDate          = new DateTime(2026, 3, 3, 10, 0, 0, DateTimeKind.Utc),
@@ -1235,6 +1244,23 @@ namespace PontelloImport.Data
                     IsCurrentVersion   = true,
                     VersionNumber      = 0
                 };
+
+                // Assign real sequential order numbers from the sequence
+                order0001.OrderNumber = await NextOrderNumber();
+                order0002.OrderNumber = await NextOrderNumber();
+                order0003.OrderNumber = await NextOrderNumber();
+                order0004.OrderNumber = await NextOrderNumber();
+                order0005.OrderNumber = await NextOrderNumber();
+                order0006.OrderNumber = await NextOrderNumber();
+                order0007.OrderNumber = await NextOrderNumber();
+                order0008.OrderNumber = await NextOrderNumber();
+                order0009.OrderNumber = await NextOrderNumber();
+                order0010.OrderNumber = await NextOrderNumber();
+                order0011.OrderNumber = await NextOrderNumber();
+                order0012.OrderNumber = await NextOrderNumber();
+                order0013.OrderNumber = await NextOrderNumber();
+                order0014.OrderNumber = await NextOrderNumber();
+                order0015.OrderNumber = await NextOrderNumber();
 
                 context.Orders.AddRange(
                     order0001, order0002, order0003,
@@ -1402,7 +1428,54 @@ namespace PontelloImport.Data
 
                 context.OrderHistories.AddRange(history);
                 context.SaveChanges();
+
+                // Final sync: ensure OrderSequence matches the highest order inserted
+                await SyncOrderSequence(context);
             }
+        }
+
+        static async Task RepairDuplicateOrderNumbers(PontelloDbContext context)
+        {
+            var orders = await context.Orders.OrderBy(o => o.OrderID).ToListAsync();
+            if (!orders.Any()) return;
+
+            int counter = 1;
+            foreach (var order in orders)
+            {
+                order.OrderNumber = counter.ToString("D4");
+                counter++;
+            }
+
+            var seq = await context.OrderSequence.FirstOrDefaultAsync(s => s.Id == 1);
+            if (seq != null)
+                seq.LastUsedNumber = counter - 1;
+            else
+                context.OrderSequence.Add(new OrderSequence { Id = 1, LastUsedNumber = counter - 1 });
+
+            await context.SaveChangesAsync();
+        }
+
+        static async Task SyncOrderSequence(PontelloDbContext context)
+        {
+            var maxOrder = await context.Orders
+                .OrderByDescending(o => o.OrderID)
+                .FirstOrDefaultAsync();
+
+            if (maxOrder == null) return;
+
+            if (!int.TryParse(maxOrder.OrderNumber, out int maxNum)) return;
+
+            var seq = await context.OrderSequence.FirstOrDefaultAsync(s => s.Id == 1);
+            if (seq == null)
+            {
+                context.OrderSequence.Add(new OrderSequence { Id = 1, LastUsedNumber = maxNum });
+            }
+            else if (seq.LastUsedNumber < maxNum)
+            {
+                seq.LastUsedNumber = maxNum;
+            }
+
+            await context.SaveChangesAsync();
         }
     }
 }

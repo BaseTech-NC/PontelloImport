@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -6,13 +7,16 @@ using PontelloImport.Models;
 
 namespace PontelloImport.Controllers
 {
-    public class ProductVariantsController : Controller
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public class ProductVariantsController : AdminBaseController
     {
-        private readonly PontelloDbContext _context;
+        private readonly ILogger<ProductVariantsController> _logger;
 
-        public ProductVariantsController(PontelloDbContext context)
+        public ProductVariantsController(PontelloDbContext context,
+            ILogger<ProductVariantsController> logger)
+            : base(context)
         {
-            _context = context;
+            _logger = logger;
         }
 
         // GET: ProductVariants
@@ -498,6 +502,16 @@ namespace PontelloImport.Controllers
                 }
             }
 
+            // For draft saves, only ProductTitle is required — clear all other errors
+            if (saveAction == "draft")
+            {
+                var keysToRemove = ModelState.Keys
+                    .Where(k => k != "ProductTitle")
+                    .ToList();
+                foreach (var key in keysToRemove)
+                    ModelState.Remove(key);
+            }
+
             if (!ModelState.IsValid)
             {
                 await PopulateEditDropdowns(model.VendorID, model.ProductCategoryID, model.ProductTypeID);
@@ -537,6 +551,7 @@ namespace PontelloImport.Controllers
                         CostPrice         = row.CostPrice,
                         InventoryQuantity = row.Qty,
                         InventoryPolicy   = "deny",
+                        StockPolicy       = row.StockPolicy ?? "deny",
                         RequiresShipping  = true,
                         IsTaxable         = true,
                         Status            = productStatus,
@@ -568,6 +583,7 @@ namespace PontelloImport.Controllers
                     CostPrice         = model.CostPrice,
                     InventoryQuantity = model.InventoryQuantity,
                     InventoryPolicy   = "deny",
+                    StockPolicy       = model.StockPolicy ?? "deny",
                     RequiresShipping  = true,
                     IsTaxable         = true,
                     Status            = productStatus,
@@ -631,8 +647,8 @@ namespace PontelloImport.Controllers
                 ProductID         = product.ProductID,
                 Title             = product.Title,
                 Description       = product.Description,
-                VendorID          = product.VendorID,
-                ProductCategoryID = product.ProductCategoryID,
+                VendorID          = product.VendorID ?? 0,
+                ProductCategoryID = product.ProductCategoryID ?? 0,
                 ProductTypeID     = product.ProductTypeID,
                 Status            = product.Status,
                 IsSimpleProduct   = isSimple,
@@ -656,6 +672,7 @@ namespace PontelloImport.Controllers
                 vm.CostPrice         = v.CostPrice;
                 vm.CompareAtPrice    = v.CompareAtPrice;
                 vm.InventoryQuantity = v.InventoryQuantity;
+                vm.StockPolicy       = v.StockPolicy;
                 vm.Weight            = v.Weight;
                 vm.Barcode           = v.Barcode;
                 // Expose as simple option only when name is not the "Title" sentinel
@@ -677,6 +694,7 @@ namespace PontelloImport.Controllers
                     Price             = v.Price,
                     CostPrice         = v.CostPrice,
                     InventoryQuantity = v.InventoryQuantity,
+                    StockPolicy       = v.StockPolicy,
                     Barcode           = v.Barcode,
                     Option1Value      = v.Option1Value,
                     Option2Value      = v.Option2Value,
@@ -916,6 +934,7 @@ namespace PontelloImport.Controllers
                     variant.CostPrice         = viewModel.CostPrice;
                     variant.CompareAtPrice    = viewModel.CompareAtPrice;
                     variant.InventoryQuantity = viewModel.InventoryQuantity;
+                    variant.StockPolicy       = viewModel.StockPolicy ?? "deny";
                     variant.Weight            = viewModel.Weight;
                     variant.Barcode           = viewModel.Barcode;
                     variant.Status            = viewModel.Status;
@@ -949,6 +968,7 @@ namespace PontelloImport.Controllers
                         variant.Price             = row.Price;
                         variant.CostPrice         = row.CostPrice;
                         variant.InventoryQuantity = row.InventoryQuantity;
+                        variant.StockPolicy       = row.StockPolicy ?? "deny";
                         variant.Barcode           = row.Barcode;
                         variant.Option1Name       = viewModel.Option1Name;
                         variant.Option2Name       = viewModel.Option2Name;
@@ -980,6 +1000,7 @@ namespace PontelloImport.Controllers
                         IsDefault         = false,
                         Status            = viewModel.Status,
                         InventoryPolicy   = "deny",
+                        StockPolicy       = row.StockPolicy ?? "deny",
                         RequiresShipping  = true,
                         IsTaxable         = true,
                         CreatedDate       = DateTime.UtcNow,
@@ -1076,7 +1097,7 @@ namespace PontelloImport.Controllers
         // PRIVATE HELPERS
         // ===================================================================
 
-        private async Task PopulateEditDropdowns(int vendorId, int categoryId, int? productTypeId)
+        private async Task PopulateEditDropdowns(int? vendorId, int? categoryId, int? productTypeId)
         {
             ViewBag.VendorID = new SelectList(
                 await _context.Vendors.Where(v => v.IsActive).OrderBy(v => v.VendorName).ToListAsync(),
@@ -1212,22 +1233,23 @@ namespace PontelloImport.Controllers
                 return View();
             }
 
-            var lines = new List<string>();
-            using (var reader = new System.IO.StreamReader(csvFile.OpenReadStream()))
-                while (!reader.EndOfStream)
-                {
-                    var line = await reader.ReadLineAsync();
-                    if (line != null) lines.Add(line);
-                }
+            // Read entire file at once — ParseCsvContent handles newlines inside quoted fields
+            string csvContent;
+            using (var reader = new StreamReader(csvFile.OpenReadStream()))
+                csvContent = await reader.ReadToEndAsync();
 
-            if (lines.Count < 2)
+            var allRows = ParseCsvContent(csvContent);
+
+            if (allRows.Count < 2)
             {
                 ModelState.AddModelError("", "File appears to be empty or has no data rows.");
                 return View();
             }
 
+            var headers  = allRows[0];
+            var dataRows = allRows.Skip(1).ToList();
+
             // Parse header to get column indices by name
-            var headers = ParseCsvLine(lines[0]);
             int Col(string name) => Array.FindIndex(headers,
                 h => h.Trim().Equals(name, StringComparison.OrdinalIgnoreCase));
 
@@ -1250,14 +1272,15 @@ namespace PontelloImport.Controllers
 
             string Get(string[] f, int i) => i >= 0 && i < f.Length ? f[i].Trim() : "";
 
-            // Group rows by Handle
+            // Group rows by Handle — skip rows with too few columns (orphaned mid-field newlines)
             var groups = new List<(string handle, List<string[]> rows)>();
             var groupIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            int minColumns = headers.Length / 2;
 
-            for (int i = 1; i < lines.Count; i++)
+            foreach (var fields in dataRows)
             {
-                if (string.IsNullOrWhiteSpace(lines[i])) continue;
-                var fields = ParseCsvLine(lines[i]);
+                if (fields.Length < minColumns) continue;
+
                 var handle = Get(fields, iHandle);
                 if (string.IsNullOrEmpty(handle)) continue;
 
@@ -1270,122 +1293,210 @@ namespace PontelloImport.Controllers
                 groups[gi].rows.Add(fields);
             }
 
+            _logger.LogInformation(
+                "CSV import started. File: {Name}, Size: {Size}",
+                csvFile.FileName, csvFile.Length);
+
             // Load existing data for duplicate checks
-            var existingTitles = await _context.Products
-                .Select(p => p.Title.ToLower()).ToHashSetAsync();
+            // KEY: check Handle (has UNIQUE index), not Title
+            var existingHandles = await _context.Products
+                .ToDictionaryAsync(p => p.Handle.ToLower(), p => p.ProductID);
             var existingSkus = await _context.ProductVariants
                 .Select(v => v.SKU.ToLower()).ToHashSetAsync();
             var vendorMap = await _context.Vendors
                 .ToDictionaryAsync(v => v.VendorName.ToLower(), v => v.VendorID);
-            // Use first available category as FK fallback (category not in Shopify CSV)
-            var defaultCategoryId = await _context.ProductCategories
-                .OrderBy(c => c.CategoryID).Select(c => c.CategoryID).FirstOrDefaultAsync();
 
             int productsCreated = 0, variantsCreated = 0, skippedProducts = 0, skippedVariants = 0;
             var newSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string currentHandle = "", currentSku = "";
 
-            foreach (var (_, rows) in groups)
+            try
             {
-                if (rows.Count == 0) continue;
-                var first = rows[0];
-                var title = Get(first, iTitle);
-                if (string.IsNullOrEmpty(title)) continue;
-
-                // Skip already-existing products
-                if (existingTitles.Contains(title.ToLower()))
+                foreach (var (_, rows) in groups)
                 {
-                    skippedProducts++;
-                    skippedVariants += rows.Count;
-                    continue;
-                }
+                    if (rows.Count == 0) continue;
+                    var first = rows[0];
+                    var title = Get(first, iTitle);
 
-                var vendorName = Get(first, iVendor);
-                vendorMap.TryGetValue(vendorName.ToLower(), out int vendorId);
-                var published = Get(first, iPublished).Equals("true", StringComparison.OrdinalIgnoreCase);
-                var handle = Get(first, iHandle);
-                var tags = Get(first, iTags);
+                    var vendorName  = Get(first, iVendor);
+                    var published   = Get(first, iPublished).Equals("true", StringComparison.OrdinalIgnoreCase);
+                    var handle      = Get(first, iHandle);
+                    if (string.IsNullOrEmpty(handle)) handle = GenerateHandle(title);
+                    if (string.IsNullOrEmpty(handle)) continue; // no handle and no title — skip
+                    var tags = Get(first, iTags);
+                    currentHandle = handle;
 
-                var product = new Product
-                {
-                    Title           = title,
-                    Handle          = string.IsNullOrEmpty(handle) ? GenerateHandle(title) : handle,
-                    VendorID        = vendorId,
-                    ProductCategoryID = defaultCategoryId,
-                    Description     = "",
-                    Tags            = string.IsNullOrEmpty(tags) ? null : tags,
-                    Status          = published ? ProductStatus.Published : ProductStatus.Draft,
-                    CreatedDate     = DateTime.UtcNow,
-                    CreatedBy       = CurrentUser
-                };
-
-                bool isFirst = true;
-                var variantsToAdd = new List<ProductVariant>();
-
-                foreach (var row in rows)
-                {
-                    var sku = Get(row, iSku);
-                    if (string.IsNullOrEmpty(sku)) { skippedVariants++; continue; }
-                    if (existingSkus.Contains(sku.ToLower()) || newSkus.Contains(sku))
+                    // Resolve vendor ID — null if vendor name empty or not found
+                    int? resolvedVendorId = null;
+                    if (!string.IsNullOrWhiteSpace(vendorName))
                     {
-                        skippedVariants++;
-                        continue;
+                        if (vendorMap.TryGetValue(vendorName.ToLower(), out int foundVendorId))
+                        {
+                            resolvedVendorId = foundVendorId;
+                        }
+                        else
+                        {
+                            // Auto-create vendor from CSV so FK is valid
+                            var slug = GenerateHandle(vendorName);
+                            var newVendor = new Vendor
+                            {
+                                VendorName  = vendorName,
+                                VendorSlug  = slug,
+                                IsActive    = true,
+                                CreatedBy   = CurrentUser,
+                                CreatedDate = DateTime.UtcNow
+                            };
+                            _context.Vendors.Add(newVendor);
+                            await _context.SaveChangesAsync();
+                            resolvedVendorId = newVendor.VendorID;
+                            vendorMap[vendorName.ToLower()] = newVendor.VendorID;
+                            _logger.LogInformation(
+                                "Auto-created vendor {Name} (ID {Id})", vendorName, newVendor.VendorID);
+                        }
                     }
 
-                    decimal.TryParse(Get(row, iPrice),   System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out decimal price);
-                    decimal.TryParse(Get(row, iCompare), System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out decimal compareAt);
-                    decimal.TryParse(Get(row, iCost),    System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out decimal cost);
-                    int.TryParse(Get(row, iQty), out int qty);
-                    decimal.TryParse(Get(row, iWeight),  System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out decimal weight);
+                    // Check Handle uniqueness (UNIQUE index)
+                    bool handleExists = existingHandles.TryGetValue(handle.ToLower(), out int resolvedProductId);
 
-                    var o1n = Get(row, iO1N); var o2n = Get(row, iO2N); var o3n = Get(row, iO3N);
-                    var bc  = Get(row, iBarcode);
-
-                    variantsToAdd.Add(new ProductVariant
+                    if (!handleExists)
                     {
-                        SKU              = sku,
-                        Price            = price,
-                        CompareAtPrice   = compareAt > 0 ? compareAt : null,
-                        CostPrice        = cost > 0 ? cost : null,
-                        InventoryQuantity = qty,
-                        Weight           = weight > 0 ? weight : null,
-                        Barcode          = string.IsNullOrEmpty(bc) ? null : bc,
-                        Option1Name      = string.IsNullOrEmpty(o1n) ? null : o1n,
-                        Option1Value     = string.IsNullOrEmpty(o1n) ? null : Get(row, iO1V),
-                        Option2Name      = string.IsNullOrEmpty(o2n) ? null : o2n,
-                        Option2Value     = string.IsNullOrEmpty(o2n) ? null : Get(row, iO2V),
-                        Option3Name      = string.IsNullOrEmpty(o3n) ? null : o3n,
-                        Option3Value     = string.IsNullOrEmpty(o3n) ? null : Get(row, iO3V),
-                        IsDefault        = isFirst,
-                        Status           = published ? ProductStatus.Published : ProductStatus.Draft,
-                        CreatedDate      = DateTime.UtcNow,
-                        CreatedBy        = CurrentUser
-                    });
+                        // TASK 1 FIX: save the product FIRST to get a real ProductID before
+                        // creating any ProductVariant that references it via FK.
+                        var newProduct = new Product
+                        {
+                            Title             = !string.IsNullOrWhiteSpace(title) ? title : handle,
+                            Handle            = handle,
+                            VendorID          = resolvedVendorId,   // null if no vendor — no FK violation
+                            ProductCategoryID = null,               // not assigned during import
+                            Description       = "",
+                            Tags              = string.IsNullOrEmpty(tags) ? null : tags,
+                            Status            = published ? ProductStatus.Published : ProductStatus.Draft,
+                            CreatedDate       = DateTime.UtcNow,
+                            CreatedBy         = CurrentUser
+                        };
+                        _context.Products.Add(newProduct);
 
-                    newSkus.Add(sku);
-                    isFirst = false;
-                    variantsCreated++;
+                        _logger.LogInformation(
+                            "Saving product Handle: {Handle}, Title: {Title}",
+                            handle, newProduct.Title);
+
+                        await _context.SaveChangesAsync(); // product saved — ProductID is now a real DB value
+
+                        resolvedProductId = newProduct.ProductID;
+                        existingHandles[handle.ToLower()] = resolvedProductId;
+                        productsCreated++;
+
+                        _logger.LogInformation(
+                            "Saved successfully. Count so far: {Count}", productsCreated);
+                    }
+                    else
+                    {
+                        skippedProducts++;
+                        _logger.LogInformation(
+                            "Handle {Handle} already exists (ProductID {Id}), adding new variants only",
+                            handle, resolvedProductId);
+                    }
+
+                    // Add variants — resolvedProductId is always a real DB ID here
+                    bool isFirst = !handleExists;
+                    int variantsAddedThisProduct = 0;
+
+                    foreach (var row in rows)
+                    {
+                        var sku = Get(row, iSku);
+                        if (string.IsNullOrWhiteSpace(sku)) { skippedVariants++; continue; }
+
+                        // Sanity-check: a valid SKU is short and has no embedded newlines or commas.
+                        // If it has them the row was split incorrectly by the old parser — skip it.
+                        if (sku.Length > 50 || sku.Contains('\n') || sku.Contains(','))
+                        {
+                            _logger.LogWarning(
+                                "Skipping malformed row — SKU appears to contain CSV data: {SKU}",
+                                sku.Substring(0, Math.Min(30, sku.Length)));
+                            skippedVariants++;
+                            continue;
+                        }
+
+                        currentSku = sku;
+
+                        // Check SKU uniqueness
+                        if (existingSkus.Contains(sku.ToLower()) || newSkus.Contains(sku))
+                        {
+                            skippedVariants++;
+                            _logger.LogInformation("Skipped duplicate SKU: {SKU}", sku);
+                            continue;
+                        }
+
+                        decimal.TryParse(Get(row, iPrice),   System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out decimal price);
+                        decimal.TryParse(Get(row, iCompare), System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out decimal compareAt);
+                        decimal.TryParse(Get(row, iCost),    System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out decimal cost);
+                        int.TryParse(Get(row, iQty), out int qty);
+                        decimal.TryParse(Get(row, iWeight),  System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out decimal weight);
+
+                        var o1n = Get(row, iO1N); var o2n = Get(row, iO2N); var o3n = Get(row, iO3N);
+                        var bc  = Get(row, iBarcode);
+
+                        _logger.LogInformation(
+                            "Saving product Handle: {Handle}, SKU: {SKU}", handle, sku);
+
+                        _context.ProductVariants.Add(new ProductVariant
+                        {
+                            ProductID         = resolvedProductId, // guaranteed real DB ID
+                            SKU               = sku,
+                            Price             = price,
+                            CompareAtPrice    = compareAt > 0 ? compareAt : null,
+                            CostPrice         = cost > 0 ? cost : null,
+                            InventoryQuantity = qty,
+                            Weight            = weight > 0 ? weight : null,
+                            Barcode           = string.IsNullOrEmpty(bc) ? null : bc,
+                            Option1Name       = string.IsNullOrEmpty(o1n) ? null : o1n,
+                            Option1Value      = string.IsNullOrEmpty(o1n) ? null : Get(row, iO1V),
+                            Option2Name       = string.IsNullOrEmpty(o2n) ? null : o2n,
+                            Option2Value      = string.IsNullOrEmpty(o2n) ? null : Get(row, iO2V),
+                            Option3Name       = string.IsNullOrEmpty(o3n) ? null : o3n,
+                            Option3Value      = string.IsNullOrEmpty(o3n) ? null : Get(row, iO3V),
+                            IsDefault         = isFirst,
+                            Status            = published ? ProductStatus.Published : ProductStatus.Draft,
+                            CreatedDate       = DateTime.UtcNow,
+                            CreatedBy         = CurrentUser
+                        });
+
+                        newSkus.Add(sku);
+                        isFirst = false;
+                        variantsCreated++;
+                        variantsAddedThisProduct++;
+                    }
+
+                    if (variantsAddedThisProduct > 0)
+                    {
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation(
+                            "Saved successfully. Count so far: {Count}",
+                            productsCreated + variantsCreated);
+                    }
                 }
 
-                if (variantsToAdd.Count > 0)
-                {
-                    product.ProductVariants = variantsToAdd;
-                    _context.Products.Add(product);
-                    existingTitles.Add(title.ToLower());
-                    productsCreated++;
-                }
+                TempData["Success"] =
+                    $"Import complete. {productsCreated} product{(productsCreated == 1 ? "" : "s")} created, " +
+                    $"{variantsCreated} variant{(variantsCreated == 1 ? "" : "s")} created. " +
+                    $"{skippedProducts} product{(skippedProducts == 1 ? "" : "s")} skipped (handle already exists). " +
+                    $"{skippedVariants} variant{(skippedVariants == 1 ? "" : "s")} skipped (duplicate SKU).";
+                return RedirectToAction(nameof(Index));
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Import failed at Handle: {Handle}, SKU: {SKU}",
+                    currentHandle, currentSku);
 
-            await _context.SaveChangesAsync();
-            TempData["Success"] =
-                $"Import complete. {productsCreated} product{(productsCreated == 1 ? "" : "s")} created, " +
-                $"{variantsCreated} variant{(variantsCreated == 1 ? "" : "s")} created. " +
-                $"{skippedProducts} product{(skippedProducts == 1 ? "" : "s")} skipped (already exist). " +
-                $"{skippedVariants} variant{(skippedVariants == 1 ? "" : "s")} skipped (duplicate SKU).";
-            return RedirectToAction(nameof(Index));
+                TempData["Error"] =
+                    $"Import failed: {ex.Message} — Check logs for details.";
+                return RedirectToAction("Index");
+            }
         }
 
         // POST: ProductVariants/QuickAddCategory
@@ -1449,6 +1560,69 @@ namespace PontelloImport.Controllers
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, id = vendor.VendorID, name = vendor.VendorName });
+        }
+
+        // Parses an entire CSV file, correctly handling newlines inside quoted fields.
+        private static List<string[]> ParseCsvContent(string content)
+        {
+            var rows   = new List<string[]>();
+            var fields = new List<string>();
+            var sb     = new System.Text.StringBuilder();
+            bool inQuotes = false;
+            int i = 0;
+
+            while (i < content.Length)
+            {
+                char c = content[i];
+
+                if (c == '"')
+                {
+                    if (inQuotes && i + 1 < content.Length && content[i + 1] == '"')
+                    {
+                        // Escaped quote ("") inside a quoted field
+                        sb.Append('"');
+                        i += 2;
+                        continue;
+                    }
+                    inQuotes = !inQuotes;
+                    i++;
+                    continue;
+                }
+
+                if (c == ',' && !inQuotes)
+                {
+                    fields.Add(sb.ToString());
+                    sb.Clear();
+                    i++;
+                    continue;
+                }
+
+                if ((c == '\n' || c == '\r') && !inQuotes)
+                {
+                    // End of logical row
+                    fields.Add(sb.ToString());
+                    sb.Clear();
+
+                    if (c == '\r' && i + 1 < content.Length && content[i + 1] == '\n')
+                        i++; // consume \r\n as a single line ending
+
+                    if (fields.Any(f => !string.IsNullOrEmpty(f)))
+                        rows.Add(fields.ToArray());
+                    fields.Clear();
+                    i++;
+                    continue;
+                }
+
+                sb.Append(c);
+                i++;
+            }
+
+            // Last row without trailing newline
+            fields.Add(sb.ToString());
+            if (fields.Any(f => !string.IsNullOrEmpty(f)))
+                rows.Add(fields.ToArray());
+
+            return rows;
         }
 
         private static string[] ParseCsvLine(string line)

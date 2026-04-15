@@ -1,6 +1,3 @@
-@{
-    var demoRole = Context.Session.GetString("DemoRole");
-}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,65 +6,26 @@
     <title>@ViewData["Title"] - Pontello Imports</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/PontelloImport.styles.css" asp-append-version="true" />
     <style>
         *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
-
-        body {
-            background-color: #F8FAFC;
-            color: #111827;
-        }
-
-        /* Navbar */
-        .navbar {
-            background-color: #ffffff !important;
-            border-bottom: 1px solid #E5E7EB !important;
-            box-shadow: none !important;
-            padding-top: 0.6rem;
-            padding-bottom: 0.6rem;
-        }
-
-        .navbar .nav-link {
-            color: #4B5563 !important;
-            font-size: 0.9rem;
-            font-weight: 500;
-            padding: 0.35rem 0.75rem;
-            border-radius: 6px;
-            transition: color 150ms, background 150ms;
-        }
-
-        .navbar .nav-link:hover {
-            color: #111827 !important;
-            background-color: #F3F4F6;
-        }
-
-        /* Exit portal button */
-        .btn-exit {
-            color: #2563EB;
-            border: 1px solid #2563EB;
-            background: transparent;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            padding: 0.3rem 0.85rem;
-            transition: background 150ms, color 150ms;
-            text-decoration: none;
-        }
-
-        .btn-exit:hover {
-            background: #2563EB;
-            color: #ffffff;
-        }
+        body { background-color: #F8FAFC; color: #111827; }
+        .navbar-site { background-color: var(--pi-nav-bg) !important; }
     </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm" aria-label="Main navigation">
+        @{
+            bool isLanding = (bool?)ViewData["LandingPage"] == true;
+        }
+        <nav class="navbar navbar-expand-sm @(isLanding ? "navbar-landing" : "navbar-site")" aria-label="Main navigation">
             <div class="container-fluid px-4">
 
                 <a class="navbar-brand p-0 me-4" asp-controller="Home" asp-action="Index">
-                    <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" style="height: 36px;" />
+                    <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports"
+                         style="height:38px; width:auto;" />
                 </a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -77,81 +35,307 @@
                 </button>
 
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between align-items-center">
-
-                    @if (demoRole == "Admin")
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                     {
                         <ul class="navbar-nav flex-grow-1">
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="ProductVariants" asp-action="Index">Products</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="AdminOrders" asp-action="Index">Orders</a>
-                            </li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="ProductVariants" asp-action="Index">Products</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="AdminOrders" asp-action="Index">Orders</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="AdminDealers" asp-action="Index">Dealers</a></li>
                         </ul>
-                        <a href="/Home/ExitPortal" class="btn-exit">Exit Admin</a>
+                        <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Sign Out</button>
+                        </form>
                     }
-                    else if (demoRole == "Dealer")
+                    else if (User.IsInRole("Dealer"))
                     {
+                        var unviewedCount    = (int)(ViewData["UnviewedOrderCount"] ?? 0);
+                        var dealerFirstName  = ViewData["DealerFirstName"] as string ?? User.Identity?.Name?.Split('@')[0] ?? "Dealer";
+                        var dealerCompany    = ViewData["DealerCompanyName"] as string;
+                        var dealerNotifs     = ViewData["DealerNotifications"] as List<PontelloImport.Models.Notification>
+                                              ?? new List<PontelloImport.Models.Notification>();
+                        var dealerUnread     = (int)(ViewData["DealerUnreadCount"] ?? 0);
                         <ul class="navbar-nav flex-grow-1">
+                            <li class="nav-item"><a class="nav-link" asp-controller="Shop" asp-action="Index">Shop</a></li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Shop" asp-action="Index">Shop</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Shop" asp-action="OrderHistory">Order History</a>
+                                <a class="nav-link d-flex align-items-center gap-2"
+                                   asp-controller="Shop" asp-action="OrderHistory">
+                                    Order History
+                                    @if (unviewedCount > 0)
+                                    {
+                                        <span class="badge rounded-pill bg-success">@unviewedCount</span>
+                                    }
+                                </a>
                             </li>
                         </ul>
-                        <a href="/Home/ExitPortal" class="btn-exit">Exit Dealer Portal</a>
+
+                        @* Dealer notification bell *@
+                        <div class="dropdown me-2" id="notifDropdown">
+                            <button class="nav-icon-btn position-relative"
+                                    type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                    aria-label="Notifications">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2z"/>
+                                    <path d="M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/>
+                                </svg>
+                                <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                                      style="background:#028090; font-size:0.6rem; min-width:16px; padding:2px 4px;
+                                             transform: translate(-70%, 0%) !important;
+                                             @(dealerUnread == 0 ? "display:none;" : "")">
+                                    @(dealerUnread > 9 ? "9+" : dealerUnread.ToString())
+                                </span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end shadow p-0"
+                                 style="min-width:310px; font-size:0.875rem; max-height:420px; overflow-y:auto;">
+                                <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between"
+                                     style="position:sticky;top:0;background:#fff;z-index:1;">
+                                    <span class="fw-semibold text-dark">Notifications</span>
+                                    <button type="button" id="markAllReadBtn"
+                                            class="btn btn-link p-0"
+                                            style="font-size:0.75rem; color:#028090; text-decoration:none;
+                                                   @(dealerUnread == 0 ? "display:none;" : "")"
+                                            onclick="dealerMarkAllRead()">
+                                        Mark all read
+                                    </button>
+                                </div>
+                                <div id="notifList">
+                                    @if (!dealerNotifs.Any())
+                                    {
+                                        <div class="px-3 py-4 text-center text-muted" id="notifEmpty">
+                                            <small>No notifications</small>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        foreach (var dn in dealerNotifs)
+                                        {
+                                            var dnDiff = DateTime.UtcNow - dn.CreatedDate;
+                                            string dnRel;
+                                            if (dnDiff.TotalMinutes < 2)      dnRel = "just now";
+                                            else if (dnDiff.TotalHours < 1)   dnRel = $"{(int)dnDiff.TotalMinutes}m ago";
+                                            else if (dnDiff.TotalDays < 1)    dnRel = $"{(int)dnDiff.TotalHours}h ago";
+                                            else if (dnDiff.TotalDays < 7)    dnRel = $"{(int)dnDiff.TotalDays}d ago";
+                                            else                              dnRel = dn.CreatedDate.ToLocalTime().ToString("MMM d");
+
+                                            <div class="pi-notif @(dn.IsRead ? "" : "unread")"
+                                                 id="notif-@dn.NotificationID"
+                                                 data-id="@dn.NotificationID">
+                                                <div class="pi-notif-msg">
+                                                    @if (!string.IsNullOrEmpty(dn.ActionUrl))
+                                                    {
+                                                        <a href="@dn.ActionUrl" class="pi-notif-link">@dn.Message</a>
+                                                    }
+                                                    else
+                                                    {
+                                                        @dn.Message
+                                                    }
+                                                </div>
+                                                <div class="pi-notif-time">@dnRel</div>
+                                                <div class="pi-notif-actions">
+                                                    @if (!dn.IsRead)
+                                                    {
+                                                        <button type="button" class="pi-notif-btn pi-notif-read"
+                                                                title="Mark as read"
+                                                                onclick="dealerMarkRead(@dn.NotificationID, this)">✓</button>
+                                                    }
+                                                    <button type="button" class="pi-notif-btn pi-notif-dismiss"
+                                                            title="Dismiss"
+                                                            onclick="dealerDismiss(@dn.NotificationID, this)">✕</button>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        @* Hidden CSRF input for AJAX *@
+                        <input type="hidden" id="piCsrfToken" name="__RequestVerificationToken"
+                               value="@(ViewContext.HttpContext.RequestServices
+                                   .GetService(typeof(Microsoft.AspNetCore.Antiforgery.IAntiforgery)) is
+                                   Microsoft.AspNetCore.Antiforgery.IAntiforgery af
+                                   ? af.GetAndStoreTokens(ViewContext.HttpContext).RequestToken
+                                   : "")" />
+
+                        <div class="dropdown me-2">
+                            <button class="btn btn-link dropdown-toggle p-0"
+                                    type="button" data-bs-toggle="dropdown"
+                                    style="color:var(--pi-nav-text);font-size:0.875rem;font-weight:500;text-decoration:none;">
+                                @dealerFirstName
+                                @if (!string.IsNullOrWhiteSpace(dealerCompany))
+                                {
+                                    <span class="fw-normal" style="color:var(--pi-text-3);"> — @dealerCompany</span>
+                                }
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow" style="font-size:0.875rem;">
+                                <li>
+                                    <a asp-controller="DealerAccount" asp-action="ManageAccount"
+                                       class="dropdown-item">
+                                        Manage Account
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item text-danger">Sign Out</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     }
                     else
                     {
                         <ul class="navbar-nav flex-grow-1"></ul>
+                        <div class="d-flex gap-2">
+                            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-sm btn-outline-secondary">Sign In</a>
+                            <a asp-controller="Home" asp-action="Apply"
+                               class="btn btn-sm fw-semibold" style="background:#02C39A; color:#111827; border:none;">
+                                Become a Dealer
+                            </a>
+                        </div>
                     }
-
                 </div>
             </div>
         </nav>
     </header>
 
-    <div class="container">
-        <main role="main" class="pb-3">
-
-            @if (TempData["Success"] != null)
-            {
-                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-                    @TempData["Success"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-
-            @if (TempData["Warning"] != null)
-            {
-                <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
-                    @TempData["Warning"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-
-            @if (TempData["Error"] != null)
-            {
-                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
-                    @TempData["Error"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top text-muted mt-5">
-        <div class="container py-3" style="font-size: 0.8rem; color: #4B5563;">
-            &copy; 2025–2026 Pontello Imports — <a asp-controller="Home" asp-action="Privacy" style="color: #4B5563;">Privacy</a>
+    @if ((bool?)ViewData["FullWidth"] == true)
+    {
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show mx-4 mt-3" role="alert">
+                @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show mx-4 mt-3" role="alert">
+                @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @RenderBody()
+    }
+    else
+    {
+        <div class="container">
+            <main role="main" class="pb-3">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                        @TempData["Success"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["Warning"] != null)
+                {
+                    <div class="alert alert-dismissible fade show mt-3" role="alert"
+                         style="background:#F0F9FF;border-left:3px solid #0284C7;color:#0C4A6E;border-radius:6px;">
+                        @TempData["Warning"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                        @TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @RenderBody()
+            </main>
         </div>
-    </footer>
+
+        @if ((bool?)ViewData["HideFooter"] != true)
+        {
+            <footer class="border-top text-muted mt-5">
+                <div class="container py-3" style="font-size:0.8rem; color:#4B5563;">
+                    &copy; 2025–2026 Pontello Imports &mdash;
+                    <a asp-controller="Home" asp-action="Privacy" style="color:#4B5563;">Privacy</a>
+                </div>
+            </footer>
+        }
+    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+    function togglePwd(fieldId, btn) {
+        var f = document.getElementById(fieldId);
+        var isHidden = f.type === 'password';
+        f.type = isHidden ? 'text' : 'password';
+        var svg = btn.querySelector('svg');
+        if (isHidden) {
+            svg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+        } else {
+            svg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        }
+    }
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipEls.forEach(function (el) {
+            new bootstrap.Tooltip(el, {
+                trigger: 'hover',
+                placement: el.dataset.bsPlacement || 'top'
+            });
+        });
+    });
+    </script>
+    <script>
+    function piCsrf() {
+        var el = document.getElementById('piCsrfToken');
+        return el ? el.value : '';
+    }
+    function dealerUpdateBadge() {
+        var unread = document.querySelectorAll('#notifList .pi-notif.unread').length;
+        var badge = document.getElementById('notifBadge');
+        var markAllBtn = document.getElementById('markAllReadBtn');
+        if (badge) {
+            badge.textContent = unread > 9 ? '9+' : unread;
+            badge.style.display = unread === 0 ? 'none' : '';
+        }
+        if (markAllBtn) markAllBtn.style.display = unread === 0 ? 'none' : '';
+    }
+    function dealerMarkRead(id, btn) {
+        fetch('/Shop/DealerMarkNotificationReadJson/' + id, {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': piCsrf() }
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (!d.ok) return;
+            var item = document.getElementById('notif-' + id);
+            if (item) {
+                item.classList.remove('unread');
+                if (btn) btn.remove();
+            }
+            dealerUpdateBadge();
+        });
+    }
+    function dealerDismiss(id, btn) {
+        fetch('/Shop/DealerDismissNotificationJson/' + id, {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': piCsrf() }
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (!d.ok) return;
+            var item = document.getElementById('notif-' + id);
+            if (item) item.remove();
+            if (document.querySelectorAll('#notifList .pi-notif').length === 0) {
+                var list = document.getElementById('notifList');
+                if (list) list.innerHTML = '<div class="px-3 py-4 text-center text-muted"><small>No notifications</small></div>';
+            }
+            dealerUpdateBadge();
+        });
+    }
+    function dealerMarkAllRead() {
+        document.querySelectorAll('#notifList .pi-notif.unread').forEach(function(item) {
+            var id = item.dataset.id;
+            dealerMarkRead(id, item.querySelector('.pi-notif-read'));
+        });
+    }
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
