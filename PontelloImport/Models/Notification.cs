@@ -36,7 +36,6 @@ namespace PontelloImport.Models
 
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
-        // ── Navigation ───────────────────────────────────────────────────────
         [ForeignKey(nameof(DealerID))]
         public virtual Dealer? Dealer { get; set; }
     }

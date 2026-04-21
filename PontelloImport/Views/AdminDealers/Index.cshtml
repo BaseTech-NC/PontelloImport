@@ -65,17 +65,18 @@
                 return $"<li class='nav-item'><a class='nav-link {active}' href='?tab={t}&search={Uri.EscapeDataString(search)}&from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}'>{label}{badge}</a></li>";
             }
         }
-        @Html.Raw(TabLink("pending",  "Pending",  cntPending,  "bg-warning text-dark"))
-        @Html.Raw(TabLink("approved", "Approved", cntApproved, "bg-success"))
-        @Html.Raw(TabLink("rejected", "Rejected", cntRejected, "bg-danger"))
-        @Html.Raw(TabLink("all",      "All",      cntAll,      "bg-secondary"))
+        @Html.Raw(TabLink("pending",  "Pending",  cntPending,  "pi-badge pi-badge-pending"))
+        @Html.Raw(TabLink("approved", "Approved", cntApproved, "pi-badge pi-badge-confirmed"))
+        @Html.Raw(TabLink("rejected", "Rejected", cntRejected, "pi-badge pi-badge-cancelled"))
+        @Html.Raw(TabLink("all",      "All",      cntAll,      "pi-badge pi-badge-submitted"))
     </ul>
 
     @* ── Filters ─────────────────────────────────────────────────────────────── *@
     <form method="get" class="row g-2 mb-3">
         <input type="hidden" name="tab" value="@tab" />
         <div class="col-sm-5">
-            <input type="text" name="search" value="@search" class="form-control form-control-sm"
+            <label for="dealerSearch" class="visually-hidden">Search applications</label>
+            <input id="dealerSearch" type="text" name="search" value="@search" class="form-control form-control-sm"
                    placeholder="Search by name, company, city or province…" style="border-radius:8px;" />
         </div>
         <div class="col-sm-auto d-flex align-items-center gap-1">
@@ -89,8 +90,8 @@
                    style="border-radius:8px; max-width:150px;" />
         </div>
         <div class="col-sm-auto d-flex gap-2">
-            <button type="submit" class="btn btn-sm btn-primary" style="border-radius:8px;">Filter</button>
-            <a href="?tab=@tab" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;">Clear</a>
+            <button type="submit" class="pi-btn pi-btn-blue pi-btn-sm">Filter</button>
+            <a href="?tab=@tab" class="pi-btn pi-btn-ghost pi-btn-sm">Clear</a>
         </div>
     </form>
 
@@ -135,7 +136,7 @@
                             <th class="py-3 fw-semibold text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
                                 Status
                             </th>
-                            <th class="py-3"></th>
+                            <th class="py-3" aria-label="Actions"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -145,7 +146,7 @@
                                 <td class="px-3 py-3">
                                     <div class="fw-semibold text-dark">@DisplayContact(a)</div>
                                     <div class="text-muted small">
-                                        <a href="mailto:@DisplayEmail(a)" style="color:#028090;">@DisplayEmail(a)</a>
+                                        <a href="mailto:@DisplayEmail(a)" style="color:#1565C0;">@DisplayEmail(a)</a>
                                     </div>
                                     @if (!string.IsNullOrWhiteSpace(a.Phone ?? a.SubmittedContactPhone))
                                     {
@@ -178,21 +179,20 @@
                                 <td class="py-3">
                                     @if (a.Status == "Pending")
                                     {
-                                        <span class="badge rounded-pill" style="background:#DBEAFE; color:#1E40AF; font-size:0.72rem;">Pending</span>
+                                        <span class="pi-badge pi-badge-pending">Pending</span>
                                     }
                                     else if (a.Status == "Approved")
                                     {
-                                        <span class="badge rounded-pill" style="background:#D1FAE5; color:#065F46; font-size:0.72rem;">Approved</span>
+                                        <span class="pi-badge pi-badge-confirmed">Approved</span>
                                     }
                                     else
                                     {
-                                        <span class="badge rounded-pill" style="background:#FEE2E2; color:#991B1B; font-size:0.72rem;">Rejected</span>
+                                        <span class="pi-badge pi-badge-cancelled">Rejected</span>
                                     }
                                 </td>
                                 <td class="py-3 text-end pe-3">
                                     <a asp-action="ReviewApplication" asp-route-id="@a.ApplicationID"
-                                       class="btn btn-sm @(a.Status == "Pending" ? "btn-primary" : "btn-outline-secondary")"
-                                       style="border-radius:8px; font-size:0.8rem; padding:0.3rem 0.75rem;">
+                                       class="pi-btn pi-btn-blue pi-btn-sm">
                                         @(a.Status == "Pending" ? "Review" : "View")
                                     </a>
                                 </td>

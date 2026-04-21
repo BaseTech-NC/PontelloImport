@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontelloImport.Data;
 using PontelloImport.Models;
+using PontelloImport.Services;
 using PontelloImport.ViewModels;
 
 namespace PontelloImport.Controllers
@@ -11,11 +12,13 @@ namespace PontelloImport.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly PontelloDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public HomeController(ILogger<HomeController> logger, PontelloDbContext context)
+        public HomeController(ILogger<HomeController> logger, PontelloDbContext context, IEmailService emailService)
         {
             _logger = logger;
             _context = context;
+            _emailService = emailService;
         }
 
         public IActionResult Index()
@@ -90,6 +93,21 @@ namespace PontelloImport.Controllers
                 CreatedDate = DateTime.UtcNow
             });
             await _context.SaveChangesAsync();
+
+            try
+            {
+                await _emailService.SendNewApplicationNotificationAsync(
+                    $"{model.FirstName} {model.LastName}",
+                    model.Company ?? $"{model.FirstName} {model.LastName}",
+                    model.Email,
+                    model.Phone,
+                    model.City,
+                    model.ProvinceState);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send new application notification email");
+            }
 
             TempData["AppRefId"]    = $"APP-{application.ApplicationID:D5}";
             TempData["AppFirstName"] = model.FirstName;

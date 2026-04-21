@@ -3,24 +3,41 @@
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = $"Order {Model.PONumber}";
+
+    var isConfirmed = Model.Status == "Confirmed";
+    var isSubmitted = Model.Status == "Submitted";
+    var isAction    = Model.Status == "ActionRequired";
+    var isCancelled = Model.Status == "Cancelled";
+    var isShipped   = Model.FulfillmentStatus == "Shipped";
+    var isInvoiced  = Model.BillingStatus == "Invoiced";
+    bool outOfOrder = isInvoiced && !isShipped;
+
+    var orderBadgeClass = Model.Status switch {
+        "Submitted"      => "pi-badge-submitted",
+        "ActionRequired" => "pi-badge-action",
+        "Confirmed"      => "pi-badge-confirmed",
+        "Cancelled"      => "pi-badge-cancelled",
+        _ => "pi-badge-submitted"
+    };
+    var orderLabel = Model.Status == "ActionRequired" ? "Action Required" : Model.Status;
 }
 
 @functions {
-    string GetBadgeStyle(string type) => type switch
+    string GetBadgeClass(string type) => type switch
     {
-        "Submitted"       => "background:#E0F5F5;color:#085041;border:1px solid #5DCAA5;",
-        "Confirmed"       => "background:#EAF3DE;color:#27500A;border:1px solid #97C459;",
-        "ActionRequired"  => "background:#FAEEDA;color:#633806;border:1px solid #EF9F27;",
-        "FlaggedIssue"    => "background:#FAEEDA;color:#633806;border:1px solid #EF9F27;",
-        "Shipped"         => "background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;",
-        "TrackingAdded"   => "background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;",
-        "ShippingUpdated" => "background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;",
-        "Invoiced"        => "background:#E1F5EE;color:#085041;border:1px solid #02C39A;",
-        "Cancelled"       => "background:#FCEBEB;color:#791F1F;border:1px solid #F09595;",
-        "Resolved"        => "background:#EAF3DE;color:#27500A;border:1px solid #97C459;",
-        "AdminModified"   => "background:#E6F1FB;color:#0C447C;border:1px solid #85B7EB;",
-        "EditInitiated"   => "background:#f1f5f9;color:#475569;",
-        _                 => "background:#f1f5f9;color:#475569;"
+        "Submitted"       => "pi-badge-submitted",
+        "Confirmed"       => "pi-badge-confirmed",
+        "ActionRequired"  => "pi-badge-action",
+        "FlaggedIssue"    => "pi-badge-action",
+        "Shipped"         => "pi-badge-shipped",
+        "TrackingAdded"   => "pi-badge-shipped",
+        "ShippingUpdated" => "pi-badge-shipped",
+        "Invoiced"        => "pi-badge-invoiced",
+        "Cancelled"       => "pi-badge-cancelled",
+        "Resolved"        => "pi-badge-confirmed",
+        "AdminModified"   => "pi-badge-shipped",
+        "EditInitiated"   => "pi-badge-pending",
+        _                 => "pi-badge-pending"
     };
 
     string ChangeTypeLabel(string type) => type switch
@@ -42,36 +59,60 @@
 
 <div class="container-fluid mt-4">
 
-    <!-- Breadcrumb + Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col-auto">
-            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i> Back to Orders
-            </a>
-        </div>
-        <div class="col">
-            <h1 class="mb-0 h4">
-                Order @Model.PONumber
-                <span style="font-size:12px;font-weight:500;padding:3px 10px;border-radius:12px;@GetBadgeStyle(Model.Status)">
-                    @Model.Status
-                </span>
-            </h1>
-        </div>
+    <!-- HEADER -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+
+        <a asp-action="Index" class="pi-btn pi-btn-ghost pi-btn-sm">
+            &#8592; Back to Orders
+        </a>
+
+        <h1 style="font-family:var(--pi-font-head);font-size:22px;font-weight:700;margin:0;">
+            Order @Model.OrderNumber
+        </h1>
+
+        <span class="pi-badge @orderBadgeClass">@orderLabel</span>
+
+        <span class="pi-badge @(isShipped ? "pi-badge-shipped" : "pi-badge-pending")"
+              style="font-size:10px;">
+            @(isShipped ? "Shipped" : "Not Shipped")
+        </span>
+
+        <span class="pi-badge @(isInvoiced ? "pi-badge-invoiced" : "pi-badge-pending")"
+              style="font-size:10px;">
+            @(isInvoiced ? "Invoiced" : "Not Invoiced")
+        </span>
+
+        @if (outOfOrder)
+        {
+            <span style="font-size:11px;color:var(--pi-warning);font-weight:500;">
+                Invoiced &middot; Shipping pending
+            </span>
+        }
     </div>
+
+    <!-- CANCELLED BANNER -->
+    @if (isCancelled)
+    {
+        <div class="pi-notice pi-notice-danger" style="margin-bottom:16px;">
+            <strong>Order Cancelled</strong> &mdash;
+            This order has been cancelled. No further actions are available.
+            Existing shipping and invoice data is preserved for reference.
+        </div>
+    }
 
     <div class="row g-4">
 
-        <!-- Left column: Lines + Actions + History -->
+        <!-- LEFT COLUMN -->
         <div class="col-lg-8">
 
-            <!-- Order Lines -->
-            <div class="card mb-4">
-                <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
+            <!-- Items card -->
+            <div class="pi-card mb-4" style="padding:0;">
+                <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--pi-text-2);border-bottom:1px solid var(--pi-border);">
                     Items
                 </div>
-                <div class="card-body p-0">
+                <div style="padding:0;">
                     <div class="table-responsive">
-                        <table class="table table-sm mb-0">
+                        <table class="pi-table" style="margin-bottom:0;">
                             <thead>
                                 <tr>
                                     <th>Product</th>
@@ -112,26 +153,8 @@
                                 @if (Model.ShippingCost.HasValue)
                                 {
                                     <tr>
-                                        <td colspan="5" class="text-end text-muted">
-                                            Shipping
-                                            @if (Model.Status == "Confirmed" || Model.Status == "Shipped")
-                                            {
-                                                <a asp-action="EditShipping" asp-route-id="@Model.OrderID"
-                                                   class="ms-2 small text-primary">(Edit)</a>
-                                            }
-                                        </td>
+                                        <td colspan="5" class="text-end text-muted">Shipping</td>
                                         <td class="text-end">@Model.ShippingCost.Value.ToString("C")</td>
-                                    </tr>
-                                }
-                                else if (Model.Status == "Confirmed" || Model.Status == "Shipped")
-                                {
-                                    <tr>
-                                        <td colspan="5" class="text-end text-muted">
-                                            Shipping
-                                            <a asp-action="EditShipping" asp-route-id="@Model.OrderID"
-                                               class="ms-2 small text-primary">(Edit)</a>
-                                        </td>
-                                        <td class="text-end text-muted">—</td>
                                     </tr>
                                 }
                                 <tr class="border-top">
@@ -144,444 +167,416 @@
                 </div>
             </div>
 
-            <!-- Action Buttons — Submitted -->
-            @if (Model.Status == "Submitted")
-            {
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-
-                            <form method="post" asp-action="Confirm" asp-route-id="@Model.OrderID">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="pi-btn pi-btn-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
-                                    </svg>
-                                    Confirm Order
-                                </button>
-                            </form>
-
-                            <a asp-controller="AdminOrders"
-                               asp-action="EditLines"
-                               asp-route-id="@Model.OrderID"
-                               class="pi-btn pi-btn-secondary"
-                               data-bs-toggle="tooltip"
-                               title="Adjust quantities or remove items. A reason note is required.">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                                Open for Editing
-                            </a>
-
-                            <button type="button"
-                                    class="pi-btn pi-btn-ghost"
-                                    title="Notify the dealer to contact you. Does not change the order."
-                                    data-bs-toggle="modal" data-bs-target="#flagIssueModal">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M14.778.085A.5.5 0 0 1 15 .5V8a.5.5 0 0 1-.314.464L14.5 8l.186.464-.003.001-.006.003-.023.009a12.435 12.435 0 0 1-.397.15c-.264.095-.631.223-1.047.35-.816.252-1.879.523-2.71.523-.847 0-1.548-.28-2.158-.525l-.028-.01C7.68 8.71 7.14 8.5 6.5 8.5c-.7 0-1.638.23-2.437.477A19.626 19.626 0 0 0 3 9.342V15.5a.5.5 0 0 1-1 0V.5a.5.5 0 0 1 1 0v.282c.226-.079.496-.17.79-.26C4.606.272 5.67 0 6.5 0c.84 0 1.524.277 2.121.519l.043.018C9.286.788 9.828 1 10.5 1c.7 0 1.638-.23 2.437-.477a19.587 19.587 0 0 0 1.349-.476l.019-.007.004-.002h.001"/>
-                                </svg>
-                                Flag Issue
-                            </button>
-
-                            <div style="margin-left:auto;">
-                                <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
-                                      onsubmit="return confirm('Cancel this order? This cannot be undone.')">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="pi-btn pi-btn-danger">
-                                        <i class="bi bi-x-circle"></i> Cancel Order
-                                    </button>
-                                </form>
-                            </div>
-
-                        </div>
-                        <div style="font-size:11px;color:#9ca3af;margin-top:8px;padding-left:2px;">
-                            Use <strong>Edit Order</strong> to adjust quantities · Use <strong>Flag Issue</strong> if you need the dealer to call first
-                        </div>
-                    </div>
-                </div>
-            }
-            else if (Model.Status == "ActionRequired")
-            {
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-
-                            @if ((bool)(ViewData["HasBeenEdited"] ?? false))
-                            {
-                                <form asp-action="ResolveAndConfirm" asp-route-id="@Model.OrderID"
-                                      method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="pi-btn pi-btn-primary">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
-                                        </svg>
-                                        Confirm Order
-                                    </button>
-                                </form>
-                            }
-
-                            <a asp-action="EditLines" asp-route-id="@Model.OrderID"
-                               class="pi-btn pi-btn-secondary"
-                               data-bs-toggle="tooltip"
-                               title="Adjust quantities or remove items. A reason note is required.">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                                Open for Editing
-                            </a>
-
-                            <div style="margin-left:auto;">
-                                <button type="button"
-                                        style="background:transparent;border:1px solid #dc3545;color:#dc3545;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"
-                                        data-bs-toggle="modal" data-bs-target="#cancelModal">
-                                    <i class="bi bi-x-circle"></i> Cancel Order
-                                </button>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-            }
-            else if (Model.Status == "Confirmed")
+            <!-- WORKFLOW ACTIONS — Submitted / ActionRequired -->
+            @if (isSubmitted || isAction)
             {
                 <div class="pi-card" style="margin-bottom:16px;">
-                    <div class="pi-section-label">Shipping &amp; Invoicing</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;align-items:stretch;">
 
-                    <!-- Tracking number row -->
-                    <form asp-action="SaveTracking" asp-route-id="@Model.OrderID"
-                          method="post" style="margin-bottom:12px;">
-                        @Html.AntiForgeryToken()
-                        <div style="display:flex;gap:8px;align-items:flex-end;">
-                            <div style="flex:1;">
-                                <label class="form-label" style="font-size:12px;">
-                                    Tracking number (optional)
-                                </label>
-                                <input type="text" name="TrackingNumber" class="form-control"
-                                       value="@Model.TrackingNumber"
-                                       placeholder="e.g. 1Z999AA1..." />
-                            </div>
-                            <button type="submit" class="pi-btn pi-btn-ghost">
-                                Save tracking
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Shipping amount row -->
-                    <form asp-action="EditShipping" asp-route-id="@Model.OrderID"
-                          method="post" style="margin-bottom:16px;">
-                        @Html.AntiForgeryToken()
-                        <div style="display:flex;gap:8px;align-items:flex-end;">
-                            <div style="flex:1;">
-                                <label class="form-label" style="font-size:12px;">
-                                    Shipping amount
-                                </label>
-                                <div style="position:relative;">
-                                    <span style="position:absolute;left:10px;top:50%;
-                                                 transform:translateY(-50%);
-                                                 color:var(--pi-text-2);">$</span>
-                                    <input type="number" name="shippingAmount"
-                                           class="form-control"
-                                           style="padding-left:22px;"
-                                           value="@Model.ShippingCost"
-                                           placeholder="0.00" min="0" step="0.01" />
-                                </div>
-                            </div>
-                            <button type="submit" class="pi-btn pi-btn-ghost">
-                                Save shipping
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Two equal buttons: ship or invoice -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;
-                                padding-top:12px;border-top:1px solid var(--pi-border);">
-
-                        <!-- Mark as Shipped -->
-                        <div>
-                            <form asp-action="MarkShipped" asp-route-id="@Model.OrderID" method="post">
-                                @Html.AntiForgeryToken()
-                                <button type="submit"
-                                        class="pi-btn pi-btn-secondary"
-                                        style="width:100%;justify-content:center;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                         stroke="currentColor" stroke-width="2">
-                                        <rect x="1" y="3" width="15" height="13" rx="1"/>
-                                        <path d="M16 8h4l3 5v3h-7V8z"/>
-                                        <circle cx="5.5" cy="18.5" r="2.5"/>
-                                        <circle cx="18.5" cy="18.5" r="2.5"/>
-                                    </svg>
-                                    Mark as shipped
-                                </button>
-                            </form>
-                            @if (!Model.ShippingCost.HasValue)
-                            {
-                                <div style="font-size:11px;color:var(--pi-text-2);
-                                            text-align:center;margin-top:4px;">
-                                    No shipping amount added
-                                </div>
-                            }
-                        </div>
-
-                        <!-- Invoice now -->
-                        <div>
-                            <button type="button"
-                                    class="pi-btn pi-btn-secondary"
-                                    style="width:100%;justify-content:center;
-                                           border-color:var(--pi-border-md);
-                                           color:var(--pi-text-2);"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#directInvoiceModal">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/>
-                                </svg>
-                                Invoice now
-                            </button>
-                            <div style="font-size:11px;color:var(--pi-text-2);
-                                        text-align:center;margin-top:4px;">
-                                @(Model.ShippingCost == null
-                                    ? "Skips shipping — total excludes it"
-                                    : $"Includes ${Model.ShippingCost:F2} shipping")
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cancel -->
-                <div style="margin-bottom:16px;">
-                    <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID"
-                          onsubmit="return confirm('Cancel this confirmed order? Inventory will be restored.')">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="pi-btn pi-btn-danger pi-btn-sm">
-                            <i class="bi bi-x-circle me-1"></i> Cancel Order
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Direct Invoice Modal -->
-                <div class="modal fade" id="directInvoiceModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Invoice without shipping?</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="pi-notice pi-notice-warning">
-                                    @if (!Model.ShippingCost.HasValue)
-                                    {
-                                        <span>No shipping amount has been added.
-                                        The invoice total of @Model.TotalAmount.ToString("C")
-                                        will not include shipping charges.</span>
-                                    }
-                                    else
-                                    {
-                                        <span>Shipping of @Model.ShippingCost.Value.ToString("C") will be included in the invoice total.</span>
-                                    }
-                                </div>
-                                <p style="font-size:13px;color:var(--pi-text-2);margin-top:12px;">
-                                    You can still add shipping later by editing the order,
-                                    but the dealer has already received the invoice.
-                                </p>
-                            </div>
-                            <div class="modal-footer">
-                                <button class="pi-btn pi-btn-ghost" data-bs-dismiss="modal">
-                                    Go back
-                                </button>
-                                <form asp-action="MarkInvoicedDirect" asp-route-id="@Model.OrderID" method="post">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="pi-btn pi-btn-primary">Invoice anyway</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-            else if (Model.Status == "Shipped")
-            {
-                <div class="card mb-4">
-                    <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
-                        Actions
-                    </div>
-                    <div class="card-body d-flex gap-3 align-items-center flex-wrap">
-                        <form method="post" asp-action="MarkInvoiced" asp-route-id="@Model.OrderID">
+                        <!-- Top left: Confirm Order -->
+                        <form asp-action="ConfirmOrder" asp-route-id="@Model.OrderID" method="post"
+                              style="display:flex;height:100%;">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-dark">
-                                <i class="bi bi-receipt me-1"></i> Mark as Invoiced
+                            <button type="submit" class="pi-btn pi-btn-primary"
+                                    style="width:100%;height:100%;justify-content:center;min-height:44px;">
+                                Confirm Order
                             </button>
                         </form>
-                        @if (!string.IsNullOrEmpty(Model.TrackingNumber))
+
+                        <!-- Top right: Open for Editing -->
+                        <a asp-controller="AdminOrders"
+                           asp-action="EditLines"
+                           asp-route-id="@Model.OrderID"
+                           class="pi-btn pi-btn-blue"
+                           style="width:100%;justify-content:center;min-height:44px;">
+                            Open for Editing
+                        </a>
+
+                        <!-- Bottom left: Flag Issue -->
+                        <button type="button"
+                                class="pi-btn pi-btn-ghost"
+                                style="width:100%;height:100%;justify-content:center;min-height:44px;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#flagIssueModal">
+                            Flag Issue
+                        </button>
+
+                        <!-- Bottom right: Cancel Order -->
+                        <form asp-action="CancelOrder" asp-route-id="@Model.OrderID" method="post"
+                              style="display:flex;height:100%;"
+                              onsubmit="return confirm('Cancel this order? This cannot be undone.')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit"
+                                    class="pi-btn pi-btn-danger"
+                                    style="width:100%;height:100%;justify-content:center;min-height:44px;">
+                                Cancel Order
+                            </button>
+                        </form>
+
+                    </div>
+                    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--pi-border);font-size:11px;color:var(--pi-text-2);">
+                        Use <strong>Open for Editing</strong> to adjust quantities &middot;
+                        Use <strong>Flag Issue</strong> if the dealer needs to contact you first
+                    </div>
+                </div>
+            }
+
+            <!-- SHIPPING CARD -->
+            @if (isConfirmed || isShipped || isInvoiced || isCancelled)
+            {
+                <div class="pi-card" style="margin-bottom:12px;@(isCancelled ? "opacity:0.6;pointer-events:none;" : "")">
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <div class="pi-section-label" style="margin-bottom:0;">Shipping Details</div>
+                        @if (isShipped)
                         {
-                            <div class="text-muted">
-                                <i class="bi bi-truck me-1"></i>
-                                Tracking: <code class="text-dark">@Model.TrackingNumber</code>
-                            </div>
+                            <span class="pi-badge pi-badge-shipped">
+                                Shipped
+                                @if (Model.ShipDate.HasValue)
+                                {
+                                    <span style="font-weight:400;margin-left:4px;">
+                                        @Model.ShipDate.Value.ToString("MMM d, yyyy")
+                                    </span>
+                                }
+                            </span>
                         }
                     </div>
-                </div>
-            }
-            else if (Model.Status == "Invoiced")
-            {
-                <div class="pi-card" style="margin-bottom:16px;">
-                    <div class="pi-section-label">Shipping details</div>
 
-                    @if (!Model.ShippingCost.HasValue)
+                    @if (isCancelled)
                     {
-                        <div class="pi-notice pi-notice-info" style="margin-bottom:12px;">
-                            No shipping amount was added before invoicing. You can add it here —
-                            the total will update and a revised PO will be sent to the dealer.
-                        </div>
+                        <div class="pi-notice pi-notice-danger">Order cancelled &mdash; no further actions allowed</div>
                     }
 
-                    <form asp-action="UpdateInvoicedShipping" asp-route-id="@Model.OrderID" method="post">
-                        @Html.AntiForgeryToken()
-                        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
-                            <div style="flex:1;min-width:160px;">
-                                <label class="form-label" style="font-size:12px;">Shipping amount</label>
-                                <div style="position:relative;">
-                                    <span style="position:absolute;left:10px;top:50%;
-                                                 transform:translateY(-50%);color:var(--pi-text-2);">$</span>
-                                    <input type="number" name="shippingAmount" class="form-control"
-                                           style="padding-left:22px;"
-                                           value="@Model.ShippingCost"
-                                           placeholder="0.00" min="0" step="0.01" />
+                    @if (!isShipped)
+                    {
+                        <!-- Not yet shipped: mark as shipped form -->
+                        <form asp-action="MarkShipped" asp-route-id="@Model.OrderID" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">
+                                        Ship Date
+                                        <span style="color:var(--pi-danger);">*</span>
+                                    </label>
+                                    <input type="date" name="shipDate"
+                                           class="form-control"
+                                           value="@DateTime.Now.ToString("yyyy-MM-dd")"
+                                           required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="trackingInput" class="form-label" style="display:block;margin-bottom:6px;">Tracking Number</label>
+                                    <input id="trackingInput" type="text" name="trackingNumber" class="form-control"
+                                           value="@Model.TrackingNumber"
+                                           placeholder="e.g. 1Z999AA1...">
+                                    <div style="font-size:10px;color:var(--pi-text-2);margin-top:3px;">Optional</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="carrierInput" class="form-label" style="display:block;margin-bottom:6px;">Carrier</label>
+                                    <input id="carrierInput" type="text" name="carrier" class="form-control"
+                                           value="@Model.Carrier"
+                                           placeholder="UPS, FedEx...">
+                                    <div style="font-size:10px;color:var(--pi-text-2);margin-top:3px;">Optional</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="shippingInput" class="form-label" style="display:block;margin-bottom:6px;">Shipping Amount</label>
+                                    <div style="position:relative;">
+                                        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--pi-text-2);">$</span>
+                                        <input id="shippingInput" type="number" name="shippingAmount" class="form-control"
+                                               style="padding-left:24px;"
+                                               value="@Model.ShippingCost"
+                                               placeholder="0.00" min="0" step="0.01">
+                                    </div>
+                                    <div style="font-size:10px;color:var(--pi-text-2);margin-top:3px;">Optional</div>
                                 </div>
                             </div>
-                            <div style="flex:1;min-width:160px;">
-                                <label class="form-label" style="font-size:12px;">Tracking number (optional)</label>
-                                <input type="text" name="trackingNumber" class="form-control"
-                                       value="@Model.TrackingNumber"
-                                       placeholder="e.g. 1Z999AA1..." />
-                            </div>
-                            <button type="submit" class="pi-btn pi-btn-primary" style="white-space:nowrap;">
-                                Save &amp; Resend PO
+
+                            @if (!Model.ShippingCost.HasValue || Model.ShippingCost <= 0)
+                            {
+                                <div class="pi-notice pi-notice-info" style="margin-bottom:12px;">
+                                    No shipping amount yet. Invoice total will not include shipping until you add it.
+                                </div>
+                            }
+
+                            <button type="submit" class="pi-btn pi-btn-blue">
+                                Mark as Shipped
                             </button>
+                            <span style="font-size:11px;color:var(--pi-text-2);margin-left:8px;">Ship date required</span>
+                        </form>
+                    }
+                    else
+                    {
+                        <!-- Already shipped: summary + collapsed edit form -->
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
+                            <div>
+                                <div style="font-size:11px;color:var(--pi-text-2);margin-bottom:2px;">Ship Date</div>
+                                <div style="font-size:14px;font-weight:500;">
+                                    @(Model.ShipDate.HasValue ? Model.ShipDate.Value.ToString("MMM d, yyyy") : "—")
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:var(--pi-text-2);margin-bottom:2px;">Tracking</div>
+                                <div style="font-size:14px;">@(string.IsNullOrEmpty(Model.TrackingNumber) ? "—" : Model.TrackingNumber)</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:var(--pi-text-2);margin-bottom:2px;">Carrier</div>
+                                <div style="font-size:14px;">@(string.IsNullOrEmpty(Model.Carrier) ? "—" : Model.Carrier)</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:var(--pi-text-2);margin-bottom:2px;">Shipping Amount</div>
+                                <div style="font-size:14px;">
+                                    @(Model.ShippingCost.HasValue ? Model.ShippingCost.Value.ToString("C") : "—")
+                                </div>
+                            </div>
                         </div>
-                    </form>
-                </div>
-            }
-            else if (Model.Status == "Cancelled")
-            {
-                <div class="card mb-4">
-                    <div class="card-body text-muted">
-                        <i class="bi bi-x-circle me-1"></i>
-                        This order has been cancelled. No further actions are available.
-                    </div>
+
+                        <button type="button" class="pi-btn pi-btn-ghost pi-btn-sm"
+                                onclick="toggleShippingEdit()">Edit Shipping</button>
+
+                        <div id="shippingEditForm" style="display:none;margin-top:16px;border-top:1px solid var(--pi-border);padding-top:16px;">
+                            <form asp-action="SaveShipping" asp-route-id="@Model.OrderID" method="post">
+                                @Html.AntiForgeryToken()
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Ship Date</label>
+                                        <input type="date" name="shipDate" class="form-control"
+                                               value="@Model.ShipDate?.ToString("yyyy-MM-dd")">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tracking Number</label>
+                                        <input type="text" name="trackingNumber" class="form-control"
+                                               value="@Model.TrackingNumber"
+                                               placeholder="e.g. 1Z999AA1...">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Carrier</label>
+                                        <input type="text" name="carrier" class="form-control"
+                                               value="@Model.Carrier"
+                                               placeholder="UPS, FedEx...">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Shipping Amount</label>
+                                        <div style="position:relative;">
+                                            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--pi-text-2);">$</span>
+                                            <input type="number" name="shippingAmount" class="form-control"
+                                                   style="padding-left:24px;"
+                                                   value="@Model.ShippingCost"
+                                                   placeholder="0.00" min="0" step="0.01">
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="pi-btn pi-btn-blue pi-btn-sm">
+                                    @(isInvoiced ? "Save & Resend PO" : "Update Shipping")
+                                </button>
+                                @if (isInvoiced)
+                                {
+                                    <span style="font-size:11px;color:var(--pi-text-2);margin-left:8px;">
+                                        Saving will resend a revised PO to the dealer
+                                    </span>
+                                }
+                            </form>
+                        </div>
+                    }
                 </div>
             }
 
-            <!-- Order History Timeline -->
-            <div class="card">
-                <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
+            <!-- INVOICE CARD -->
+            @if (isConfirmed || isShipped || isInvoiced || isCancelled)
+            {
+                <div class="pi-card" style="margin-bottom:16px;@(isCancelled ? "opacity:0.6;pointer-events:none;" : "")">
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <div class="pi-section-label" style="margin-bottom:0;">Invoice Details</div>
+                        @if (isInvoiced)
+                        {
+                            <span class="pi-badge pi-badge-invoiced">Invoiced</span>
+                        }
+                    </div>
+
+                    @if (isCancelled)
+                    {
+                        <div class="pi-notice pi-notice-danger">Order cancelled &mdash; invoicing not available</div>
+                    }
+                    else if (!isInvoiced)
+                    {
+                        <form asp-action="MarkInvoiced" asp-route-id="@Model.OrderID" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="invoiceNumberInput" class="form-label">Invoice Number</label>
+                                    <input id="invoiceNumberInput" type="text" name="invoiceNumber"
+                                           class="form-control"
+                                           value="@(Model.InvoiceNumber ?? $"INV-{Model.OrderNumber}")"
+                                           placeholder="INV-0029">
+                                    <div style="font-size:10px;color:var(--pi-text-2);margin-top:3px;">
+                                        Auto-generated &mdash; edit if needed
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        Invoice Notes
+                                        <span style="font-size:10px;color:var(--pi-text-2);font-weight:400;">(optional)</span>
+                                    </label>
+                                    <input type="text" name="invoiceNotes" class="form-control"
+                                           value="@Model.InvoiceNotes"
+                                           placeholder="Any notes...">
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:center;">
+                                <button type="submit" class="pi-btn pi-btn-primary">
+                                    Invoice Now
+                                </button>
+                                @if (!Model.ShippingCost.HasValue || Model.ShippingCost <= 0)
+                                {
+                                    <span style="font-size:11px;color:var(--pi-text-2);">
+                                        Invoice now. Shipping can be added later.
+                                    </span>
+                                }
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div style="font-size:11px;color:var(--pi-text-2);margin-bottom:3px;">Invoice Number</div>
+                                <div style="font-weight:600;font-size:14px;">@Model.InvoiceNumber</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div style="font-size:11px;color:var(--pi-text-2);margin-bottom:3px;">Invoice Date</div>
+                                <div style="font-size:14px;">@Model.InvoicedAt?.ToString("MMMM d, yyyy")</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div style="font-size:11px;color:var(--pi-text-2);margin-bottom:3px;">Payment Terms</div>
+                                <div style="font-size:14px;">@Model.PaymentTerms?.TermName</div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.InvoiceNotes))
+                        {
+                            <div style="margin-top:12px;padding:10px 12px;background:var(--pi-bg-subtle);border-radius:var(--pi-radius-sm);font-size:13px;color:var(--pi-text-2);">
+                                @Model.InvoiceNotes
+                            </div>
+                        }
+
+                        <form asp-action="UpdateInvoiceNotes" asp-route-id="@Model.OrderID" method="post"
+                              style="margin-top:12px;">
+                            @Html.AntiForgeryToken()
+                            <div style="display:flex;gap:8px;">
+                                <input type="text" name="invoiceNotes" class="form-control"
+                                       value="@Model.InvoiceNotes"
+                                       placeholder="Add notes..."
+                                       style="max-width:400px;">
+                                <button type="submit" class="pi-btn pi-btn-ghost pi-btn-sm">Save Notes</button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            }
+
+            <!-- History -->
+            <div class="pi-card" style="padding:0;">
+                <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--pi-text-2);border-bottom:1px solid var(--pi-border);">
                     History
                 </div>
                 @if (!Model.OrderHistories.Any())
                 {
-                    <div class="card-body text-muted">No history entries.</div>
+                    <div style="padding:16px;color:var(--pi-text-2);font-size:13px;">No history entries.</div>
                 }
                 else
                 {
-                    <div class="card-body p-0">
-                        @foreach (var h in Model.OrderHistories)
-                        {
-                            <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid #f1f5f9;">
-                                <span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0;@GetBadgeStyle(h.ChangeType)">
-                                    @ChangeTypeLabel(h.ChangeType)
-                                </span>
-                                <div style="flex:1;min-width:0;">
-                                    <div style="font-size:13px;font-weight:500;color:#111827;">
-                                        @ChangeTypeLabel(h.ChangeType)
-                                        <span style="font-size:12px;font-weight:400;color:#6b7280;margin-left:4px;">by @h.ChangedBy</span>
-                                    </div>
-                                    @if (!string.IsNullOrWhiteSpace(h.ChangeDescription))
-                                    {
-                                        <div style="font-size:12px;color:#6b7280;margin-top:3px;line-height:1.5;">
-                                            @h.ChangeDescription
-                                        </div>
-                                    }
-                                </div>
-                                <div style="font-size:11px;color:#9ca3af;white-space:nowrap;">
-                                    @h.ChangedDate.ToString("MMM d, h:mm tt")
-                                </div>
-                            </div>
-                        }
+                    <div style="overflow-x:auto;">
+                        <table class="pi-table" style="width:100%;table-layout:fixed;">
+                            <thead>
+                                <tr>
+                                    <th style="width:150px;min-width:150px;white-space:nowrap;">Action</th>
+                                    <th>Description</th>
+                                    <th style="width:160px;min-width:160px;white-space:nowrap;">By</th>
+                                    <th style="width:140px;min-width:140px;white-space:nowrap;">When</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var h in Model.OrderHistories)
+                                {
+                                    <tr>
+                                        <td style="width:150px;white-space:nowrap;">
+                                            <span class="pi-badge @GetBadgeClass(h.ChangeType)">
+                                                @ChangeTypeLabel(h.ChangeType)
+                                            </span>
+                                        </td>
+                                        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0;"
+                                            title="@h.ChangeDescription">
+                                            @(string.IsNullOrWhiteSpace(h.ChangeDescription) ? "—" : h.ChangeDescription)
+                                        </td>
+                                        <td style="width:160px;white-space:nowrap;color:var(--pi-text-2);font-size:12px;">
+                                            @h.ChangedBy
+                                        </td>
+                                        <td style="width:140px;white-space:nowrap;color:var(--pi-text-2);font-size:12px;">
+                                            @h.ChangedDate.ToString("MMM d, h:mm tt")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 }
             </div>
 
         </div>
 
-        <!-- Right column: Order Details -->
+        <!-- RIGHT COLUMN — Order Details sidebar -->
         <div class="col-lg-4">
-            <div style="background:white;border:1px solid #e9ecef;border-top:3px solid #028090;border-radius:0 0 8px 8px;">
+            <div style="background:white;border:1px solid var(--pi-border);border-top:3px solid var(--pi-nitro-blue);border-radius:0 0 8px 8px;">
                 <div style="padding:16px;">
-                    <div style="font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:#6c757d;margin-bottom:12px;">
+                    <div style="font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--pi-text-2);margin-bottom:12px;">
                         Order Details
                     </div>
 
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
-                        <span style="color:#6c757d;">PO Number</span>
-                        <span style="font-weight:500;color:#111827;">@Model.PONumber</span>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--pi-border);font-size:14px;">
+                        <span style="color:var(--pi-text-2);">PO Number</span>
+                        <span style="font-weight:500;color:var(--pi-text-1);">@Model.PONumber</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
-                        <span style="color:#6c757d;">Dealer</span>
-                        <span style="font-weight:500;color:#111827;">@Model.DealerCompanyName</span>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--pi-border);font-size:14px;">
+                        <span style="color:var(--pi-text-2);">Dealer</span>
+                        <span style="font-weight:500;color:var(--pi-text-1);">@Model.DealerCompanyName</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
-                        <span style="color:#6c757d;">Order Date</span>
-                        <span style="font-weight:500;color:#111827;">@Model.OrderDate.ToString("MMM d, yyyy")</span>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--pi-border);font-size:14px;">
+                        <span style="color:var(--pi-text-2);">Order Date</span>
+                        <span style="font-weight:500;color:var(--pi-text-1);">@Model.OrderDate.ToString("MMM d, yyyy")</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
-                        <span style="color:#6c757d;">Payment Terms</span>
-                        <span style="font-weight:500;color:#111827;">@(Model.PaymentTerms?.TermName ?? "—")</span>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--pi-border);font-size:14px;">
+                        <span style="color:var(--pi-text-2);">Payment Terms</span>
+                        <span style="font-weight:500;color:var(--pi-text-1);">@(Model.PaymentTerms?.TermName ?? "—")</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
-                        <span style="color:#6c757d;">Payment Due</span>
-                        <span style="font-weight:500;color:#111827;">
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--pi-border);font-size:14px;">
+                        <span style="color:var(--pi-text-2);">Payment Due</span>
+                        <span style="font-weight:500;color:var(--pi-text-1);">
                             @(Model.PaymentDueDate.HasValue
                                 ? Model.PaymentDueDate.Value.ToString("MMM d, yyyy")
                                 : "—")
                         </span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;">
-                        <span style="color:#6c757d;">Tax Exempt</span>
-                        <span style="font-weight:500;color:#111827;">@(Model.IsTaxExempt ? "Yes" : "No")</span>
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--pi-border);font-size:14px;">
+                        <span style="color:var(--pi-text-2);">Tax Exempt</span>
+                        <span style="font-weight:500;color:var(--pi-text-1);">@(Model.IsTaxExempt ? "Yes" : "No")</span>
                     </div>
 
-                    @* Tax Rate — editable for Confirmed and earlier *@
                     @if (Model.Status is "Submitted" or "ActionRequired" or "Confirmed")
                     {
                         @Html.AntiForgeryToken()
-                        <div style="display:flex;justify-content:space-between;padding:8px 0;
-                                    border-bottom:1px solid #f1f5f9;font-size:14px;">
-                            <span style="color:#6c757d;">Tax Rate</span>
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--pi-border);font-size:14px;">
+                            <span style="color:var(--pi-text-2);">Tax Rate</span>
                             <div style="display:flex;align-items:center;gap:6px;">
                                 <input type="number" id="taxRateInput"
                                        value="@(Model.TaxRate.HasValue ? (Model.TaxRate.Value * 100m).ToString("0.##") : "13")"
                                        min="0" max="30" step="0.5"
                                        onchange="recalcTax(this.value)"
-                                       style="width:55px;text-align:center;
-                                              border:1px solid #e9ecef;border-radius:4px;
-                                              padding:3px;font-size:13px;" />
-                                <span style="font-size:13px;color:#6b7280;">%</span>
-                                <button onclick="saveTaxRate()"
-                                        style="font-size:11px;background:#028090;color:white;
-                                               border:none;border-radius:4px;padding:3px 8px;
-                                               cursor:pointer;">
-                                    Apply
-                                </button>
+                                       style="width:55px;text-align:center;border:1px solid var(--pi-border);border-radius:4px;padding:3px;font-size:13px;" />
+                                <span style="font-size:13px;color:var(--pi-text-2);">%</span>
+                                <button onclick="saveTaxRate()" class="pi-btn pi-btn-ghost pi-btn-sm">Apply</button>
                             </div>
                         </div>
-                        <div style="display:flex;justify-content:space-between;padding:8px 0;
-                                    border-bottom:1px solid #f1f5f9;font-size:14px;">
-                            <span style="color:#6c757d;">Tax Amount</span>
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--pi-border);font-size:14px;">
+                            <span style="color:var(--pi-text-2);">Tax Amount</span>
                             <span id="taxAmountDisplay" style="font-weight:500;">
                                 @(Model.TaxAmount.HasValue ? $"${Model.TaxAmount.Value:F2}" : "—")
                             </span>
@@ -589,12 +584,9 @@
                     }
 
                     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:14px;">
-                        <span style="color:#6c757d;">Status</span>
-                        <span style="font-size:12px;font-weight:500;padding:3px 10px;border-radius:12px;@GetBadgeStyle(Model.Status)">
-                            @Model.Status
-                        </span>
+                        <span style="color:var(--pi-text-2);">Status</span>
+                        <span class="pi-badge @orderBadgeClass" style="font-size:10px;">@orderLabel</span>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -602,14 +594,17 @@
     </div>
 </div>
 
-
 @section Scripts {
     <script>
+    function toggleShippingEdit() {
+        const form = document.getElementById('shippingEditForm');
+        if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+
     function recalcTax(rate) {
         const subtotal = @Model.SubtotalAmount;
         const tax = subtotal * (parseFloat(rate) / 100);
-        document.getElementById('taxAmountDisplay').textContent =
-            '$' + tax.toFixed(2);
+        document.getElementById('taxAmountDisplay').textContent = '$' + tax.toFixed(2);
     }
 
     async function saveTaxRate() {
@@ -622,7 +617,7 @@
                 taxRate: rate,
                 __RequestVerificationToken: token
             }),
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
         location.reload();
     }
@@ -657,8 +652,8 @@
     </script>
 }
 
-<!-- Modal: Flag Issue (Submitted orders) -->
-@if (Model.Status == "Submitted")
+<!-- Modal: Flag Issue -->
+@if (isSubmitted || isAction)
 {
     <div class="modal fade" id="flagIssueModal" tabindex="-1" aria-labelledby="flagIssueModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -673,79 +668,31 @@
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label" style="font-size:13px;">
-                                Reason for flagging
-                            </label>
+                            <label class="form-label" style="font-size:13px;">Reason for flagging</label>
                             <select id="flagReasonSelect" class="form-select form-select-sm mb-2"
                                     onchange="handleFlagReason(this.value)">
                                 <option value="">Select a reason...</option>
-                                <option value="Out of stock / inventory shortage">
-                                    Out of stock / inventory shortage
-                                </option>
-                                <option value="Product discontinued">
-                                    Product discontinued
-                                </option>
-                                <option value="Pricing discrepancy">
-                                    Pricing discrepancy
-                                </option>
-                                <option value="Shipping restriction">
-                                    Shipping restriction to this address
-                                </option>
-                                <option value="Address issue">
-                                    Address issue — cannot ship here
-                                </option>
-                                <option value="Incorrect order details">
-                                    Incorrect order details
-                                </option>
-                                <option value="other">
-                                    Other (add note below)
-                                </option>
+                                <option value="Out of stock / inventory shortage">Out of stock / inventory shortage</option>
+                                <option value="Product discontinued">Product discontinued</option>
+                                <option value="Pricing discrepancy">Pricing discrepancy</option>
+                                <option value="Shipping restriction">Shipping restriction to this address</option>
+                                <option value="Address issue">Address issue — cannot ship here</option>
+                                <option value="Incorrect order details">Incorrect order details</option>
+                                <option value="other">Other (add note below)</option>
                             </select>
                             <textarea id="flagReasonNote" name="reason"
                                       class="form-control form-control-sm" rows="3"
                                       placeholder="Add details or describe the issue for the dealer..."
                                       style="font-size:13px;"></textarea>
-                            <div style="font-size:11px;color:#6b7280;margin-top:4px;">
+                            <div style="font-size:11px;color:var(--pi-text-2);margin-top:4px;">
                                 Include 647-964-6833 so the dealer knows how to reach you.
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-warning">
+                        <button type="button" class="pi-btn pi-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="pi-btn pi-btn-ghost">
                             <i class="bi bi-flag me-1"></i> Flag Issue
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-}
-
-<!-- Modal: Cancel (ActionRequired orders) -->
-@if (Model.Status == "ActionRequired")
-{
-    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="post" asp-action="Cancel" asp-route-id="@Model.OrderID">
-                    @Html.AntiForgeryToken()
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="cancelModalLabel">
-                            <i class="bi bi-x-circle me-1 text-danger"></i> Cancel Order
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="text-muted">This cannot be undone.</p>
-                        <label for="cancelNote" class="form-label fw-semibold">Reason <span class="text-muted fw-normal small">(optional)</span></label>
-                        <textarea id="cancelNote" name="cancelNote" class="form-control" rows="3" maxlength="500"
-                                  placeholder="e.g. Dealer requested cancellation — item no longer needed."></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Dismiss</button>
-                        <button type="submit" class="btn btn-danger">
-                            <i class="bi bi-x-circle me-1"></i> Cancel Order
                         </button>
                     </div>
                 </form>

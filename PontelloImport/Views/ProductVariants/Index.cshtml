@@ -26,8 +26,6 @@
 }
 
 <style>
-    *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
-
     /* Filter inputs */
     .cat-input {
         border: 1px solid #E5E7EB;
@@ -357,7 +355,7 @@
     @if (!Model.Any())
     {
         <div style="text-align:center; padding:3rem; color:#4B5563;">
-            <div style="font-size:1.75rem; margin-bottom:0.6rem;">📦</div>
+            <div style="margin-bottom:0.6rem;"></div>
             <p style="margin:0 0 0.5rem; font-size:0.9rem;">
                 @if (hasActiveFilters) { <text>No products match your search criteria.</text> }
                 else { <text>No variants found.</text> }

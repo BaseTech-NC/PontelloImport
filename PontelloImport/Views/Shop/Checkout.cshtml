@@ -32,11 +32,11 @@
 
 <div class="row g-4">
     <div class="col-lg-8">
-        <div class="card mb-4">
-            <div class="card-header fw-semibold">Order Items</div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light">
+        <div class="pi-card mb-4" style="padding:0;">
+            <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--pi-text-2);border-bottom:1px solid var(--pi-border);">Order Items</div>
+            <div style="padding:0;">
+                <table class="pi-table" style="margin-bottom:0;">
+                    <thead>
                         <tr>
                             <th>Product</th>
                             <th>Variant / SKU</th>
@@ -77,33 +77,30 @@
 
         @if (dealer != null)
         {
-            <div class="card">
-                <div class="card-header fw-semibold">Billing Information</div>
-                <div class="card-body">
+            <div class="pi-card">
+                <div class="pi-section-label">Billing Information</div>
                     <p class="mb-2 fw-semibold">@dealer.CompanyName</p>
                     <p class="mb-0">
                         <strong>Payment Terms:</strong>
                         @(dealer.PaymentTerms?.TermName ?? "—")
                         @if (dealer.IsTaxExempt)
                         {
-                            <span class="badge bg-success ms-2">Tax Exempt</span>
+                            <span class="pi-badge pi-badge-confirmed ms-2">Tax Exempt</span>
                         }
                     </p>
-                </div>
             </div>
         }
 
         @* Address selection *@
-        <div class="card mt-3">
-            <div class="card-header fw-semibold">Addresses</div>
-            <div class="card-body">
+        <div class="pi-card mt-3">
+            <div class="pi-section-label">Addresses</div>
                 @if (allAddr.Any())
                 {
                     <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:0.875rem;">
+                        <label for="BillingAddressId" class="form-label fw-semibold" style="font-size:0.875rem;">
                             Billing Address
                         </label>
-                        <select name="BillingAddressId" class="form-select form-select-sm">
+                        <select id="BillingAddressId" name="BillingAddressId" class="form-select form-select-sm">
                             @foreach (var a in billingAddresses)
                             {
                                 <option value="@a.AddressID"
@@ -128,10 +125,10 @@
                     <div id="shippingAddrSection" style="display:none;">
                         @if (shippingAddresses.Any())
                         {
-                            <label class="form-label fw-semibold" style="font-size:0.875rem;">
+                            <label for="ShippingAddressId" class="form-label fw-semibold" style="font-size:0.875rem;">
                                 Shipping Address
                             </label>
-                            <select name="ShippingAddressId" class="form-select form-select-sm">
+                            <select id="ShippingAddressId" name="ShippingAddressId" class="form-select form-select-sm">
                                 @foreach (var a in shippingAddresses)
                                 {
                                     <option value="@a.AddressID">
@@ -162,22 +159,91 @@
                     </div>
                 }
 
-                <div style="margin-top:8px;font-size:12px;color:var(--pi-text-2);">
-                    Need a different address?
-                    <a href="/DealerAccount/ManageAccount"
-                       style="color:var(--pi-primary);text-decoration:none;font-weight:500;">
-                        Add one in your account →
-                    </a>
+                <div style="margin-top:10px;">
+                    <button type="button"
+                            class="pi-btn pi-btn-ghost pi-btn-sm"
+                            onclick="toggleNewAddress()"
+                            id="addAddressToggle">
+                        + Add a new address
+                    </button>
                 </div>
-            </div>
+
+                <!-- Inline address form — hidden by default -->
+                <div id="newAddressForm"
+                     style="display:none;margin-top:16px;padding:16px;
+                            background:var(--pi-bg-subtle);border-radius:var(--pi-radius);
+                            border:1px solid var(--pi-border);">
+
+                    <div style="font-size:12px;font-weight:600;color:var(--pi-text-1);
+                                margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">
+                        Add New Address
+                    </div>
+
+                    <form id="inlineAddressForm">
+                        @Html.AntiForgeryToken()
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">Street Address <span style="color:var(--pi-danger);">*</span></label>
+                                <input type="text" id="newStreet" class="form-control form-control-sm"
+                                       placeholder="88 Speedway Drive" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">City</label>
+                                <input type="text" id="newCity" class="form-control form-control-sm" placeholder="Toronto">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Province / State</label>
+                                <input type="text" id="newProvince" class="form-control form-control-sm" placeholder="ON">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Postal / Zip Code</label>
+                                <input type="text" id="newPostal" class="form-control form-control-sm"
+                                       placeholder="M5V 1A1" maxlength="10">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Country</label>
+                                <input type="text" id="newCountry" class="form-control form-control-sm" value="Canada">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Address Type</label>
+                                <select id="newAddressType" class="form-select form-select-sm">
+                                    <option value="Both">Billing &amp; Shipping</option>
+                                    <option value="Billing">Billing only</option>
+                                    <option value="Shipping">Shipping only</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input type="checkbox" id="newIsDefault" class="form-check-input">
+                                    <label for="newIsDefault" class="form-check-label" style="font-size:13px;">
+                                        Set as default address
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-12" style="display:flex;gap:8px;margin-top:4px;">
+                                <button type="button" class="pi-btn pi-btn-primary pi-btn-sm"
+                                        onclick="saveNewAddress()">
+                                    Save Address
+                                </button>
+                                <button type="button" class="pi-btn pi-btn-ghost pi-btn-sm"
+                                        onclick="toggleNewAddress()">
+                                    Cancel
+                                </button>
+                            </div>
+                            <div id="addressSaveError" style="display:none;"
+                                 class="pi-notice pi-notice-danger col-12">
+                                Failed to save address. Please check the fields and try again.
+                            </div>
+                        </div>
+                    </form>
+                </div>
         </div>
     </div>
 
     <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header fw-semibold">Order Summary</div>
-            <div class="card-body">
-                <table class="table table-sm table-borderless mb-0">
+        <div class="pi-card">
+            <div class="pi-section-label">Order Summary</div>
+                <table class="pi-table" style="margin-bottom:0;border:none;">
                     <tr>
                         <td>Subtotal</td>
                         <td class="text-end">$@subtotal.ToString("F2")</td>
@@ -202,8 +268,7 @@
                     </tr>
                 </table>
 
-                <div class="alert alert-info py-2 px-3 mb-3 mt-3" role="alert"
-                     style="font-size:0.82rem; border-radius:8px;">
+                <div class="pi-notice pi-notice-info mt-3 mb-3" style="font-size:0.82rem;">
                     <strong>What happens next?</strong>
                     <ul class="mb-0 mt-1 ps-3">
                         <li>Pontello Imports will review and confirm your order.</li>
@@ -212,9 +277,16 @@
                     </ul>
                 </div>
 
+                <div class="pi-notice pi-notice-info" style="margin-bottom:16px;">
+                    <div>
+                        <strong style="display:block;margin-bottom:3px;">Please note</strong>
+                        Pontello Imports may adjust your order if there are any stock or pricing changes.
+                        You will be notified of any modifications before your order is confirmed.
+                    </div>
+                </div>
                 <form asp-action="SubmitOrder" method="post">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-success w-100 btn-lg">
+                    <button type="submit" class="pi-btn pi-btn-primary pi-btn-lg w-100">
                         Confirm and Submit Order
                     </button>
                 </form>
@@ -222,7 +294,6 @@
                 <div class="text-center mt-2">
                     <a asp-action="Cart" class="text-muted small text-decoration-none">&larr; Back to Cart</a>
                 </div>
-            </div>
         </div>
     </div>
 </div>
@@ -232,6 +303,76 @@
     function toggleShippingAddr(cb) {
         document.getElementById('shippingAddrSection').style.display =
             cb.checked ? 'none' : 'block';
+    }
+
+    function toggleNewAddress() {
+        const form = document.getElementById('newAddressForm');
+        const btn  = document.getElementById('addAddressToggle');
+        const isHidden = form.style.display === 'none';
+        form.style.display = isHidden ? 'block' : 'none';
+        btn.textContent   = isHidden ? '− Cancel' : '+ Add a new address';
+    }
+
+    async function saveNewAddress() {
+        const street      = document.getElementById('newStreet').value.trim();
+        const city        = document.getElementById('newCity').value.trim();
+        const province    = document.getElementById('newProvince').value.trim();
+        const postal      = document.getElementById('newPostal').value.trim();
+        const country     = document.getElementById('newCountry').value.trim();
+        const addressType = document.getElementById('newAddressType').value;
+        const isDefault   = document.getElementById('newIsDefault').checked;
+        const token       = document.querySelector('[name=__RequestVerificationToken]')?.value ?? '';
+
+        if (!street) { alert('Street address is required.'); return; }
+
+        const errEl = document.getElementById('addressSaveError');
+        errEl.style.display = 'none';
+
+        try {
+            const res = await fetch('/DealerAccount/AddAddressJson', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ street, city, provinceState: province,
+                    postalZipCode: postal, country: country || 'Canada',
+                    addressType, isDefault })
+            });
+
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            addAddressToDropdowns(data.addressId,
+                `${street}, ${city} ${postal}`, addressType, isDefault);
+
+            toggleNewAddress();
+            document.getElementById('newStreet').value   = '';
+            document.getElementById('newCity').value     = '';
+            document.getElementById('newProvince').value = '';
+            document.getElementById('newPostal').value   = '';
+            document.getElementById('newIsDefault').checked = false;
+        } catch {
+            errEl.style.display = 'flex';
+        }
+    }
+
+    function addAddressToDropdowns(id, label, type, isDefault) {
+        if (type === 'Billing' || type === 'Both') {
+            const sel = document.querySelector('[name=BillingAddressId]');
+            if (sel) {
+                sel.add(new Option(label, id));
+                if (isDefault) sel.value = id;
+            }
+        }
+        if (type === 'Shipping' || type === 'Both') {
+            const sel = document.querySelector('[name=ShippingAddressId]');
+            if (sel) {
+                sel.add(new Option(label, id));
+                if (isDefault) sel.value = id;
+            }
+        }
     }
     </script>
 }

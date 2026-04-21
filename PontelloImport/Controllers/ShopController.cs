@@ -69,6 +69,12 @@ namespace PontelloImport.Controllers
 
             ViewData["DealerNotifications"] = dealerNotifications;
             ViewData["DealerUnreadCount"]   = dealerNotifications.Count(n => !n.IsRead);
+
+            // Cart item count
+            var dealerCart = await _context.Carts
+                .Include(c => c.CartItems)
+                .FirstOrDefaultAsync(c => c.DealerID == dealerId);
+            ViewData["CartCount"] = dealerCart?.CartItems.Sum(i => i.Quantity) ?? 0;
         }
 
         private async Task SetUnviewedOrderCount(int dealerId)
@@ -805,6 +811,22 @@ namespace PontelloImport.Controllers
                 n.IsRead = true;
                 await _context.SaveChangesAsync();
             }
+            return Json(new { ok = true });
+        }
+
+        // POST: /Shop/DealerClearAllNotificationsJson  (AJAX)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DealerClearAllNotificationsJson()
+        {
+            var dealerId = await GetCurrentDealerIdAsync();
+            if (dealerId == null) return Json(new { ok = false });
+
+            var notifs = await _context.Notifications
+                .Where(n => n.DealerID == dealerId.Value)
+                .ToListAsync();
+            _context.Notifications.RemoveRange(notifs);
+            await _context.SaveChangesAsync();
             return Json(new { ok = true });
         }
 

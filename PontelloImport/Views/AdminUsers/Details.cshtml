@@ -10,8 +10,8 @@
         : roles.Contains("Admin") ? "Admin"
         : roles.Contains("Staff") ? "Staff"
         : roles.FirstOrDefault() ?? "—";
-    var roleColor = roles.Contains("SuperAdmin") ? "#dc2626"
-        : roles.Contains("Admin") ? "#028090" : "#6b7280";
+    var roleBadgeClass = roles.Contains("SuperAdmin") ? "pi-badge-cancelled"
+        : roles.Contains("Admin") ? "pi-badge-shipped" : "pi-badge-pending";
     var initials = (!string.IsNullOrEmpty(Model.FirstName) ? Model.FirstName[0].ToString() : "")
                  + (!string.IsNullOrEmpty(Model.LastName) ? Model.LastName[0].ToString() : "");
     var isLocked = Model.LockoutEnabled && Model.LockoutEnd.HasValue
@@ -22,8 +22,8 @@
 <div class="container-fluid mt-4">
     <div class="row mb-3 align-items-center">
         <div class="col">
-            <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-2">
-                <i class="bi bi-arrow-left me-1"></i> Back to Staff
+            <a asp-action="Index" class="pi-btn pi-btn-ghost pi-btn-sm me-2">
+                &#8592; Back to Staff
             </a>
         </div>
     </div>
@@ -52,19 +52,19 @@
             <div class="card mb-4">
                 <div class="card-body text-center pt-4">
                     <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold mb-3"
-                         style="width:64px;height:64px;background:#0D3D38;color:#02C39A;font-size:1.4rem;">
+                         style="width:64px;height:64px;background:var(--pi-shadow);color:var(--pi-emerald);font-size:1.4rem;">
                         @initials.ToUpper()
                     </div>
                     <h5 class="mb-0">@Model.FirstName @Model.LastName</h5>
                     <div class="text-muted small mb-2">@Model.Email</div>
-                    <span class="badge" style="background:@roleColor;">@roleLabel</span>
+                    <span class="pi-badge @roleBadgeClass">@roleLabel</span>
                     @if (isLocked)
                     {
-                        <span class="badge bg-danger ms-1">Inactive</span>
+                        <span class="pi-badge pi-badge-cancelled ms-1">Inactive</span>
                     }
                     else
                     {
-                        <span class="badge bg-success ms-1">Active</span>
+                        <span class="pi-badge pi-badge-confirmed ms-1">Active</span>
                     }
                 </div>
             </div>
@@ -91,7 +91,7 @@
                                         <option value="Staff" selected>Staff</option>
                                     }
                                 </select>
-                                <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">
+                                <button type="submit" class="pi-btn pi-btn-blue pi-btn-sm text-nowrap">
                                     Update
                                 </button>
                             </div>
@@ -112,7 +112,7 @@
                                        value="@Model.Email"
                                        placeholder="New email address" />
                             </div>
-                            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                            <button type="submit" class="pi-btn pi-btn-ghost pi-btn-sm w-100">
                                 Update Email
                             </button>
                         </form>
@@ -128,7 +128,7 @@
                             <form asp-action="ReactivateUser" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="userId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-success w-100">
+                                <button type="submit" class="pi-btn pi-btn-primary pi-btn-sm w-100">
                                     Reinstate Account
                                 </button>
                             </form>
@@ -139,7 +139,7 @@
                                   onsubmit="return confirm('Suspend this account?')">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="userId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                <button type="submit" class="pi-btn pi-btn-danger pi-btn-sm w-100">
                                     Suspend Account
                                 </button>
                             </form>
@@ -196,7 +196,7 @@
                                         </td>
                                         <td>
                                             <span class="badge"
-                                                  style="background:#E5F9F6;color:#028090;font-size:0.75rem;">
+                                                  style="background:var(--pi-cool-blue);color:var(--pi-primary-dk);font-size:0.75rem;">
                                                 @h.ChangeType
                                             </span>
                                         </td>

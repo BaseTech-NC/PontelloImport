@@ -12,7 +12,7 @@
             <h1 class="h4 mb-0">Staff Accounts</h1>
         </div>
         <div class="col-auto">
-            <a asp-action="CreateStaff" class="btn btn-sm btn-primary">
+            <a asp-action="CreateStaff" class="pi-btn pi-btn-primary">
                 <i class="bi bi-plus-circle me-1"></i> Create Staff Account
             </a>
         </div>
@@ -69,10 +69,10 @@
             </select>
         </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+            <button type="submit" class="pi-btn pi-btn-ghost pi-btn-sm">Filter</button>
             @if (!string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(roleFilter))
             {
-                <a asp-action="Index" class="btn btn-sm btn-link text-muted ms-1">Clear</a>
+                <a asp-action="Index" class="pi-btn pi-btn-ghost pi-btn-sm ms-1">Clear</a>
             }
         </div>
     </form>
@@ -86,7 +86,7 @@
                         <th>Email</th>
                         <th>Role</th>
                         <th>Status</th>
-                        <th></th>
+                        <th aria-label="Actions"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -98,9 +98,9 @@
                             : roles.Contains("Admin") ? "Admin"
                             : roles.Contains("Staff") ? "Staff"
                             : string.Join(", ", roles);
-                        var roleBadgeClass = roles.Contains("SuperAdmin") ? "bg-danger"
-                            : roles.Contains("Admin") ? "bg-primary"
-                            : "bg-secondary";
+                        var roleBadgeClass = roles.Contains("SuperAdmin") ? "pi-badge-cancelled"
+                            : roles.Contains("Admin") ? "pi-badge-shipped"
+                            : "pi-badge-pending";
 
                         <tr>
                             <td class="fw-semibold">
@@ -111,21 +111,21 @@
                             </td>
                             <td>@user.Email</td>
                             <td>
-                                <span class="badge @roleBadgeClass">@roleLabel</span>
+                                <span class="pi-badge @roleBadgeClass">@roleLabel</span>
                             </td>
                             <td>
                                 @if (isLocked)
                                 {
-                                    <span class="badge bg-danger">Inactive</span>
+                                    <span class="pi-badge pi-badge-cancelled">Inactive</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-success">Active</span>
+                                    <span class="pi-badge pi-badge-confirmed">Active</span>
                                 }
                             </td>
                             <td class="text-end">
                                 <a asp-action="Details" asp-route-id="@user.Id"
-                                   class="btn btn-sm btn-outline-secondary me-1">Details</a>
+                                   class="pi-btn pi-btn-blue pi-btn-sm me-1">Details</a>
                                 @if (!roles.Contains("SuperAdmin"))
                                 {
                                     if (isLocked)
@@ -133,7 +133,7 @@
                                         <form asp-action="ReactivateUser" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="userId" value="@user.Id" />
-                                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <button type="submit" class="pi-btn pi-btn-primary pi-btn-sm">
                                                 Reactivate
                                             </button>
                                         </form>
@@ -143,7 +143,7 @@
                                         <form asp-action="DeactivateUser" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="userId" value="@user.Id" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <button type="submit" class="pi-btn pi-btn-danger pi-btn-sm">
                                                 Deactivate
                                             </button>
                                         </form>

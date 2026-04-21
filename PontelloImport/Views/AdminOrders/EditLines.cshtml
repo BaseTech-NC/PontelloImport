@@ -9,7 +9,7 @@
 
     <div class="row mb-4 align-items-center">
         <div class="col-auto">
-            <a asp-action="Details" asp-route-id="@Model.OrderID" class="btn btn-outline-secondary btn-sm">
+            <a asp-action="Details" asp-route-id="@Model.OrderID" class="pi-btn pi-btn-ghost pi-btn-sm">
                 <i class="bi bi-arrow-left me-1"></i> Back to Order
             </a>
         </div>
@@ -19,8 +19,8 @@
     </div>
 
     <!-- FIX 1: teal info banner replacing amber alert -->
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:#F0FDF4;border-left:4px solid #028090;border-radius:0 8px 8px 0;margin-bottom:20px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#028090" stroke-width="2" style="flex-shrink:0;margin-top:1px;">
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:var(--pi-cool-blue);border-left:4px solid var(--pi-nitro-blue);border-radius:0 8px 8px 0;margin-bottom:20px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pi-nitro-blue)" stroke-width="2" style="flex-shrink:0;margin-top:1px;">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -56,22 +56,21 @@
             </div>
         </div>
 
-        <div class="card mb-4">
-            <!-- FIX 1: replace blue card-header -->
-            <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--bs-secondary-color,#6c757d);border-bottom:1px solid #e9ecef;">
+        <div class="pi-card mb-4" style="padding:0;">
+            <div style="padding:14px 16px 8px 16px;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;color:var(--pi-text-2);border-bottom:1px solid var(--pi-border);">
                 Order Lines
             </div>
-            <div class="card-body p-0">
+            <div style="padding:0;">
                 <div class="table-responsive">
-                    <table id="order-lines-table" class="table table-sm align-middle mb-0">
-                        <thead class="table-light">
+                    <table id="order-lines-table" class="pi-table" style="margin-bottom:0;">
+                        <thead>
                             <tr>
                                 <th>Product</th>
                                 <th>Variant</th>
                                 <th>SKU</th>
                                 <th class="text-end">Unit Price</th>
                                 <th class="text-center" style="width:130px;">Quantity</th>
-                                <th></th>
+                                <th aria-label="Actions"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -125,24 +124,24 @@
                 </div>
 
                 <!-- FIX 3 Part B: Add Product -->
-                <div style="margin:12px 16px;padding-top:12px;border-top:1px solid #f1f5f9;">
+                <div style="margin:12px 16px;padding-top:12px;border-top:1px solid var(--pi-border);">
                     <button type="button" id="add-product-btn"
                             onclick="showProductSearch()"
-                            style="background:transparent;border:1.5px dashed #028090;color:#028090;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                            class="pi-btn pi-btn-blue">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                         Add Product
                     </button>
-                    <div id="product-search-panel" style="display:none;margin-top:12px;background:#f8fafc;border:1px solid #e9ecef;border-radius:8px;padding:14px;">
-                        <div style="font-size:12px;color:var(--bs-secondary-color);margin-bottom:8px;">
+                    <div id="product-search-panel" style="display:none;margin-top:12px;background:var(--pi-bg-subtle);border:1px solid var(--pi-border);border-radius:8px;padding:14px;">
+                        <div style="font-size:12px;color:var(--pi-text-2);margin-bottom:8px;">
                             Search for a product to add to this order
                         </div>
                         <input type="text" id="product-search-input"
                                placeholder="Type product name or SKU..."
                                oninput="searchProducts(this.value)"
-                               style="width:100%;border:1px solid #e9ecef;border-radius:6px;padding:8px 12px;font-size:13px;box-sizing:border-box;">
+                               style="width:100%;border:1px solid var(--pi-border);border-radius:6px;padding:8px 12px;font-size:13px;box-sizing:border-box;">
                         <div id="product-search-results" style="margin-top:8px;"></div>
                     </div>
                 </div>
@@ -150,10 +149,10 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="pi-btn pi-btn-primary">
                 <i class="bi bi-save me-1"></i> Save Changes
             </button>
-            <a asp-action="Details" asp-route-id="@Model.OrderID" class="btn btn-outline-secondary">
+            <a asp-action="Details" asp-route-id="@Model.OrderID" class="pi-btn pi-btn-ghost">
                 Cancel
             </a>
         </div>
@@ -247,21 +246,21 @@
             .then(items => {
                 const el = document.getElementById('product-search-results');
                 if (!items.length) {
-                    el.innerHTML = '<div style="font-size:12px;color:#6b7280;padding:8px;">No results</div>';
+                    el.innerHTML = '<div style="font-size:12px;color:var(--pi-text-2);padding:8px;">No results</div>';
                     return;
                 }
                 el.innerHTML = items.map(i => `
                     <div onclick="addProductLine(${i.variantID}, '${escStr(i.productTitle)}', '${escStr(i.sku)}', ${i.price}, '${escStr(i.variantTitle || '')}')"
                          style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;cursor:pointer;border-radius:6px;font-size:13px;transition:background 0.15s;"
-                         onmouseover="this.style.background='#f1f5f9'"
+                         onmouseover="this.style.background='var(--pi-bg-subtle)'"
                          onmouseout="this.style.background=''">
                         <div>
                             <span style="font-weight:500;">${i.productTitle}</span>
-                            <span style="color:#6b7280;font-size:11px;margin-left:6px;">${i.sku}</span>
+                            <span style="color:var(--pi-text-2);font-size:11px;margin-left:6px;">${i.sku}</span>
                         </div>
-                        <div style="color:#028090;font-size:12px;text-align:right;">
+                        <div style="color:var(--pi-nitro-blue);font-size:12px;text-align:right;">
                             $${i.price.toFixed(2)}
-                            <span style="color:#6b7280;">(${i.inventoryQuantity} in stock)</span>
+                            <span style="color:var(--pi-text-2);">(${i.inventoryQuantity} in stock)</span>
                         </div>
                     </div>`).join('');
             });
@@ -289,7 +288,7 @@
                        class="form-control form-control-sm text-center mx-auto"
                        style="width:80px;">
             </td>
-            <td><span style="color:#028090;font-size:11px;">New</span></td>`;
+            <td><span style="color:var(--pi-nitro-blue);font-size:11px;">New</span></td>`;
         tbody.appendChild(row);
 
         document.getElementById('product-search-panel').style.display = 'none';

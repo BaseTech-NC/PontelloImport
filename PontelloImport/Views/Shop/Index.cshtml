@@ -9,22 +9,22 @@
 
 <style>
     .shop-input {
-        border: 1px solid #E5E7EB;
+        border: 1px solid var(--pi-border);
         border-radius: 8px;
         font-size: 0.9rem;
-        color: #111827;
+        color: var(--pi-text-1);
         background: #ffffff;
         transition: border-color 150ms;
     }
 
     .shop-input:focus {
-        border-color: #2563EB;
-        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        border-color: var(--pi-nitro-blue);
+        box-shadow: 0 0 0 3px rgba(89,183,255,0.15);
     }
 
     .product-card {
         background: #ffffff;
-        border: 1px solid #E5E7EB;
+        border: 1px solid var(--pi-border);
         border-radius: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         padding: 1.25rem;
@@ -39,104 +39,33 @@
     }
 
     .product-card .product-title {
-        color: #111827;
+        color: var(--pi-text-1);
         font-weight: 500;
         font-size: 0.95rem;
         margin-bottom: 0.3rem;
     }
 
     .product-card .product-meta {
-        color: #4B5563;
+        color: var(--pi-text-2);
         font-size: 0.8rem;
         margin-bottom: 0.2rem;
     }
 
     .product-card .product-price {
-        color: #111827;
+        color: var(--pi-text-1);
         font-weight: 600;
         font-size: 1rem;
         margin-bottom: 1rem;
-    }
-
-    .btn-view-product {
-        background: #2563EB;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        font-weight: 500;
-        font-size: 0.875rem;
-        padding: 0.5rem 1rem;
-        width: 100%;
-        text-align: center;
-        text-decoration: none;
-        display: block;
-        transition: background 150ms;
-    }
-
-    .btn-view-product:hover {
-        background: #1D4ED8;
-        color: #ffffff;
-    }
-
-    .btn-cart {
-        color: #111827;
-        border: 1px solid #E5E7EB;
-        background: #ffffff;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        padding: 0.45rem 1rem;
-        text-decoration: none;
-        transition: background 150ms, border-color 150ms;
-    }
-
-    .btn-cart:hover {
-        background: #F3F4F6;
-        border-color: #D1D5DB;
-        color: #111827;
-    }
-
-    .btn-filter {
-        background: #2563EB;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        padding: 0.45rem 1.25rem;
-        transition: background 150ms;
-    }
-
-    .btn-filter:hover {
-        background: #1D4ED8;
-        color: #ffffff;
-    }
-
-    .btn-clear {
-        color: #4B5563;
-        border: 1px solid #E5E7EB;
-        background: transparent;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        padding: 0.45rem 1rem;
-        text-decoration: none;
-        transition: background 150ms;
-    }
-
-    .btn-clear:hover {
-        background: #F3F4F6;
-        color: #374151;
     }
 </style>
 
 <!-- Header -->
 <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
     <div>
-        <h1 style="font-weight: 600; color: #111827; font-size: 1.4rem; margin-bottom: 0.15rem;">Browse Products</h1>
-        <p style="color: #4B5563; font-size: 0.875rem; margin: 0;">Browse and order from our full range of motorsports components.</p>
+        <h1 style="font-weight: 600; color: var(--pi-text-1); font-size: 1.4rem; margin-bottom: 0.15rem;">Browse Products</h1>
+        <p style="color: var(--pi-text-2); font-size: 0.875rem; margin: 0;">Browse and order from our full range of motorsports components.</p>
     </div>
-    <a asp-controller="Shop" asp-action="Cart" class="btn-cart">
+    <a asp-controller="Shop" asp-action="Cart" class="pi-btn pi-btn-ghost">
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" class="me-1" viewBox="0 0 16 16" style="vertical-align: -1px;">
             <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l1.313 7h8.17l1.313-7zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
         </svg>
@@ -160,18 +89,17 @@
                 </option>
             }
         </select>
-        <button type="submit" class="btn-filter">Filter</button>
+        <button type="submit" class="pi-btn pi-btn-blue">Filter</button>
         @if (!string.IsNullOrEmpty(currentSearch) || currentCategoryId.HasValue)
         {
-            <a asp-action="Index" class="btn-clear">Clear</a>
+            <a asp-action="Index" class="pi-btn pi-btn-ghost">Clear</a>
         }
     </div>
 </form>
 
 @if (!Model.Any())
 {
-    <div style="text-align:center; padding: 3rem 0; color: #4B5563;">
-        <div style="font-size: 2rem; margin-bottom: 0.75rem;">📦</div>
+    <div style="text-align:center; padding: 3rem 0; color: var(--pi-text-2);">
         <p style="margin: 0;">No products found matching your criteria.</p>
     </div>
 }
@@ -194,16 +122,17 @@ else
                 totalInventoryCount += pv.InventoryQuantity;
             }
 
+            // Out of stock: deny-policy variant with zero inventory
+            bool isOutOfStock = defaultVariant != null
+                && defaultVariant.InventoryQuantity <= 0
+                && defaultVariant.StockPolicy == "deny";
+
+            // Low stock: positive inventory at or below threshold
+            bool isLow = totalInventoryCount > 0 && totalInventoryCount <= 5;
+
             <div class="col">
                 <div class="product-card">
-                    @if (totalInventoryCount <= 10)
-                    {
-                        <p class="product-title">@product.Title (📦Low)</p>
-                    }
-                    else
-                    {
-                        <p class="product-title">@product.Title</p>
-                    }
+                    <p class="product-title">@product.Title</p>
                     <p class="product-meta">@(product.Vendor?.VendorName ?? "—")</p>
                     <p class="product-meta mb-3">@(product.ProductCategory?.CategoryName ?? "—")</p>
                     <div class="mt-auto">
@@ -218,26 +147,48 @@ else
                             }
                             @if (variantCount > 1 && !isSimple)
                             {
-                                <span style="color:#4B5563; font-weight:400; font-size:0.8rem;" class="ms-1">@variantCount variants</span>
+                                <span style="color:var(--pi-text-2);font-weight:400;font-size:0.8rem;" class="ms-1">@variantCount variants</span>
                             }
                         </p>
                         @if (isSimpleOrSingle && defaultVariant != null)
                         {
-                            <div class="d-flex gap-2">
-                                <form asp-controller="Shop" asp-action="AddToCart" method="post" class="flex-grow-1">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="productVariantId" value="@defaultVariant.VariantID" />
-                                    <input type="hidden" name="quantity" value="1" />
-                                    <input type="hidden" name="returnUrl" value="/Shop" />
-                                    <button type="submit" class="btn-view-product">Add to Cart</button>
-                                </form>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+                                @if (isOutOfStock)
+                                {
+                                    <button type="button" class="pi-btn-cart" disabled>
+                                        Add to Cart
+                                    </button>
+                                }
+                                else
+                                {
+                                    <form asp-controller="Shop" asp-action="AddToCart" method="post" style="width:100%;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="productVariantId" value="@defaultVariant.VariantID" />
+                                        <input type="hidden" name="quantity" value="1" />
+                                        <input type="hidden" name="returnUrl" value="/Shop" />
+                                        <button type="submit" class="pi-btn-cart">Add to Cart</button>
+                                    </form>
+                                }
                                 <a asp-action="Product" asp-route-id="@product.ProductID"
-                                   class="btn-cart" style="white-space:nowrap;">View Product</a>
+                                   class="pi-btn-view">View Product</a>
                             </div>
+
+                            @if (isOutOfStock)
+                            {
+                                <div style="font-size:11px;color:#C53030;text-align:center;margin-top:5px;">
+                                    Out of stock — check back soon
+                                </div>
+                            }
+                            else if (isLow)
+                            {
+                                <div style="font-size:11px;color:#D97706;text-align:center;margin-top:5px;">
+                                    Low stock
+                                </div>
+                            }
                         }
                         else
                         {
-                            <a asp-action="Product" asp-route-id="@product.ProductID" class="btn-view-product">View Product &amp; Options</a>
+                            <a asp-action="Product" asp-route-id="@product.ProductID" class="pi-btn-view" style="margin-top:12px;">View Product &amp; Options</a>
                         }
                     </div>
                 </div>
@@ -245,7 +196,7 @@ else
         }
     </div>
 
-    <p style="color: #4B5563; font-size: 0.8rem; margin-top: 1rem;">
+    <p style="color: var(--pi-text-2); font-size: 0.8rem; margin-top: 1rem;">
         Showing @Model.Count product@(Model.Count == 1 ? "" : "s")
     </p>
 }

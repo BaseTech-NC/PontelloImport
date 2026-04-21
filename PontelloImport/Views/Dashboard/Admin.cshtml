@@ -55,7 +55,7 @@
 <div class="container-fluid mt-4" style="max-width:1200px;">
 
     <div class="mb-4">
-        <h1 style="font-weight:600;color:var(--pi-text-1);font-size:1.4rem;margin-bottom:2px;">Dashboard</h1>
+        <h1 style="font-family:var(--pi-font-head);font-weight:700;color:var(--pi-text-1);font-size:1.6rem;margin-bottom:2px;">Dashboard</h1>
         <p style="color:var(--pi-text-2);font-size:0.875rem;margin:0;">@DateTime.Today.ToString("dddd, MMMM d, yyyy")</p>
     </div>
 
@@ -87,7 +87,7 @@
             </div>
         </div>
         <div class="col-sm-6 col-xl-3">
-            <div class="pi-stat" style="border-top-color:var(--pi-success);">
+            <div class="pi-stat pi-stat-emerald">
                 <div class="pi-stat-label">Revenue This Month</div>
                 <div class="pi-stat-value">@Model.RevenueThisMonth.ToString("C0")</div>
             </div>
@@ -133,11 +133,11 @@
                                         <td style="font-weight:600;">@order.OrderNumber</td>
                                         <td>@order.DealerCompanyName</td>
                                         <td class="text-end">@order.TotalAmount.ToString("C")</td>
-                                        <td><span class="@StatusBadge(order.Status)">@order.Status</span></td>
+                                        <td><span class="@StatusBadge(order.Status)">@(order.Status == "ActionRequired" ? "Action Required" : order.Status)</span></td>
                                         <td class="muted">@TimeAgo(order.CreatedDate)</td>
                                         <td class="text-end">
                                             <a asp-controller="AdminOrders" asp-action="Details" asp-route-id="@order.OrderID"
-                                               class="pi-btn pi-btn-primary pi-btn-sm">Review</a>
+                                               class="pi-btn pi-btn-blue pi-btn-sm">Review</a>
                                         </td>
                                     </tr>
                                 }
@@ -191,7 +191,7 @@
                     </div>
                     <div style="text-align:right;margin-top:8px;">
                         <a asp-controller="AuditHistory" asp-action="Index"
-                           style="font-size:12px;color:var(--pi-primary);
+                           style="font-size:12px;color:#1565C0;
                                   text-decoration:none;font-weight:500;">
                             View full audit history &rarr;
                         </a>
@@ -208,20 +208,26 @@
             <div class="pi-card mb-4">
                 <div class="pi-card-header">Quick actions</div>
                 <div style="display:flex;flex-direction:column;gap:8px;">
-                    <a asp-controller="ProductVariants" asp-action="Create"
-                       class="pi-btn pi-btn-secondary" style="justify-content:center;">New Product</a>
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                    {
+                        <a asp-controller="ProductVariants" asp-action="Create"
+                           class="pi-btn pi-btn-blue" style="justify-content:center;">New Product</a>
+                    }
                     <a asp-controller="AdminOrders" asp-action="Index"
-                       class="pi-btn pi-btn-ghost" style="justify-content:center;">View All Orders</a>
-                    <a asp-controller="AdminDealers" asp-action="Dealers"
-                       class="pi-btn pi-btn-ghost" style="justify-content:center;">Manage Dealers</a>
-                    <a asp-controller="AdminDealers" asp-action="Index"
-                       class="pi-btn pi-btn-ghost" style="justify-content:center;">
-                        Applications
-                        @if (Model.PendingApplications > 0)
-                        {
-                            <span class="pi-badge pi-badge-action" style="font-size:10px;">@Model.PendingApplications</span>
-                        }
-                    </a>
+                       class="pi-btn pi-btn-blue" style="justify-content:center;">View All Orders</a>
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                    {
+                        <a asp-controller="AdminDealers" asp-action="Dealers"
+                           class="pi-btn pi-btn-blue" style="justify-content:center;">Manage Dealers</a>
+                        <a asp-controller="AdminDealers" asp-action="Index"
+                           class="pi-btn pi-btn-blue" style="justify-content:center;">
+                            Applications
+                            @if (Model.PendingApplications > 0)
+                            {
+                                <span class="pi-badge pi-badge-action" style="font-size:10px;">@Model.PendingApplications</span>
+                            }
+                        </a>
+                    }
                 </div>
             </div>
 

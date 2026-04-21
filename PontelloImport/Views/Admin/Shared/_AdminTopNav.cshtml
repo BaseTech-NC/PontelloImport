@@ -16,10 +16,10 @@
         ? "Super Admin"
         : User.IsInRole("Admin")
             ? "Admin" : "Staff";
-    var roleColor = User.IsInRole("SuperAdmin")
-        ? "#dc2626"
+    var roleBadgeClass = User.IsInRole("SuperAdmin")
+        ? "pi-badge-cancelled"
         : User.IsInRole("Admin")
-            ? "#028090" : "#6b7280";
+            ? "pi-badge-shipped" : "pi-badge-pending";
 }
 
 <nav class="w-100 d-flex align-items-center justify-content-between px-3">
@@ -29,9 +29,7 @@
         <a href="@Url.Action("Index", "Home")">
             <img src="~/images/pontello-Imports-Logo.png"
                  alt="Pontello Imports Logo"
-                 class="img-fluid"
-                 width="55"
-                 height="45" />
+                 class="img-fluid" />
         </a>
     </div>
 
@@ -59,7 +57,7 @@
                 @if (unreadCount > 0)
                 {
                     <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
-                          style="background:#028090; font-size:0.6rem; min-width:16px; padding:2px 4px;
+                          style="background:var(--pi-nitro-blue); font-size:0.6rem; min-width:16px; padding:2px 4px;
                                  transform: translate(-70%, 0%) !important;">
                         @(unreadCount > 9 ? "9+" : unreadCount.ToString())
                     </span>
@@ -79,8 +77,8 @@
                                 <form asp-controller="Notifications" asp-action="MarkAllRead" method="post"
                                       asp-route-returnUrl="@Context.Request.Path">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-link p-0"
-                                            style="font-size:0.75rem; color:#028090; text-decoration:none;">
+                                    <button type="submit"
+                                            style="font-size:0.75rem; color:var(--pi-nitro-blue); background:none; border:none; padding:0; cursor:pointer; text-decoration:none;">
                                         Mark all read
                                     </button>
                                 </form>
@@ -88,8 +86,8 @@
                             <form asp-controller="Notifications" asp-action="DeleteAll" method="post"
                                   asp-route-returnUrl="@Context.Request.Path">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-link p-0"
-                                        style="font-size:0.75rem; color:#9CA3AF; text-decoration:none;"
+                                <button type="submit"
+                                        style="font-size:0.75rem; color:var(--pi-text-2); background:none; border:none; padding:0; cursor:pointer; text-decoration:none;"
                                         onclick="return confirm('Clear all notifications?')">
                                     Clear all
                                 </button>
@@ -182,7 +180,7 @@
                 <li class="px-3 py-2 border-bottom">
                     <div class="fw-semibold text-dark">@fullName</div>
                     <div class="text-muted" style="font-size:0.8rem;">@currentUser?.Email</div>
-                    <span class="badge mt-1" style="background:@roleColor;font-size:0.7rem;">@role</span>
+                    <span class="pi-badge @roleBadgeClass mt-1">@role</span>
                 </li>
                 <li>
                     <a class="dropdown-item py-2"

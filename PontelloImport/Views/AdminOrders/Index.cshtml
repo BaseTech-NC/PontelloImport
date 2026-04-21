@@ -3,354 +3,304 @@
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Orders";
-    var currentStatus = ViewBag.CurrentStatus as string ?? "";
-    var currentSearch = ViewBag.CurrentSearch as string ?? "";
-    var currentPage = (int)(ViewData["Page"] ?? 1);
-    var pageSize = (int)(ViewData["PageSize"] ?? 25);
-    var totalCount = (int)(ViewData["TotalCount"] ?? 0);
-    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
-    var dateFrom = ViewData["DateFrom"] as string ?? "";
-    var dateTo = ViewData["DateTo"] as string ?? "";
+    var activeTab     = ViewData["ActiveTab"] as string ?? "all";
+    var currentSearch = ViewData["Search"] as string ?? "";
+    var fulfillment   = ViewData["Fulfillment"] as string ?? "";
+    var billing       = ViewData["Billing"] as string ?? "";
+    var currentPage   = (int)(ViewData["Page"] ?? 1);
+    var pageSize      = (int)(ViewData["PageSize"] ?? 25);
+    var totalCount    = (int)(ViewData["TotalCount"] ?? 0);
+    var totalPages    = (int)(ViewData["TotalPages"] ?? 1);
+    var dateFrom      = ViewData["DateFrom"] as string ?? "";
+    var dateTo        = ViewData["DateTo"] as string ?? "";
+
+    // Pre-computed selected states for <option> elements (string? so Razor omits attr when null)
+    string? selFulfillNotShipped = fulfillment == "notshipped" ? "selected" : null;
+    string? selFulfillShipped    = fulfillment == "shipped"    ? "selected" : null;
+    string? selBillNotInvoiced   = billing == "notinvoiced"         ? "selected" : null;
+    string? selBillInvoiced      = billing == "invoiced"            ? "selected" : null;
+    string? selShippedNotInv     = billing == "shipped_notinvoiced" ? "selected" : null;
+    string? selInvoicedNotShip   = billing == "invoiced_notshipped" ? "selected" : null;
+    string? selPs10 = pageSize == 10 ? "selected" : null;
+    string? selPs25 = pageSize == 25 ? "selected" : null;
+    string? selPs50 = pageSize == 50 ? "selected" : null;
 }
 
 <style>
-    /* Global font override for admin pages */
-    *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
-
-    /* Status filter tabs */
-    .order-tabs {
-        display: flex;
-        gap: 2px;
-        border-bottom: 1px solid #E5E7EB;
-        margin-bottom: 1.25rem;
-        flex-wrap: wrap;
-    }
-
-    .order-tab {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 0.5rem 0.85rem;
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: #4B5563;
-        text-decoration: none;
-        border-bottom: 2px solid transparent;
-        margin-bottom: -1px;
-        border-radius: 4px 4px 0 0;
-        transition: color 150ms, background 150ms;
-    }
-
-    .order-tab:hover {
-        color: #111827;
-        background: #F3F4F6;
-    }
-
-    .order-tab.active {
-        color: #2563EB;
-        border-bottom-color: #2563EB;
-        background: transparent;
-    }
-
-    .order-tab .tab-count {
-        font-size: 0.72rem;
-        font-weight: 600;
-        padding: 1px 6px;
-        border-radius: 999px;
-        background: #F3F4F6;
-        color: #4B5563;
-    }
-
-    .order-tab.active .tab-count {
-        background: #EFF6FF;
-        color: #2563EB;
-    }
-
-    /* Table card */
     .orders-table-card {
-        background: #ffffff;
-        border: 1px solid #E5E7EB;
-        border-radius: 12px;
+        background: var(--pi-bg-card);
+        border: 1px solid var(--pi-border);
+        border-radius: var(--pi-radius-lg);
         overflow: hidden;
     }
 
-    .orders-table-card table {
-        margin-bottom: 0;
-    }
+    .orders-table-card table { margin-bottom: 0; }
 
-    .orders-table-card thead th {
-        font-size: 0.72rem;
+    /* Details action button — outlined, visible on white AND cool-blue hover rows */
+    .order-details-btn {
+        display: inline-block;
+        padding: 5px 13px;
+        border-radius: var(--pi-radius-sm);
+        border: 1.5px solid var(--pi-border-md);
+        background: var(--pi-bg-card);
+        color: var(--pi-text-1);
+        font-family: var(--pi-font-body);
+        font-size: 12px;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #4B5563;
-        background: #F8FAFC;
-        border-bottom: 1px solid #E5E7EB;
-        padding: 0.75rem 1rem;
-    }
-
-    .orders-table-card tbody td {
-        padding: 0.8rem 1rem;
-        border-bottom: 1px solid #F3F4F6;
-        color: #111827;
-        font-size: 0.875rem;
-        vertical-align: middle;
-    }
-
-    .orders-table-card tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    .orders-table-card tbody tr:hover td {
-        background: #F8FAFC;
-    }
-
-    /* Soft status badges */
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 3px 10px;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-    }
-
-    .badge-submitted      { background: #EFF6FF; color: #2563EB; }
-    .badge-confirmed      { background: #F0FDF4; color: #15803D; }
-    .badge-actionrequired { background: #FFF7ED; color: #9A3412; }
-    .badge-shipped        { background: #FAF5FF; color: #7C3AED; }
-    .badge-invoiced       { background: #F0FDFA; color: #0F766E; }
-    .badge-cancelled      { background: #FEF2F2; color: #B91C1C; }
-    .badge-default        { background: #F3F4F6; color: #4B5563; }
-
-    /* Details button */
-    .btn-details {
-        color: #2563EB;
-        border: 1px solid #BFDBFE;
-        background: transparent;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        padding: 0.3rem 0.75rem;
         text-decoration: none;
-        transition: background 150ms;
+        transition: border-color 0.12s, box-shadow 0.12s;
         white-space: nowrap;
     }
-
-    .btn-details:hover {
-        background: #EFF6FF;
-        color: #1D4ED8;
+    .order-details-btn:hover {
+        border-color: var(--pi-nitro-blue);
+        box-shadow: 0 0 0 2px rgba(89,183,255,0.20);
+        color: var(--pi-text-1);
     }
 
-    /* Search input */
-    .orders-search {
-        border: 1px solid #E5E7EB;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        color: #111827;
-        background: #ffffff;
-        transition: border-color 150ms;
-    }
-
-    .orders-search:focus {
-        border-color: #2563EB;
-        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-    }
-
-    .btn-search {
-        background: #111827;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        padding: 0.45rem 1.1rem;
-        transition: background 150ms;
-    }
-
-    .btn-search:hover { background: #1F2937; color: #ffffff; }
-
-    .btn-clear-search {
-        color: #4B5563;
-        border: 1px solid #E5E7EB;
-        background: transparent;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        padding: 0.45rem 0.85rem;
-        text-decoration: none;
-        transition: background 150ms;
-    }
-
-    .btn-clear-search:hover { background: #F3F4F6; color: #374151; }
-
-    /* Pagination — matches Product Catalogue style */
     .pag { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 1.25rem; }
     .pag-link {
         display: inline-flex; align-items: center; justify-content: center;
         min-width: 32px; height: 32px; padding: 0 0.5rem;
-        font-size: 0.8rem; font-weight: 500; text-decoration: none;
-        border: 1px solid #E5E7EB; border-radius: 6px;
-        color: #4B5563; background: #fff;
+        font-family: var(--pi-font-body); font-size: 0.8rem; font-weight: 500; text-decoration: none;
+        border: 1px solid var(--pi-border); border-radius: 6px;
+        color: var(--pi-text-2); background: var(--pi-bg-card);
     }
-    .pag-link:hover { background: #F3F4F6; color: #111827; }
-    .pag-link.active { background: #2563EB; color: #fff; border-color: #2563EB; }
-    .pag-link.disabled { color: #6B7280; pointer-events: none; }
+    .pag-link:hover { background: var(--pi-bg-subtle); color: var(--pi-text-1); }
+    .pag-link.active { background: var(--pi-nitro-blue); color: #000; border-color: var(--pi-nitro-blue); }
+    .pag-link.disabled { color: var(--pi-text-3); pointer-events: none; }
 </style>
-
-@functions {
-    string StatusBadgeClass(string status) => status switch
-    {
-        "Submitted"      => "status-badge badge-submitted",
-        "Confirmed"      => "status-badge badge-confirmed",
-        "ActionRequired" => "status-badge badge-actionrequired",
-        "Shipped"        => "status-badge badge-shipped",
-        "Invoiced"       => "status-badge badge-invoiced",
-        "Cancelled"      => "status-badge badge-cancelled",
-        _                => "status-badge badge-default"
-    };
-}
 
 <div class="container-fluid mt-4" style="max-width: 1200px;">
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
-            <h1 style="font-weight: 600; color: #111827; font-size: 1.4rem; margin-bottom: 0.2rem;">Order Management</h1>
-            <p style="color: #4B5563; font-size: 0.875rem; margin: 0;">Review and process all dealer orders.</p>
+            <h1 style="font-weight:600;color:var(--pi-text-1);font-size:1.4rem;margin-bottom:0.2rem;">Order Management</h1>
+            <p style="color:var(--pi-text-2);font-size:0.875rem;margin:0;">Review and process all dealer orders.</p>
         </div>
         <a asp-action="ExportCsv"
-           asp-route-statusFilter="@currentStatus"
            asp-route-search="@currentSearch"
            asp-route-dateFrom="@dateFrom"
            asp-route-dateTo="@dateTo"
-           class="btn btn-outline-secondary btn-sm">
+           class="pi-btn pi-btn-blue pi-btn-sm">
             Export CSV
         </a>
     </div>
 
-    <!-- Search + Date Filter Bar -->
-    <form asp-action="Index" method="get" class="mb-3">
-        <input type="hidden" name="status" value="@currentStatus" />
-        <div class="d-flex gap-2 align-items-center flex-wrap mb-2">
-            <input type="text" name="search" class="orders-search form-control" style="max-width: 280px;"
-                   placeholder="Search PO number or dealer…" value="@currentSearch"
-                   aria-label="Search orders by PO number or dealer" autocomplete="off" />
-            <label class="form-label small mb-0" for="orderDateFrom">From</label>
-            <input type="date" id="orderDateFrom" name="dateFrom" class="orders-search form-control" style="max-width: 160px;"
-                   value="@dateFrom" />
-            <label class="form-label small mb-0" for="orderDateTo">To</label>
-            <input type="date" id="orderDateTo" name="dateTo" class="orders-search form-control" style="max-width: 160px;"
-                   value="@dateTo" />
-            <div class="d-flex align-items-center gap-2">
-                <label for="pageSize" class="mb-0 text-nowrap small">Show</label>
-                <select id="pageSize" name="pageSize"
-                        class="form-select form-select-sm"
-                        style="width: auto;"
-                        onchange="this.form.submit()">
-                    <option value="10" selected="@(pageSize == 10)">10</option>
-                    <option value="25" selected="@(pageSize == 25)">25</option>
-                    <option value="50" selected="@(pageSize == 50)">50</option>
-                </select>
-                <span class="small text-muted">orders per page</span>
-            </div>
-            <button type="submit" class="btn-search">Apply</button>
-            @if (!string.IsNullOrEmpty(currentSearch) || !string.IsNullOrEmpty(dateFrom) || !string.IsNullOrEmpty(dateTo))
+    <!-- ROW 1 — Tab pills + secondary dropdowns on one line -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+
+        <!-- Tab pills -->
+        <div style="display:flex;gap:2px;background:var(--pi-pit-grey);border-radius:var(--pi-radius);padding:3px;">
+            @{
+                var tabs = new (string val, string lbl, object? cnt)[]
+                {
+                    ("all",            "All",             ViewData["AllCount"]),
+                    ("submitted",      "Submitted",       ViewData["SubmittedCount"]),
+                    ("actionrequired", "Action Required", ViewData["ActionCount"]),
+                    ("confirmed",      "Confirmed",       ViewData["ConfirmedCount"]),
+                    ("cancelled",      "Cancelled",       ViewData["CancelledCount"])
+                };
+            }
+            @foreach (var (val, lbl, cnt) in tabs)
             {
-                <a asp-action="Index" asp-route-status="@currentStatus" class="btn-clear-search">Clear</a>
+                bool isActive = activeTab == val;
+                int count = cnt != null ? (int)cnt : 0;
+                <a href="?tab=@val&fulfillment=@fulfillment&billing=@billing&search=@currentSearch&pageSize=@pageSize"
+                   style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:6px;font-family:var(--pi-font-body);font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;text-decoration:none;transition:all 0.12s;background:@(isActive ? "var(--pi-bg-card)" : "transparent");color:@(isActive ? "var(--pi-text-1)" : "var(--pi-text-2)");box-shadow:@(isActive ? "0 1px 3px rgba(0,0,0,0.10)" : "none");">
+                    @lbl
+                    @if (count > 0)
+                    {
+                        <span style="background:@(isActive ? "var(--pi-nitro-blue)" : "var(--pi-border-md)");color:@(isActive ? "#000000" : "var(--pi-text-2)");border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;line-height:1.4;">@count</span>
+                    }
+                </a>
             }
         </div>
-    </form>
 
-    <!-- Status Filter Tabs -->
-    <div class="order-tabs">
-        @{
-            object TabRoute(string? s) => new { status = s, search = currentSearch, dateFrom, dateTo, pageSize };
-        }
-        <a class="order-tab @(string.IsNullOrEmpty(currentStatus) ? "active" : "")"
-           href="@Url.Action("Index", TabRoute(null))">
-            All <span class="tab-count">@ViewBag.AllCount</span>
-        </a>
-        <a class="order-tab @(currentStatus == "Submitted" ? "active" : "")"
-           href="@Url.Action("Index", TabRoute("Submitted"))">
-            Submitted <span class="tab-count">@ViewBag.SubmittedCount</span>
-        </a>
-        <a class="order-tab @(currentStatus == "ActionRequired" ? "active" : "")"
-           href="@Url.Action("Index", TabRoute("ActionRequired"))">
-            Action Required <span class="tab-count">@ViewBag.ActionRequiredCount</span>
-        </a>
-        <a class="order-tab @(currentStatus == "Confirmed" ? "active" : "")"
-           href="@Url.Action("Index", TabRoute("Confirmed"))">
-            Confirmed <span class="tab-count">@ViewBag.ConfirmedCount</span>
-        </a>
-        <a class="order-tab @(currentStatus == "Shipped" ? "active" : "")"
-           href="@Url.Action("Index", TabRoute("Shipped"))">
-            Shipped <span class="tab-count">@ViewBag.ShippedCount</span>
-        </a>
-        <a class="order-tab @(currentStatus == "Invoiced" ? "active" : "")"
-           href="@Url.Action("Index", TabRoute("Invoiced"))">
-            Invoiced <span class="tab-count">@ViewBag.InvoicedCount</span>
-        </a>
-        <a class="order-tab @(currentStatus == "Cancelled" ? "active" : "")"
-           href="@Url.Action("Index", TabRoute("Cancelled"))">
-            Cancelled <span class="tab-count">@ViewBag.CancelledCount</span>
-        </a>
+        <!-- Secondary dropdowns — same row as tabs -->
+        <form method="get" id="filterForm" style="display:flex;gap:8px;align-items:center;">
+            <input type="hidden" name="tab" value="@activeTab">
+            <input type="hidden" name="search" value="@currentSearch">
+            <input type="hidden" name="pageSize" value="@pageSize">
+
+            <select name="fulfillment"
+                    class="form-select form-select-sm"
+                    onchange="document.getElementById('filterForm').submit()"
+                    style="font-family:var(--pi-font-body);font-size:12px;min-width:130px;border-color:var(--pi-border-md);">
+                <option value="">All shipping</option>
+                <option value="notshipped" selected="@selFulfillNotShipped">Not shipped</option>
+                <option value="shipped"    selected="@selFulfillShipped">Shipped</option>
+            </select>
+
+            <select name="billing"
+                    class="form-select form-select-sm"
+                    onchange="document.getElementById('filterForm').submit()"
+                    style="font-family:var(--pi-font-body);font-size:12px;min-width:130px;border-color:var(--pi-border-md);">
+                <option value="">All billing</option>
+                <option value="notinvoiced"         selected="@selBillNotInvoiced">Not invoiced</option>
+                <option value="invoiced"            selected="@selBillInvoiced">Invoiced</option>
+                <option value="shipped_notinvoiced" selected="@selShippedNotInv">Shipped — not invoiced</option>
+                <option value="invoiced_notshipped" selected="@selInvoicedNotShip">Invoiced — not shipped</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(fulfillment) || !string.IsNullOrEmpty(billing))
+            {
+                <a href="?tab=@activeTab&search=@currentSearch"
+                   style="font-size:12px;color:var(--pi-text-2);text-decoration:none;white-space:nowrap;">
+                    Clear
+                </a>
+            }
+        </form>
     </div>
+
+    <!-- ROW 2 — Search + date range + page size + Apply on one line -->
+    <form asp-action="Index" method="get" style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+        <input type="hidden" name="tab"         value="@activeTab">
+        <input type="hidden" name="fulfillment" value="@fulfillment">
+        <input type="hidden" name="billing"     value="@billing">
+        <input type="hidden" name="pageSize"    value="@pageSize">
+
+        <!-- Search -->
+        <div style="flex:1;min-width:220px;max-width:360px;">
+            <label for="orderSearch" class="visually-hidden">Search orders</label>
+            <input id="orderSearch"
+                   type="text"
+                   name="search"
+                   class="form-control form-control-sm"
+                   value="@currentSearch"
+                   placeholder="Search PO number or dealer..."
+                   style="font-family:var(--pi-font-body);font-size:13px;">
+        </div>
+
+        <!-- Date range -->
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--pi-text-2);white-space:nowrap;">From</span>
+            <input type="date"
+                   name="dateFrom"
+                   class="form-control form-control-sm"
+                   value="@dateFrom"
+                   style="font-family:var(--pi-font-body);font-size:12px;width:150px;">
+            <span style="font-size:12px;color:var(--pi-text-2);">to</span>
+            <input type="date"
+                   name="dateTo"
+                   class="form-control form-control-sm"
+                   value="@dateTo"
+                   style="font-family:var(--pi-font-body);font-size:12px;width:150px;">
+        </div>
+
+        <!-- Page size -->
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--pi-text-2);white-space:nowrap;">Show</span>
+            <select name="pageSize"
+                    class="form-select form-select-sm"
+                    style="width:70px;font-family:var(--pi-font-body);font-size:12px;">
+                <option value="10" selected="@selPs10">10</option>
+                <option value="25" selected="@selPs25">25</option>
+                <option value="50" selected="@selPs50">50</option>
+            </select>
+        </div>
+
+        <!-- Apply button — Cool Blue, black text -->
+        <button type="submit" class="pi-btn pi-btn-blue pi-btn-sm">Apply</button>
+
+        <!-- Clear all link -->
+        @if (!string.IsNullOrEmpty(currentSearch) || !string.IsNullOrEmpty(dateFrom) || !string.IsNullOrEmpty(dateTo))
+        {
+            <a href="?tab=@activeTab&fulfillment=@fulfillment&billing=@billing"
+               style="font-size:12px;color:var(--pi-text-2);text-decoration:none;">
+                Clear
+            </a>
+        }
+    </form>
 
     <!-- Orders Table -->
     <div class="orders-table-card">
-        @if (Model.Count == 0)
-        {
-            <div style="text-align:center; padding:3rem; color:#4B5563;">
-                <div style="font-size:1.75rem; margin-bottom:0.6rem;">📭</div>
-                <p style="margin:0; font-size:0.9rem;">No orders found.</p>
-            </div>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="pi-table">
-                    <thead>
+        <div class="table-responsive">
+            <table class="pi-table">
+                <thead>
+                    <tr>
+                        <th class="col-po">PO Number</th>
+                        <th class="col-dealer">Dealer</th>
+                        <th class="col-date">Date</th>
+                        <th class="col-badge">Status</th>
+                        <th class="col-amount">Total</th>
+                        <th class="col-action" aria-label="Actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
                         <tr>
-                            <th class="col-po">PO Number</th>
-                            <th class="col-dealer">Dealer</th>
-                            <th class="col-date">Date</th>
-                            <th class="col-badge">Status</th>
-                            <th class="col-amount">Total</th>
-                            <th class="col-action" aria-label="Actions"></th>
+                            <td colspan="6" style="text-align:center;padding:48px 20px;">
+                                <div style="font-family:var(--pi-font);font-size:18px;font-weight:700;color:var(--pi-text-1);margin-bottom:8px;">
+                                    No orders found
+                                </div>
+                                <div style="font-size:13px;color:var(--pi-text-2);margin-bottom:16px;">
+                                    Try adjusting your filters or search criteria
+                                </div>
+                                @if (!string.IsNullOrEmpty(currentSearch) || activeTab != "all"
+                                     || !string.IsNullOrEmpty(fulfillment) || !string.IsNullOrEmpty(billing))
+                                {
+                                    <a href="/AdminOrders" class="pi-btn pi-btn-ghost pi-btn-sm">Clear all filters</a>
+                                }
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var order in Model)
+                    }
+                    @foreach (var order in Model)
+                    {
+                        var rowBadge   = order.Status switch
                         {
-                            <tr class="order-row">
-                                <td style="font-weight: 600;">@order.PONumber</td>
-                                <td style="color: #374151;">@order.DealerCompanyName</td>
-                                <td style="color: #4B5563;">@order.OrderDate.ToString("MMM d, yyyy")</td>
-                                <td>
-                                    <span class="@StatusBadgeClass(order.Status)">@order.Status</span>
-                                </td>
-                                <td style="text-align:right; font-weight:600;">@order.TotalAmount.ToString("C")</td>
-                                <td style="text-align:right;">
-                                    <a asp-action="Details" asp-route-id="@order.OrderID" class="btn-details">Details</a>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
+                            "Submitted"      => "pi-badge-submitted",
+                            "ActionRequired" => "pi-badge-action",
+                            "Confirmed"      => "pi-badge-confirmed",
+                            "Cancelled"      => "pi-badge-cancelled",
+                            _                => "pi-badge-submitted"
+                        };
+                        var rowLabel   = order.Status == "ActionRequired" ? "Action Required" : order.Status;
+                        var shipText   = order.FulfillmentStatus == "Shipped"  ? "Shipped"      : "Not shipped";
+                        var billText   = order.BillingStatus     == "Invoiced" ? "Invoiced"     : "Not invoiced";
+                        bool isWarning = order.BillingStatus == "Invoiced" && order.FulfillmentStatus == "NotShipped";
+                        // #92400E = dark amber — passes WCAG AA on both white rows and the #C7EEFF hover background
+                        var subColor   = isWarning ? "#92400E" : "var(--pi-text-2)";
+                        bool showSub   = order.Status == "Confirmed"
+                                         || order.FulfillmentStatus == "Shipped"
+                                         || order.BillingStatus == "Invoiced";
+                        <tr class="pi-table-row"
+                            onclick="window.location='/AdminOrders/Details/@order.OrderID'"
+                            style="cursor:pointer;">
+                            <td style="font-weight:600;">@order.PONumber</td>
+                            <td>@order.DealerCompanyName</td>
+                            <td style="color:var(--pi-text-2);">@order.OrderDate.ToString("MMM d, yyyy")</td>
+                            <td>
+                                <span class="pi-badge @rowBadge">@rowLabel</span>
+                                @if (showSub)
+                                {
+                                    <div style="font-size:11px;margin-top:5px;color:@subColor;font-weight:@(isWarning ? "600" : "400");">
+                                        @shipText · @billText
+                                    </div>
+                                }
+                            </td>
+                            <td style="text-align:right;font-weight:600;">@order.TotalAmount.ToString("C")</td>
+                            <td style="text-align:right;">
+                                <a asp-action="Details" asp-route-id="@order.OrderID"
+                                   class="order-details-btn"
+                                   onclick="event.stopPropagation();">Details</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Pagination -->
     @if (totalCount > 0)
     {
         var rangeStart = (currentPage - 1) * pageSize + 1;
-        var rangeEnd = Math.Min(currentPage * pageSize, totalCount);
-        object PageRoute(int p) => new { status = currentStatus, search = currentSearch, dateFrom, dateTo, pageSize, page = p };
+        var rangeEnd   = Math.Min(currentPage * pageSize, totalCount);
+        object PageRoute(int p) => new { tab = activeTab, fulfillment, billing, search = currentSearch, dateFrom, dateTo, pageSize, page = p };
 
-        <div style="text-align:center; margin-top:0.75rem;">
+        <div style="text-align:center;margin-top:0.75rem;">
             <small class="text-muted d-block mb-2">
                 Showing @rangeStart–@rangeEnd of @totalCount orders
             </small>
@@ -359,7 +309,7 @@
         @if (totalPages > 1)
         {
             var startPage = Math.Max(1, currentPage - 2);
-            var endPage = Math.Min(totalPages, currentPage + 2);
+            var endPage   = Math.Min(totalPages, currentPage + 2);
 
             <div class="pag">
                 <a class="pag-link @(currentPage == 1 ? "disabled" : "")"

@@ -55,7 +55,7 @@ namespace PontelloImport.Areas.Identity.Pages.Account
                     code,
                     email = Input.Email
                 },
-                protocol: Request.Scheme);
+                protocol: "https");
 
             try
             {

@@ -48,10 +48,10 @@
                 <option value="suspended" selected="@(status == "suspended")">Suspended</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-sm btn-dark mb-0">Apply</button>
+        <button type="submit" class="pi-btn pi-btn-blue pi-btn-sm mb-0">Apply</button>
         @if (!string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(status))
         {
-            <a asp-action="Dealers" class="btn btn-sm btn-outline-secondary mb-0">Clear</a>
+            <a asp-action="Dealers" class="pi-btn pi-btn-ghost pi-btn-sm mb-0">Clear</a>
         }
     </form>
 
@@ -91,7 +91,7 @@
                             <td>
                                 @if (item.Dealer.IsTaxExempt)
                                 {
-                                    <span class="badge bg-info text-dark">Yes</span>
+                                    <span class="pi-badge pi-badge-info">Yes</span>
                                 }
                                 else
                                 {
@@ -101,18 +101,18 @@
                             <td>
                                 @if (item.IsActive)
                                 {
-                                    <span class="badge bg-success">Active</span>
+                                    <span class="pi-badge pi-badge-confirmed">Active</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger">Suspended</span>
+                                    <span class="pi-badge pi-badge-cancelled">Suspended</span>
                                 }
                             </td>
                             <td class="text-center">@item.OrderCount</td>
                             <td>
                                 <div class="d-flex gap-1">
                                     <a asp-action="DealerProfile" asp-route-id="@item.Dealer.DealerID"
-                                       class="btn btn-sm btn-outline-secondary">View</a>
+                                       class="pi-btn pi-btn-blue pi-btn-sm">View Profile</a>
 
                                     @if (item.IsActive)
                                     {
@@ -120,7 +120,7 @@
                                               method="post" class="d-inline"
                                               onsubmit="return confirm('Suspend this dealer account?')">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            <button type="submit" class="pi-btn pi-btn-danger pi-btn-sm"
                                                     data-bs-toggle="tooltip"
                                                     title="Prevent this dealer from logging in.">Suspend</button>
                                         </form>
@@ -130,7 +130,7 @@
                                         <form asp-action="ReinstateDealer" asp-route-id="@item.Dealer.DealerID"
                                               method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-success"
+                                            <button type="submit" class="pi-btn pi-btn-primary pi-btn-sm"
                                                     data-bs-toggle="tooltip"
                                                     title="Restore this dealer's access.">Reinstate</button>
                                         </form>

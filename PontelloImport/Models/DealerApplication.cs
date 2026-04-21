@@ -6,7 +6,6 @@ namespace PontelloImport.Models
     {
         public int ApplicationID { get; set; }
 
-        // ── New fields (current form) ─────────────────────────────────────────
         [Required, MaxLength(100)]
         public string FirstName { get; set; } = "";
 
@@ -40,7 +39,6 @@ namespace PontelloImport.Models
         [MaxLength(255)]
         public string? WebsiteSocialMedia { get; set; }
 
-        // ── Legacy fields (kept for backward compat with old records) ─────────
         [MaxLength(255)]
         public string? SubmittedCompanyName { get; set; }
 
@@ -62,7 +60,6 @@ namespace PontelloImport.Models
         public int? RequestedPaymentTermsID { get; set; }
         public PaymentTerms? RequestedPaymentTerms { get; set; }
 
-        // ── Status ────────────────────────────────────────────────────────────
         [Required, MaxLength(20)]
         public string Status { get; set; } = "Pending";
 

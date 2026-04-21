@@ -112,7 +112,6 @@ namespace PontelloImport.Controllers
             return View(application);
         }
 
-        // ── Password generator ───────────────────────────────────────────────
         private string GenerateTempPassword(string firstName, string phone)
         {
             var clean = new string(
@@ -284,7 +283,6 @@ namespace PontelloImport.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ── Dealer Management ────────────────────────────────────────────────
 
         // GET: /AdminDealers/Dealers
         [HttpGet]

@@ -313,5 +313,103 @@ namespace PontelloImport.Services
             await SendWithAttachment(dealerEmail, dealerName, dealerHtml);
             await SendWithAttachment(adminEmail, "Pontello Imports", adminHtml);
         }
+
+        public async Task SendNewApplicationNotificationAsync(
+            string applicantName,
+            string companyName,
+            string applicantEmail,
+            string phone,
+            string city,
+            string province)
+        {
+            var subject =
+                $"New Dealer Application — {companyName}";
+
+            var body = $@"
+<div style='font-family:Arial,sans-serif;
+             max-width:600px;margin:0 auto;
+             color:#1A1714;'>
+  <div style='background:#332F29;padding:24px;'>
+    <h2 style='color:#55DA7D;margin:0;
+               font-size:20px;'>
+      New Dealer Application Received
+    </h2>
+  </div>
+  <div style='padding:24px;
+              border:1px solid #E2E0DC;'>
+    <p style='margin:0 0 16px;font-size:14px;'>
+      A new dealer application has been submitted
+      and is awaiting your review.
+    </p>
+    <table style='width:100%;border-collapse:
+                  collapse;font-size:14px;'>
+      <tr>
+        <td style='padding:8px 0;color:#5C5650;
+                   width:140px;'>Applicant</td>
+        <td style='padding:8px 0;
+                   font-weight:600;'>
+          {applicantName}
+        </td>
+      </tr>
+      <tr>
+        <td style='padding:8px 0;color:#5C5650;'>
+          Company
+        </td>
+        <td style='padding:8px 0;
+                   font-weight:600;'>
+          {companyName}
+        </td>
+      </tr>
+      <tr>
+        <td style='padding:8px 0;color:#5C5650;'>
+          Email
+        </td>
+        <td style='padding:8px 0;'>
+          {applicantEmail}
+        </td>
+      </tr>
+      <tr>
+        <td style='padding:8px 0;color:#5C5650;'>
+          Phone
+        </td>
+        <td style='padding:8px 0;'>{phone}</td>
+      </tr>
+      <tr>
+        <td style='padding:8px 0;color:#5C5650;'>
+          Location
+        </td>
+        <td style='padding:8px 0;'>
+          {city}, {province}
+        </td>
+      </tr>
+    </table>
+    <div style='margin-top:24px;'>
+      <a href='https://basetech-pontello.azurewebsites.net/AdminDealers'
+         style='background:#55DA7D;
+                color:#000000;
+                padding:12px 24px;
+                text-decoration:none;
+                font-weight:600;
+                font-size:13px;
+                letter-spacing:1px;
+                display:inline-block;'>
+        REVIEW APPLICATION
+      </a>
+    </div>
+    <p style='margin:16px 0 0;font-size:12px;
+              color:#9C9690;'>
+      Log in to the Pontello Imports admin portal
+      to review and approve or reject this
+      application.
+    </p>
+  </div>
+</div>";
+
+            await SendAsync(
+                "noreply.pontelloimports@gmail.com",
+                "Pontello Imports Admin",
+                subject,
+                body);
+        }
     }
 }

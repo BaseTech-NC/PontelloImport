@@ -309,7 +309,6 @@ namespace PontelloImport.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(QuickCreateViewModel model, string saveAction = "draft")
         {
-            // ── 1. Trim all string inputs ──────────────────────────────────────────
             model.ProductTitle      = model.ProductTitle?.Trim() ?? "";
             model.SKU               = model.SKU?.Trim() ?? "";
             model.Description       = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim();
@@ -337,7 +336,6 @@ namespace PontelloImport.Controllers
                     s.Value = s.Value?.Trim() ?? "";
                 }
 
-            // ── 2. Suppress Required errors for the inactive path ──────────────────
             if (model.HasVariants)
             {
                 ModelState.Remove("SKU");
@@ -345,7 +343,6 @@ namespace PontelloImport.Controllers
                 ModelState.Remove("InventoryQuantity");
             }
 
-            // ── 3. Business-rule validation ────────────────────────────────────────
 
             var trimmedTitle = model.ProductTitle;
             if (!string.IsNullOrWhiteSpace(trimmedTitle))
@@ -518,7 +515,6 @@ namespace PontelloImport.Controllers
                 return View(model);
             }
 
-            // ── 4. Save product ────────────────────────────────────────────────────
             var createdBy = User.Identity?.Name ?? "system";
             var productStatus = saveAction == "publish" ? ProductStatus.Published : ProductStatus.Draft;
 
@@ -713,7 +709,6 @@ namespace PontelloImport.Controllers
         {
             if (id != viewModel.ProductID) return NotFound();
 
-            // ── 1. Trim inputs ─────────────────────────────────────────────────────
             viewModel.Title             = viewModel.Title?.Trim() ?? "";
             viewModel.Description       = string.IsNullOrWhiteSpace(viewModel.Description) ? null : viewModel.Description.Trim();
             viewModel.SKU               = viewModel.SKU?.Trim() ?? "";
@@ -738,7 +733,6 @@ namespace PontelloImport.Controllers
                     s.Value = s.Value?.Trim() ?? "";
                 }
 
-            // ── 2. Remove irrelevant-path model errors ─────────────────────────────
             if (viewModel.IsSimpleProduct)
             {
                 ModelState.Remove("Option1Name");
@@ -752,7 +746,6 @@ namespace PontelloImport.Controllers
                 ModelState.Remove("InventoryQuantity");
             }
 
-            // ── 3. Business-rule validation ────────────────────────────────────────
 
             if (!string.IsNullOrWhiteSpace(viewModel.Title))
             {
@@ -898,7 +891,6 @@ namespace PontelloImport.Controllers
                 return View(viewModel);
             }
 
-            // ── 4. Persist changes ─────────────────────────────────────────────────
             var modifiedBy = User.Identity?.Name ?? "system";
 
             var product = await _context.Products.FindAsync(viewModel.ProductID);
@@ -947,7 +939,6 @@ namespace PontelloImport.Controllers
             }
             else
             {
-                // ── Update existing variants ───────────────────────────────────
                 foreach (var row in viewModel.Variants!)
                 {
                     if (row.VariantID <= 0) continue;
@@ -980,7 +971,6 @@ namespace PontelloImport.Controllers
                     }
                 }
 
-                // ── Insert new variants (VariantID == 0) ──────────────────────
                 foreach (var row in viewModel.Variants!.Where(r => r.VariantID <= 0 && !r.IsArchived))
                 {
                     _context.ProductVariants.Add(new ProductVariant
@@ -1360,7 +1350,7 @@ namespace PontelloImport.Controllers
 
                     if (!handleExists)
                     {
-                        // TASK 1 FIX: save the product FIRST to get a real ProductID before
+                        // save the product FIRST to get a real ProductID before
                         // creating any ProductVariant that references it via FK.
                         var newProduct = new Product
                         {

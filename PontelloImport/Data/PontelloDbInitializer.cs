@@ -22,6 +22,9 @@ namespace PontelloImport.Data
                     context.SaveChanges();
                 }
 
+                // Repair addresses with NULL DealerID — always runs, idempotent
+                await RepairAddressDealerIDs(context);
+
                 // Repair any duplicate order numbers and sync the sequence — always runs
                 await RepairDuplicateOrderNumbers(context);
 
@@ -165,7 +168,6 @@ namespace PontelloImport.Data
 
                 // ===== SEED 5 — PRODUCTS + VARIANTS (20 total) =====
 
-                // --- Product 1: Nerf Bar (standalone) ---
 
                 var nerfBar = new Product
                 {
@@ -194,7 +196,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 2: MG Tire Yellow (multi-variant: Compound) ---
 
                 var mgTireYellow = new Product
                 {
@@ -236,7 +237,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 3: Vortex ROK GP Engine (draft) ---
 
                 var vortexRok = new Product
                 {
@@ -265,7 +265,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 4: Racing Gloves (standalone) ---
 
                 var racingGloves = new Product
                 {
@@ -294,7 +293,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 5: Kart Helmet (standalone) ---
 
                 var kartHelmet = new Product
                 {
@@ -323,7 +321,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 6: Brake Disc 206mm (standalone) ---
 
                 var brakeDisc = new Product
                 {
@@ -352,7 +349,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 7: Brake Caliper Kit (standalone) ---
 
                 var brakeCaliperKit = new Product
                 {
@@ -381,7 +377,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 8: Front Fairing (2 variants: Color Black/White) ---
 
                 var frontFairing = new Product
                 {
@@ -423,7 +418,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 9: Side Pod Set (2 variants: Color Black/White) ---
 
                 var sidePodSet = new Product
                 {
@@ -465,7 +459,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 10: Mychron 5 Lap Timer (standalone) ---
 
                 var mychron5 = new Product
                 {
@@ -494,7 +487,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 11: Chain Lube 500ml (standalone) ---
 
                 var chainLube = new Product
                 {
@@ -523,7 +515,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 12: Kart Stand (standalone) ---
 
                 var kartStand = new Product
                 {
@@ -552,7 +543,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 13: Steering Wheel 300mm (standalone) ---
 
                 var steeringWheel = new Product
                 {
@@ -581,7 +571,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 14: Racing Suit (3 variants: Size S/M/L) ---
 
                 var racingSuit = new Product
                 {
@@ -634,7 +623,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 15: Rotax Max Engine (standalone, draft) ---
 
                 var rotaxMax = new Product
                 {
@@ -663,7 +651,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 16: Birel ART Chassis (standalone) ---
 
                 var birelChassis = new Product
                 {
@@ -692,7 +679,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 17: Tony Kart Racer 401R (standalone) ---
 
                 var tonyRacer = new Product
                 {
@@ -721,7 +707,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 18: Bridgestone YDP Tire (2 variants: Position Front/Rear) ---
 
                 var bridgestoneYdp = new Product
                 {
@@ -763,7 +748,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 19: Alfano Pro Temp Sensor (standalone) ---
 
                 var alfanoSensor = new Product
                 {
@@ -792,7 +776,6 @@ namespace PontelloImport.Data
 
                 context.SaveChanges();
 
-                // --- Product 20: Tillett T11 Seat (3 variants: Size XS/S/M) ---
 
                 var tillettSeat = new Product
                 {
@@ -1005,7 +988,6 @@ namespace PontelloImport.Data
                     return seq.LastUsedNumber.ToString("D4");
                 }
 
-                // ---- Orders 0001–0003: Submitted ----
 
                 var order0001 = new Order
                 {
@@ -1052,7 +1034,6 @@ namespace PontelloImport.Data
                     VersionNumber      = 0
                 };
 
-                // ---- Orders 0004–0006: Confirmed ----
 
                 var order0004 = new Order
                 {
@@ -1099,7 +1080,6 @@ namespace PontelloImport.Data
                     VersionNumber      = 0
                 };
 
-                // ---- Orders 0007–0009: Shipped ----
 
                 var order0007 = new Order
                 {
@@ -1149,7 +1129,6 @@ namespace PontelloImport.Data
                     TrackingNumber     = "1Z999AA10123456786"
                 };
 
-                // ---- Orders 0010–0011: Invoiced ----
 
                 var order0010 = new Order
                 {
@@ -1181,7 +1160,6 @@ namespace PontelloImport.Data
                     VersionNumber      = 0
                 };
 
-                // ---- Orders 0012–0013: ActionRequired ----
 
                 var order0012 = new Order
                 {
@@ -1213,7 +1191,6 @@ namespace PontelloImport.Data
                     VersionNumber      = 0
                 };
 
-                // ---- Orders 0014–0015: Cancelled ----
 
                 var order0014 = new Order
                 {
@@ -1272,7 +1249,6 @@ namespace PontelloImport.Data
                 );
                 context.SaveChanges();
 
-                // ---- Order Lines ----
 
                 var lines = new List<OrderLine>
                 {
@@ -1342,7 +1318,6 @@ namespace PontelloImport.Data
                 context.OrderLines.AddRange(lines);
                 context.SaveChanges();
 
-                // ---- Order History ----
 
                 var history = new List<OrderHistory>
                 {
@@ -1431,6 +1406,53 @@ namespace PontelloImport.Data
 
                 // Final sync: ensure OrderSequence matches the highest order inserted
                 await SyncOrderSequence(context);
+            }
+        }
+
+        static async Task RepairAddressDealerIDs(PontelloDbContext context)
+        {
+            // Find all dealers that have a billing or shipping address reference.
+            // BillingAddressID is int (non-nullable), so check != 0 instead of HasValue.
+            var dealers = await context.Dealers
+                .Where(d => d.BillingAddressID != 0 || d.ShippingAddressID != null)
+                .ToListAsync();
+
+            bool anyFixed = false;
+
+            foreach (var dealer in dealers)
+            {
+                if (dealer.BillingAddressID != 0)
+                {
+                    var addr = await context.Addresses.FindAsync(dealer.BillingAddressID);
+                    if (addr != null && addr.DealerID == null)
+                    {
+                        addr.DealerID = dealer.DealerID;
+                        if (!addr.IsDefault)
+                            addr.IsDefault = true;
+                        if (string.IsNullOrEmpty(addr.AddressType))
+                            addr.AddressType = "Both";
+                        anyFixed = true;
+                    }
+                }
+
+                if (dealer.ShippingAddressID.HasValue &&
+                    dealer.ShippingAddressID != dealer.BillingAddressID)
+                {
+                    var addr = await context.Addresses.FindAsync(dealer.ShippingAddressID.Value);
+                    if (addr != null && addr.DealerID == null)
+                    {
+                        addr.DealerID = dealer.DealerID;
+                        if (string.IsNullOrEmpty(addr.AddressType))
+                            addr.AddressType = "Shipping";
+                        anyFixed = true;
+                    }
+                }
+            }
+
+            if (anyFixed)
+            {
+                await context.SaveChangesAsync();
+                Console.WriteLine("Address DealerID repair: fixed orphaned addresses.");
             }
         }
 

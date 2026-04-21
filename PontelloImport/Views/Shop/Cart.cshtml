@@ -8,7 +8,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0 h2">Your Cart</h1>
-    <a asp-action="Index" class="btn btn-outline-secondary">
+    <a asp-action="Index" class="pi-btn pi-btn-ghost">
         &larr; Continue Shopping
     </a>
 </div>
@@ -22,15 +22,15 @@
 else
 {
     <div class="table-responsive">
-        <table class="table align-middle">
-            <thead class="table-light">
+        <table class="pi-table">
+            <thead>
                 <tr>
                     <th>Product</th>
                     <th>Variant / SKU</th>
                     <th class="text-end">Unit Price</th>
                     <th class="text-center" style="width: 160px;">Quantity</th>
                     <th class="text-end">Line Total</th>
-                    <th></th>
+                    <th aria-label="Actions"></th>
                 </tr>
             </thead>
             <tbody>
@@ -77,7 +77,7 @@ else
                             <form asp-action="RemoveFromCart" method="post" class="remove-form d-inline">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="cartItemId" value="@item.CartItemID" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                <button type="submit" class="pi-btn pi-btn-danger pi-btn-sm">Remove</button>
                             </form>
                         </td>
                     </tr>
@@ -94,8 +94,8 @@ else
     </div>
 
     <div class="d-flex justify-content-between align-items-center mt-3">
-        <a asp-action="Index" class="btn btn-outline-secondary">&larr; Continue Shopping</a>
-        <a asp-controller="Shop" asp-action="Checkout" class="btn btn-success btn-lg">
+        <a asp-action="Index" class="pi-btn pi-btn-ghost">&larr; Continue Shopping</a>
+        <a asp-controller="Shop" asp-action="Checkout" class="pi-btn pi-btn-primary pi-btn-lg">
             Proceed to Checkout &rarr;
         </a>
     </div>

@@ -38,7 +38,6 @@ namespace PontelloImport.Models
 
         public ProductStatus Status { get; set; } = ProductStatus.Draft;
 
-        // ── Simple path (HasVariants = false) ──────────────────────────────
         [MaxLength(100)]
         public string SKU { get; set; } = string.Empty;
 
@@ -62,7 +61,6 @@ namespace PontelloImport.Models
         [MaxLength(100)]
         public string? SimpleOptionValue { get; set; }  // e.g. "Small"
 
-        // ── Multi-variant path (HasVariants = true) ─────────────────────────
         public bool HasVariants { get; set; } = false;
 
         // Option dimension names (product-level — same across all variants)
@@ -116,7 +114,6 @@ namespace PontelloImport.Models
         public string Value { get; set; } = "";   // e.g. "2023"
     }
 
-    // ── Edit view models ────────────────────────────────────────────────────────
 
     public class EditProductViewModel
     {
@@ -143,7 +140,6 @@ namespace PontelloImport.Models
         // Determines which section renders — round-trips via hidden input
         public bool IsSimpleProduct { get; set; }
 
-        // ── Simple product path ─────────────────────────────────────────────
         public int SimpleVariantID { get; set; }
 
         [MaxLength(100)]
@@ -170,7 +166,6 @@ namespace PontelloImport.Models
         [MaxLength(100)]
         public string? SimpleOptionValue { get; set; }
 
-        // ── Variant product path ────────────────────────────────────────────
         [MaxLength(100)]
         public string? Option1Name { get; set; }
 
@@ -185,7 +180,6 @@ namespace PontelloImport.Models
 
         public List<EditVariantRowViewModel> Variants { get; set; } = new();
 
-        // ── Specifications ──────────────────────────────────────────────────
         public List<EditSpecificationRowViewModel> Specifications { get; set; } = new();
     }
 

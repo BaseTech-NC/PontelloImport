@@ -1,5 +1,4 @@
 @model List<PontelloImport.Models.Order>
-@using Microsoft.AspNetCore.Html
 
 @{
     ViewData["Title"] = "Order History";
@@ -7,7 +6,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0 h2">Order History</h1>
-    <a asp-action="Index" class="btn btn-outline-secondary">Continue Shopping</a>
+    <a asp-action="Index" class="pi-btn pi-btn-ghost">Continue Shopping</a>
 </div>
 
 @if (!Model.Any())
@@ -19,15 +18,15 @@
 else
 {
     <div class="table-responsive">
-        <table class="table align-middle">
-            <thead class="table-light">
+        <table class="pi-table">
+            <thead>
                 <tr>
                     <th class="col-po">Order #</th>
                     <th class="col-date">Date</th>
                     <th class="col-badge">Status</th>
                     <th class="text-center">Items</th>
                     <th class="col-amount">Total</th>
-                    <th class="col-action"></th>
+                    <th class="col-action" aria-label="Actions"></th>
                 </tr>
             </thead>
             <tbody>
@@ -38,25 +37,74 @@ else
                             @order.PONumber
                             @if (!order.DealerHasViewed)
                             {
-                                <span class="badge bg-success ms-1">New</span>
+                                <span class="pi-badge pi-badge-confirmed ms-1">New</span>
                             }
                         </td>
                         <td>@order.OrderDate.ToLocalTime().ToString("MMM d, yyyy")</td>
-                        <td>@StatusBadge(order.Status)</td>
+                        <td>
+                            @{
+                                string dealerStatus;
+                                string dealerSub = "";
+                                string dealerBadge;
+
+                                if (order.Status == "Cancelled")
+                                {
+                                    dealerStatus = "Cancelled";
+                                    dealerBadge  = "pi-badge-cancelled";
+                                }
+                                else if (order.Status == "Submitted" || order.Status == "ActionRequired")
+                                {
+                                    dealerStatus = "Processing";
+                                    dealerBadge  = "pi-badge-pending";
+                                    dealerSub    = "Under review";
+                                }
+                                else if (order.FulfillmentStatus == "Shipped" && order.BillingStatus == "Invoiced")
+                                {
+                                    dealerStatus = "Completed";
+                                    dealerBadge  = "pi-badge-confirmed";
+                                    dealerSub    = "Shipped &middot; Invoiced";
+                                }
+                                else if (order.FulfillmentStatus == "Shipped")
+                                {
+                                    dealerStatus = "Shipped";
+                                    dealerBadge  = "pi-badge-shipped";
+                                    dealerSub    = "Invoice pending";
+                                }
+                                else if (order.BillingStatus == "Invoiced")
+                                {
+                                    dealerStatus = "Invoiced";
+                                    dealerBadge  = "pi-badge-invoiced";
+                                    dealerSub    = "Shipping pending";
+                                }
+                                else
+                                {
+                                    dealerStatus = "Confirmed";
+                                    dealerBadge  = "pi-badge-confirmed";
+                                    dealerSub    = "Awaiting fulfilment";
+                                }
+                            }
+                            <span class="pi-badge @dealerBadge">@dealerStatus</span>
+                            @if (!string.IsNullOrEmpty(dealerSub))
+                            {
+                                <div style="font-size:10px;color:var(--pi-text-2);margin-top:2px;">
+                                    @Html.Raw(dealerSub)
+                                </div>
+                            }
+                        </td>
                         <td class="text-center">@order.OrderLines.Count</td>
                         <td class="text-end">$@order.TotalAmount.ToString("F2")</td>
                         <td class="text-end">
                             <div class="d-flex gap-2 justify-content-end">
-                                @if (new[] { "Invoiced", "Shipped", "Cancelled" }.Contains(order.Status))
+                                @if (order.Status == "Cancelled" || order.BillingStatus == "Invoiced")
                                 {
                                     <form method="post" asp-action="Reorder">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="orderId" value="@order.OrderID" />
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Reorder</button>
+                                        <button type="submit" class="pi-btn pi-btn-ghost pi-btn-sm">Reorder</button>
                                     </form>
                                 }
                                 <a asp-action="OrderDetail" asp-route-id="@order.OrderID"
-                                   class="btn btn-sm btn-outline-primary">View Details</a>
+                                   class="pi-btn pi-btn-blue pi-btn-sm">View Details</a>
                             </div>
                         </td>
                     </tr>
@@ -66,23 +114,3 @@ else
     </div>
 }
 
-@functions {
-    IHtmlContent StatusBadge(string status)
-    {
-        var (cssClass, label) = status switch
-        {
-            "Submitted"      => ("badge bg-primary", "Received by Pontello"),
-            "Confirmed"      => ("badge bg-success", "Confirmed"),
-            "Shipped"        => ("badge", "Shipped"),
-            "Invoiced"       => ("badge bg-info text-dark", "Invoiced"),
-            "Cancelled"      => ("badge bg-danger", "Cancelled"),
-            "ActionRequired" => ("badge bg-warning text-dark", "Action Required — Please Contact Us"),
-            _                => ("badge", status)
-        };
-
-        var style = status == "Shipped" ? " style=\"background:#6f42c1\""
-                  : cssClass == "badge" ? " style=\"background:#5a6473\""
-                  : "";
-        return new HtmlString($"<span class=\"{cssClass}\"{style}>{label}</span>");
-    }
-}

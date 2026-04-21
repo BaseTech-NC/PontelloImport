@@ -33,6 +33,16 @@ namespace PontelloImport.Models
         [MaxLength(100)]
         public string? TrackingNumber { get; set; }
 
+        [MaxLength(100)]
+        public string? Carrier { get; set; }
+
+        [MaxLength(50)]
+        public string? InvoiceNumber { get; set; }
+
+        public DateTime? InvoicedAt { get; set; }
+
+        public string? InvoiceNotes { get; set; }
+
         public bool IsTaxExempt { get; set; } = false;
 
         [Column(TypeName = "decimal(5,4)")]
@@ -51,6 +61,12 @@ namespace PontelloImport.Models
 
         [Required, MaxLength(20)]
         public string Status { get; set; } = "Draft";
+
+        // Three-track status — independent of Status
+        public string FulfillmentStatus { get; set; } = "NotShipped"; // NotShipped | Shipped
+        public string BillingStatus { get; set; } = "NotInvoiced";    // NotInvoiced | Invoiced
+
+        public DateTime? ShipDate { get; set; }
 
         public int? PreviousOrderID { get; set; }
         public Order? PreviousOrder { get; set; }

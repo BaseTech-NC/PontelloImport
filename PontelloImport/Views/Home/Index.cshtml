@@ -7,42 +7,43 @@
 }
 
 <!-- SECTION 1 — Hero -->
-<section class="hero-section">
+<section class="hero-section" style="padding:64px 0 0 0;">
     <div class="container">
         <div class="row align-items-center g-5">
 
             <!-- Left: copy + CTAs -->
             <div class="col-lg-7">
-                <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports"
-                     style="max-height:110px; width:auto; margin-bottom:1.75rem; display:block;" />
                 <p style="font-size:0.75rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
-                           color:#5DCAA5; margin-bottom:1.25rem;">
+                           color:var(--pi-emerald); margin-bottom:1.25rem;">
                     CANADA'S MOTORSPORTS PARTS IMPORTER
                 </p>
-                <h1 style="font-size:clamp(2rem,5vw,3.25rem); font-weight:700; color:#ffffff;
-                           line-height:1.15; margin-bottom:0.6rem;">
+                <h1 class="hero-headline"
+                    style="color:#FFFFFF; font-size:clamp(36px,5vw,64px);
+                           margin-bottom:0.6rem;">
                     Parts ordering, simplified.
                 </h1>
-                <p style="font-size:1.125rem; color:rgba(255,255,255,0.85); max-width:480px;
-                           line-height:1.65; margin-bottom:2.25rem;">
-                    The secure ordering portal for Pontello Imports dealers and staff.
+                <p style="font-family:'DM Sans',sans-serif; font-size:18px; font-weight:400;
+                           color:rgba(255,255,255,0.80); line-height:1.6; margin-top:12px;
+                           max-width:480px; margin-bottom:0;">
+                    Your pit lane to Pontello Imports.
                 </p>
-                <div class="d-flex flex-wrap gap-3">
-                    <a asp-controller="Home" asp-action="Apply"
-                       style="background:#02C39A; color:#111827; font-weight:600; font-size:0.95rem;
-                              padding:0.75rem 1.75rem; border-radius:8px; text-decoration:none;
-                              display:inline-block; transition:opacity 150ms;"
-                       onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
-                        Become a Dealer
-                    </a>
+                <div style="display:flex; gap:14px; flex-wrap:wrap;
+                            margin-top:32px; padding-bottom:64px;">
                     <a asp-area="Identity" asp-page="/Account/Login"
-                       style="color:rgba(255,255,255,0.90); border:1.5px solid rgba(255,255,255,0.80);
-                              font-weight:500; font-size:0.95rem; padding:0.75rem 1.75rem;
-                              border-radius:8px; text-decoration:none; display:inline-block;
-                              transition:border-color 150ms, background 150ms;"
-                       onmouseover="this.style.borderColor='rgba(255,255,255,1)'; this.style.background='rgba(255,255,255,0.07)'"
-                       onmouseout="this.style.borderColor='rgba(255,255,255,0.80)'; this.style.background='transparent'">
+                       style="background:#59B7FF; color:#000000; border:none; font-family:'DM Sans',sans-serif;
+                              font-weight:600; font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
+                              padding:14px 28px; border-radius:5px; cursor:pointer; transition:opacity 0.15s;
+                              text-decoration:none; display:inline-flex; align-items:center;"
+                       onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
                         Sign In to Your Account
+                    </a>
+                    <a asp-controller="Home" asp-action="Apply"
+                       style="background:#55DA7D; color:#000000; border:none; font-family:'DM Sans',sans-serif;
+                              font-weight:600; font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
+                              padding:14px 28px; border-radius:5px; cursor:pointer; transition:opacity 0.15s;
+                              text-decoration:none; display:inline-flex; align-items:center;"
+                       onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                        Open a Dealer Account
                     </a>
                 </div>
             </div>
@@ -52,11 +53,11 @@
                 <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
                             border-radius:12px; padding:1.75rem; color:#ffffff;">
                     <div style="font-size:0.75rem; font-weight:600; letter-spacing:0.08em;
-                                text-transform:uppercase; color:#02C39A; margin-bottom:0.85rem;">
-                        📦 Order #0042 — Confirmed
+                                text-transform:uppercase; color:var(--pi-emerald); margin-bottom:0.85rem;">
+                        Order #0042 — Confirmed
                     </div>
                     <div style="font-family:'Courier New', monospace; font-size:0.875rem; line-height:2;
-                                color:rgba(255,255,255,0.8); border-bottom:1px solid rgba(255,255,255,0.1);
+                                color:rgba(255,255,255,0.85); border-bottom:1px solid rgba(255,255,255,0.1);
                                 padding-bottom:1rem; margin-bottom:1rem;">
                         <div class="d-flex justify-content-between">
                             <span>CRG Helmet Pro &times; 2</span><span>$359.98</span>
@@ -65,23 +66,23 @@
                             <span>OTK Front Axle &times; 1</span><span>$89.99</span>
                         </div>
                         <div class="d-flex justify-content-between"
-                             style="color:rgba(255,255,255,0.45); font-size:0.8rem; margin-top:0.5rem;">
+                             style="color:rgba(255,255,255,0.85); font-size:0.8rem; margin-top:0.5rem;">
                             <span>Subtotal</span><span>$449.97 + HST</span>
                         </div>
                     </div>
-                    <div style="font-size:0.78rem; color:rgba(255,255,255,0.45); margin-bottom:0.65rem;">
+                    <div style="font-size:0.78rem; color:rgba(255,255,255,0.85); margin-bottom:0.65rem;">
                         Order status
                     </div>
                     <div class="d-flex gap-2 flex-wrap align-items-center">
-                        <span style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.5);
+                        <span style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.85);
                                      font-size:0.7rem; font-weight:600; padding:0.25rem 0.65rem;
                                      border-radius:20px; letter-spacing:0.04em;">Submitted</span>
-                        <span style="color:rgba(255,255,255,0.25); font-size:0.75rem;">&rarr;</span>
-                        <span style="background:#028090; color:#ffffff;
+                        <span style="color:rgba(255,255,255,0.85); font-size:0.75rem;">&rarr;</span>
+                        <span style="background:var(--pi-nitro-blue); color:var(--pi-black);
                                      font-size:0.7rem; font-weight:600; padding:0.25rem 0.65rem;
                                      border-radius:20px; letter-spacing:0.04em;">Confirmed</span>
-                        <span style="color:rgba(255,255,255,0.25); font-size:0.75rem;">&rarr;</span>
-                        <span style="background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.35);
+                        <span style="color:rgba(255,255,255,0.85); font-size:0.75rem;">&rarr;</span>
+                        <span style="background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.85);
                                      font-size:0.7rem; font-weight:600; padding:0.25rem 0.65rem;
                                      border-radius:20px; letter-spacing:0.04em;">Shipped</span>
                     </div>
@@ -98,31 +99,31 @@
         <div class="row g-4 text-center">
 
             <div class="col-md-4">
-                <div style="width:56px; height:56px; background:#028090; border-radius:50%;
+                <div style="width:56px; height:56px; background:var(--pi-nitro-blue); border-radius:50%;
                             display:flex; align-items:center; justify-content:center;
                             font-size:1.5rem; margin:0 auto 1.25rem;">🛒</div>
-                <h3 style="font-size:1.05rem; font-weight:600; color:#111827; margin-bottom:0.5rem;">Order Anytime</h3>
-                <p style="color:#6B7280; font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
+                <h2 style="font-size:1.05rem; font-weight:700; font-family:var(--pi-font-head); color:var(--pi-text-1); margin-bottom:0.5rem;">Order Anytime</h2>
+                <p style="color:var(--pi-text-2); font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
                     Browse the full catalog and submit purchase orders 24/7 — no phone calls required.
                 </p>
             </div>
 
             <div class="col-md-4">
-                <div style="width:56px; height:56px; background:#028090; border-radius:50%;
+                <div style="width:56px; height:56px; background:var(--pi-nitro-blue); border-radius:50%;
                             display:flex; align-items:center; justify-content:center;
                             font-size:1.5rem; margin:0 auto 1.25rem;">📊</div>
-                <h3 style="font-size:1.05rem; font-weight:600; color:#111827; margin-bottom:0.5rem;">Track Every Order</h3>
-                <p style="color:#6B7280; font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
+                <h2 style="font-size:1.05rem; font-weight:700; font-family:var(--pi-font-head); color:var(--pi-text-1); margin-bottom:0.5rem;">Track Every Order</h2>
+                <p style="color:var(--pi-text-2); font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
                     See real-time status updates from submission through to invoicing.
                 </p>
             </div>
 
             <div class="col-md-4">
-                <div style="width:56px; height:56px; background:#028090; border-radius:50%;
+                <div style="width:56px; height:56px; background:var(--pi-nitro-blue); border-radius:50%;
                             display:flex; align-items:center; justify-content:center;
                             font-size:1.5rem; margin:0 auto 1.25rem;">🔄</div>
-                <h3 style="font-size:1.05rem; font-weight:600; color:#111827; margin-bottom:0.5rem;">Reorder in One Click</h3>
-                <p style="color:#6B7280; font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
+                <h2 style="font-size:1.05rem; font-weight:700; font-family:var(--pi-font-head); color:var(--pi-text-1); margin-bottom:0.5rem;">Reorder in One Click</h2>
+                <p style="color:var(--pi-text-2); font-size:0.9rem; line-height:1.6; max-width:280px; margin:0 auto;">
                     Repeat a previous order instantly — items added to your cart automatically.
                 </p>
             </div>
@@ -136,39 +137,39 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-5 mb-4 mb-lg-0">
-                <div style="font-size:11px;font-weight:500;letter-spacing:1px;color:#028090;
+                <div style="font-size:11px;font-weight:600;letter-spacing:1px;color:#332F29;
                             text-transform:uppercase;margin-bottom:10px;">
                     About Us
                 </div>
-                <h2 style="font-size:28px;font-weight:500;color:#111827;margin-bottom:16px;
+                <h2 style="font-size:28px;font-weight:700;font-family:var(--pi-font-head);color:var(--pi-text-1);margin-bottom:16px;
                             line-height:1.3;">
                     More than just parts.
                 </h2>
-                <div style="width:40px;height:3px;background:#028090;margin-bottom:20px;"></div>
+                <div style="width:40px;height:3px;background:var(--pi-nitro-blue);margin-bottom:20px;"></div>
             </div>
             <div class="col-lg-7">
-                <p style="font-size:15px;color:#4b5563;line-height:1.8;margin-bottom:16px;">
+                <p style="font-size:15px;color:var(--pi-text-1);line-height:1.8;margin-bottom:16px;">
                     At Pontello Imports, we're passionate about performance and precision.
                     As a dedicated importer of high-quality go-kart parts and components,
                     we bring the best of global engineering to racers, hobbyists, and track
                     owners across North America.
                 </p>
-                <p style="font-size:15px;color:#4b5563;line-height:1.8;margin-bottom:20px;">
+                <p style="font-size:15px;color:var(--pi-text-1);line-height:1.8;margin-bottom:20px;">
                     From chassis and engines to tires and accessories, our curated selection
                     ensures reliability, speed, and competitive edge. Whether you're building
                     from scratch or upgrading your ride, we're here to fuel your journey —
                     one part at a time.
                 </p>
                 <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;
-                            background:#E0F5F5;border-radius:8px;border-left:4px solid #028090;">
+                            background:rgba(89,183,255,0.12);border-radius:8px;border-left:3px solid var(--pi-nitro-blue);">
                     <div>
-                        <div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:2px;">
+                        <div style="font-size:13px;font-weight:500;color:var(--pi-text-1);margin-bottom:2px;">
                             Call us today
                         </div>
-                        <div style="font-size:20px;font-weight:600;color:var(--pi-mint);">
+                        <div style="font-size:22px;font-weight:600;color:var(--pi-nitro-blue);margin:4px 0;">
                             647-964-6833
                         </div>
-                        <div style="font-size:12px;color:rgba(255,255,255,0.80);margin-top:2px;color:#4B5563;">
+                        <div style="font-size:12px;color:var(--pi-text-2);">
                             Find the perfect parts for your race-ready build
                         </div>
                     </div>
@@ -179,26 +180,30 @@
 </section>
 
 <!-- SECTION 3 — Existing dealer nudge -->
-<section style="background:#ffffff; padding:4rem 0; text-align:center;">
+<section style="background:#332F29; padding:60px 0; text-align:center; border-bottom:1px solid rgba(255,255,255,0.10);">
     <div class="container">
-        <h2 style="font-size:1.375rem; font-weight:600; color:#111827; margin-bottom:0.6rem;">
+        <h2 style="font-size:1.375rem; font-family:var(--pi-font-head); font-weight:700; color:#FFFFFF; margin-bottom:0.6rem;">
             Already a dealer?
         </h2>
-        <p style="color:#6B7280; font-size:0.95rem; margin-bottom:1.75rem; max-width:420px; margin-left:auto; margin-right:auto;">
+        <p style="color:rgba(255,255,255,0.85); font-size:0.95rem; margin-bottom:1.75rem; max-width:420px; margin-left:auto; margin-right:auto;">
             Sign in to access your account, place orders, and view your order history.
         </p>
         <a asp-area="Identity" asp-page="/Account/Login"
-           style="background:#0D3D38; color:#ffffff; font-weight:600; font-size:0.95rem;
-                  padding:0.75rem 2rem; border-radius:8px; text-decoration:none;
-                  display:inline-block; transition:opacity 150ms;"
-           onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+           class="pi-btn pi-btn-dark-primary pi-btn-lg">
             Sign In &rarr;
         </a>
+        <p style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:12px;">
+            Not a dealer yet?
+            <a href="/Home/Apply"
+               style="color:#FFFFFF;font-weight:600;text-decoration:underline;">
+                Open a dealer account
+            </a>
+        </p>
     </div>
 </section>
 
 <!-- SECTION 4 — Footer -->
-<footer style="background:#0D3D38; padding:2rem 0;">
+<footer style="background:#332F29; padding:2rem 0;">
     <div class="container d-flex justify-content-between align-items-start flex-wrap gap-4">
         <div>
             <img src="/images/pontello-Imports-Logo.png" alt="Pontello Imports"
@@ -212,13 +217,13 @@
             </div>
         </div>
         <div style="text-align:right; align-self:flex-end;">
-            <div style="color:rgba(255,255,255,0.35); font-size:0.8rem; margin-bottom:0.4rem;">
+            <div style="color:rgba(255,255,255,0.85); font-size:13px; margin-bottom:0.4rem;">
                 &copy; 2026 Pontello Imports. All rights reserved.
             </div>
             <a asp-area="Identity" asp-page="/Account/Login"
-               style="color:rgba(255,255,255,0.3); font-size:0.8rem; text-decoration:none;"
-               onmouseover="this.style.color='rgba(255,255,255,0.65)'"
-               onmouseout="this.style.color='rgba(255,255,255,0.3)'">
+               style="color:rgba(255,255,255,0.85); font-size:13px; text-decoration:none;"
+               onmouseover="this.style.color='#FFFFFF'"
+               onmouseout="this.style.color='rgba(255,255,255,0.85)'">
                 Staff Login
             </a>
         </div>

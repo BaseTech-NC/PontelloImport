@@ -8,7 +8,7 @@
     <div class="col-lg-7 col-md-9">
 
         <div class="mb-4">
-            <h1 style="font-size:1.5rem; font-weight:700; color:#0D3D38;">Apply for Dealer Access</h1>
+            <h1 style="font-size:1.5rem; font-family:var(--pi-font-head); font-weight:700; color:var(--pi-text-1);">Apply for Dealer Access</h1>
             <p class="text-muted" style="font-size:0.95rem;">
                 Fill out the form below and Pontello Imports will review your application.
                 You'll be contacted within 2 business days.
@@ -22,9 +22,9 @@
                     @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3" role="alert"></div>
 
-                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.72rem; letter-spacing:0.08em;">
+                    <h2 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.72rem; letter-spacing:0.08em;">
                         Contact Information
-                    </h6>
+                    </h2>
                     <div class="row g-3 mb-4">
                         <div class="col-sm-6">
                             <label asp-for="FirstName" class="form-label small fw-semibold">
@@ -68,9 +68,9 @@
                         </div>
                     </div>
 
-                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.72rem; letter-spacing:0.08em;">
+                    <h2 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.72rem; letter-spacing:0.08em;">
                         Business Information
-                    </h6>
+                    </h2>
                     <div class="row g-3 mb-4">
                         <div class="col-12">
                             <label asp-for="Company" class="form-label small fw-semibold"></label>
@@ -129,7 +129,8 @@
                         <div class="col-sm-3">
                             <label asp-for="PostalZipCode" class="form-label small fw-semibold"></label>
                             <input asp-for="PostalZipCode" class="form-control" style="border-radius:8px;"
-                                   placeholder="A1B 2C3"
+                                   placeholder="e.g. L2P 2Z5"
+                                   maxlength="10"
                                    oninput="validatePostal(this)" />
                             <span asp-validation-for="PostalZipCode" class="text-danger small"></span>
                             <span id="err-postal" class="text-danger small" style="display:none;"></span>
@@ -150,22 +151,52 @@
                         <span asp-validation-for="WebsiteSocialMedia" class="text-danger small"></span>
                     </div>
 
-                    <button type="submit" class="btn fw-semibold w-100"
-                            style="background:#0D3D38; color:#ffffff; border-radius:8px; padding:0.7rem;">
+                    <button type="submit" class="pi-btn pi-btn-primary pi-btn-lg w-100">
                         Submit Application
                     </button>
+                <script>
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 'f') {
+    e.preventDefault();
+
+    var fields = {
+      'FirstName':        'James',
+      'LastName':         'Carter',
+      'Email':            'carterkartsupply.demo@gmail.com',
+      'Phone':            '(905)-555-0162',
+      'Company':          'Carter Kart Supply',
+      'Address':          '18 Raceway Avenue',
+      'City':             'Oakville',
+      'ProvinceState':    'Ontario',
+      'PostalZipCode':    'L6J 1A4',
+      'CompanyDescription':
+          'Family-owned karting shop serving ' +
+          'the Oakville area. Looking to stock ' +
+          'CRG and OTK parts for our customers.',
+      'WebsiteSocialMedia': '@@carterkartsuply'
+    };
+
+    Object.keys(fields).forEach(function(name) {
+      var el = document.getElementById(name)
+            || document.querySelector(
+                '[name="' + name + '"]');
+      if (el) el.value = fields[name];
+    });
+  }
+});
+</script>
                 </form>
 
-                <div class="text-center mt-3" style="font-size:0.8rem; color:#9CA3AF;">
+                <div class="text-center mt-3" style="font-size:13px; color:#332F29;">
                     Questions? 647-964-6833 or jesse@pontelloimports.com
                 </div>
 
             </div>
         </div>
 
-        <div class="text-center mt-3" style="font-size:0.875rem; color:#6B7280;">
+        <div class="text-center mt-3" style="font-size:0.875rem; color:var(--pi-text-2);">
             Already have an account?
-            <a asp-area="Identity" asp-page="/Account/Login" style="color:#028090; font-weight:500;">Sign In</a>
+            <a asp-area="Identity" asp-page="/Account/Login" style="color:#1565C0; font-weight:500;">Sign In</a>
         </div>
 
     </div>
@@ -220,9 +251,23 @@
         }
 
         function validatePostal(el) {
-            var v = el.value.trim();
-            var ok = v === '' || /^[A-Za-z0-9\s\-]{5,10}$/.test(v);
-            setFieldState(el, 'err-postal', ok, 'Enter a valid postal/zip code (5–10 characters).');
+            // Strip any character that isn't alphanumeric, space, or hyphen
+            el.value = el.value.replace(/[^A-Za-z0-9\s\-]/g, '');
+
+            var val = el.value.trim();
+            // Canadian: A1A 1A1 (with optional space/hyphen)
+            var canadian = /^[A-Za-z]\d[A-Za-z][\s\-]?\d[A-Za-z]\d$/.test(val);
+            // US: 12345 or 12345-6789
+            var us = /^\d{5}(-\d{4})?$/.test(val);
+            var valid = canadian || us;
+
+            var err = document.getElementById('err-postal');
+            if (err) {
+                err.style.display = val.length > 3 && !valid ? 'inline' : 'none';
+                err.textContent   = val.length > 3 && !valid
+                    ? 'Enter a valid Canadian (A1A 1A1) or US (12345) postal code.' : '';
+            }
+            el.style.borderColor = val.length > 3 && !valid ? 'var(--pi-danger)' : '';
         }
     </script>
 }

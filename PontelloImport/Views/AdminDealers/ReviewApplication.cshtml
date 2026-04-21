@@ -20,24 +20,23 @@
 <div class="container-fluid mt-4" style="max-width:780px;">
     <div class="row mb-4 align-items-center">
         <div class="col-auto">
-            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i> Back to Applications
+            <a asp-action="Index" class="pi-btn pi-btn-ghost pi-btn-sm">
+                &#8592; Back to Applications
             </a>
         </div>
         <div class="col">
             <h1 class="h4 mb-0">Review Application — @displayName</h1>
         </div>
         <div class="col-auto">
-            <span class="badge @(Model.Status == "Pending" ? "bg-warning text-dark" : Model.Status == "Approved" ? "bg-success" : "bg-danger")">
+            <span class="pi-badge @(Model.Status == "Pending" ? "pi-badge-pending" : Model.Status == "Approved" ? "pi-badge-confirmed" : "pi-badge-cancelled")">
                 @Model.Status
             </span>
         </div>
     </div>
 
     <!-- Application details -->
-    <div class="card mb-4">
-        <div class="card-header bg-dark text-white">Application Details</div>
-        <div class="card-body">
+    <div class="pi-card mb-4">
+        <div class="pi-section-label">Application Details</div>
             <dl class="row mb-0">
                 <dt class="col-sm-4 text-muted">First Name</dt>
                 <dd class="col-sm-8 fw-semibold">@Model.FirstName</dd>
@@ -87,18 +86,14 @@
                     <dd class="col-sm-8">@Model.ReviewNotes</dd>
                 }
             </dl>
-        </div>
     </div>
 
     @if (Model.Status == "Pending")
     {
         <!-- Approve section -->
-        <div class="card mb-3 border-success">
-            <div class="card-header bg-success text-white fw-semibold">
-                <i class="bi bi-check-circle me-1"></i> Approve this application
-            </div>
-            <div class="card-body">
-                <div class="alert mb-3 p-3" style="background:#E0F5F5; border:1px solid #028090; border-radius:8px; font-size:0.875rem; color:#0D3D38;">
+        <div class="pi-card mb-3" style="border-left:4px solid var(--pi-emerald);">
+            <div class="pi-section-label" style="color:var(--pi-emerald);">Approve this application</div>
+                <div class="alert mb-3 p-3" style="background:var(--pi-cool-blue); border:1px solid var(--pi-nitro-blue); border-radius:8px; font-size:0.875rem; color:#0D47A1;">
                     <strong>Approving will:</strong>
                     <ul class="mb-0 mt-1" style="padding-left:1.2rem;">
                         <li>Create a dealer account immediately</li>
@@ -138,19 +133,15 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="pi-btn pi-btn-primary">
                         <i class="bi bi-check-circle me-1"></i> Approve Application
                     </button>
                 </form>
-            </div>
         </div>
 
         <!-- Reject section -->
-        <div class="card border-danger">
-            <div class="card-header bg-danger text-white fw-semibold">
-                <i class="bi bi-x-circle me-1"></i> Reject Application
-            </div>
-            <div class="card-body">
+        <div class="pi-card" style="border-left:4px solid var(--pi-danger);">
+            <div class="pi-section-label" style="color:var(--pi-danger);">Reject Application</div>
                 <form asp-action="RejectApplication" asp-route-id="@Model.ApplicationID" method="post">
                     @Html.AntiForgeryToken()
                     <div class="row g-3 align-items-end">
@@ -162,18 +153,17 @@
                                       placeholder="e.g. Outside service area." maxlength="500"></textarea>
                         </div>
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="bi bi-x-circle me-1"></i> Reject
+                            <button type="submit" class="pi-btn pi-btn-danger">
+                                Reject
                             </button>
                         </div>
                     </div>
                 </form>
-            </div>
         </div>
     }
     else
     {
-        <div class="alert alert-secondary">
+        <div class="pi-notice pi-notice-info">
             This application has already been <strong>@Model.Status.ToLower()</strong>
             @if (Model.ReviewedDate.HasValue)
             {

@@ -21,5 +21,13 @@ namespace PontelloImport.Services
             string adminEmail, string poNumber,
             byte[] pdfBytes,
             bool isRevised = false);
+
+        Task SendNewApplicationNotificationAsync(
+            string applicantName,
+            string companyName,
+            string applicantEmail,
+            string phone,
+            string city,
+            string province);
     }
 }

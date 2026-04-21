@@ -10,7 +10,7 @@
 <div class="container mt-4" style="max-width:1000px;">
 
     <div class="mb-4">
-        <h1 style="font-size:1.4rem;font-weight:600;color:#111827;margin-bottom:0.25rem;">
+        <h1 style="font-size:1.4rem;font-weight:600;color:var(--pi-text-1);margin-bottom:0.25rem;">
             My Account
         </h1>
         <p class="text-muted" style="font-size:0.875rem;margin:0;">
@@ -30,17 +30,17 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold" style="font-size:0.875rem;">First Name</label>
                     <input class="form-control" value="@user?.FirstName" readonly
-                           style="background:#f8fafc;color:#6b7280;" />
+                           style="background:var(--pi-bg-subtle);color:var(--pi-text-2);" />
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold" style="font-size:0.875rem;">Last Name</label>
                     <input class="form-control" value="@user?.LastName" readonly
-                           style="background:#f8fafc;color:#6b7280;" />
+                           style="background:var(--pi-bg-subtle);color:var(--pi-text-2);" />
                 </div>
                 <div class="mb-1">
                     <label class="form-label fw-semibold" style="font-size:0.875rem;">Email</label>
                     <input class="form-control" value="@user?.Email" readonly
-                           style="background:#f8fafc;color:#6b7280;" />
+                           style="background:var(--pi-bg-subtle);color:var(--pi-text-2);" />
                 </div>
                 <div class="pi-notice pi-notice-info mb-3" style="font-size:11.5px;">
                     To change your email address, contact Pontello Imports at
@@ -50,8 +50,8 @@
                 <form asp-action="UpdateProfile" method="post">
                     @Html.AntiForgeryToken()
                     <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:0.875rem;">Phone</label>
-                        <input type="tel" name="phone" class="form-control"
+                        <label for="phoneInput" class="form-label fw-semibold" style="font-size:0.875rem;">Phone</label>
+                        <input id="phoneInput" type="tel" name="phone" class="form-control"
                                value="@Model?.ContactPhone"
                                placeholder="e.g. 416-555-0100" />
                     </div>
@@ -73,11 +73,11 @@
                 <form id="pwdForm" asp-action="ChangePassword" method="post" class="d-none mt-3">
                     @Html.AntiForgeryToken()
                     <div class="mb-2">
-                        <label class="form-label" style="font-size:0.875rem;">Current Password</label>
+                        <label for="currentPwd" class="form-label" style="font-size:0.875rem;">Current Password</label>
                         <div class="input-group">
                             <input type="password" id="currentPwd" name="currentPassword"
                                    class="form-control" required />
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                            <button type="button" class="pi-btn pi-btn-ghost pi-btn-sm"
                                     onclick="togglePwd('currentPwd', this)">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
                                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -89,11 +89,11 @@
                         </div>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" style="font-size:0.875rem;">New Password</label>
+                        <label for="newPwd" class="form-label" style="font-size:0.875rem;">New Password</label>
                         <div class="input-group">
                             <input type="password" id="newPwd" name="newPassword"
                                    class="form-control" required minlength="6" />
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                            <button type="button" class="pi-btn pi-btn-ghost pi-btn-sm"
                                     onclick="togglePwd('newPwd', this)">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
                                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -105,11 +105,11 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" style="font-size:0.875rem;">Confirm New Password</label>
+                        <label for="confirmPwd" class="form-label" style="font-size:0.875rem;">Confirm New Password</label>
                         <div class="input-group">
                             <input type="password" id="confirmPwd" name="confirmPassword"
                                    class="form-control" required minlength="6" />
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                            <button type="button" class="pi-btn pi-btn-ghost pi-btn-sm"
                                     onclick="togglePwd('confirmPwd', this)">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
                                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -298,33 +298,33 @@
                                 <input type="hidden" name="addressId" value="@addr.AddressID">
                                 <div class="row g-2">
                                     <div class="col-12">
-                                        <label class="form-label">Street Address</label>
-                                        <input type="text" name="street" class="form-control"
+                                        <label for="street-@addr.AddressID" class="form-label">Street Address</label>
+                                        <input id="street-@addr.AddressID" type="text" name="street" class="form-control"
                                                value="@addr.Street" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">City</label>
-                                        <input type="text" name="city" class="form-control"
+                                        <label for="city-@addr.AddressID" class="form-label">City</label>
+                                        <input id="city-@addr.AddressID" type="text" name="city" class="form-control"
                                                value="@addr.City">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Province / State</label>
-                                        <input type="text" name="provinceState" class="form-control"
+                                        <label for="province-@addr.AddressID" class="form-label">Province / State</label>
+                                        <input id="province-@addr.AddressID" type="text" name="provinceState" class="form-control"
                                                value="@addr.Province">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Postal / Zip Code</label>
-                                        <input type="text" name="postalZipCode" class="form-control"
+                                        <label for="postal-@addr.AddressID" class="form-label">Postal / Zip Code</label>
+                                        <input id="postal-@addr.AddressID" type="text" name="postalZipCode" class="form-control"
                                                value="@addr.PostalCode">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Country</label>
-                                        <input type="text" name="country" class="form-control"
+                                        <label for="country-@addr.AddressID" class="form-label">Country</label>
+                                        <input id="country-@addr.AddressID" type="text" name="country" class="form-control"
                                                value="@addr.Country">
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label">Address type</label>
-                                        <select name="addressType" class="form-select">
+                                        <label for="addrtype-@addr.AddressID" class="form-label">Address type</label>
+                                        <select id="addrtype-@addr.AddressID" name="addressType" class="form-select">
                                             <option value="Both"
                                                     selected="@(addr.AddressType == "Both" ? "selected" : null)">
                                                 Billing &amp; Shipping
@@ -377,28 +377,28 @@
                         @Html.AntiForgeryToken()
                         <div class="row g-2">
                             <div class="col-12">
-                                <label class="form-label">Street Address</label>
-                                <input type="text" name="street" class="form-control" required />
+                                <label for="newStreetAddr" class="form-label">Street Address</label>
+                                <input id="newStreetAddr" type="text" name="street" class="form-control" required />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">City</label>
-                                <input type="text" name="city" class="form-control" required />
+                                <label for="newCityAddr" class="form-label">City</label>
+                                <input id="newCityAddr" type="text" name="city" class="form-control" required />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Province / State</label>
-                                <input type="text" name="provinceState" class="form-control" />
+                                <label for="newProvinceAddr" class="form-label">Province / State</label>
+                                <input id="newProvinceAddr" type="text" name="provinceState" class="form-control" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Postal / Zip Code</label>
-                                <input type="text" name="postalZipCode" class="form-control" />
+                                <label for="newPostalAddr" class="form-label">Postal / Zip Code</label>
+                                <input id="newPostalAddr" type="text" name="postalZipCode" class="form-control" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Country</label>
-                                <input type="text" name="country" class="form-control" value="Canada" />
+                                <label for="newCountryAddr" class="form-label">Country</label>
+                                <input id="newCountryAddr" type="text" name="country" class="form-control" value="Canada" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Address Type</label>
-                                <select name="addressType" class="form-select">
+                                <label for="newAddrTypeAddr" class="form-label">Address Type</label>
+                                <select id="newAddrTypeAddr" name="addressType" class="form-select">
                                     <option value="Both">Billing &amp; Shipping (use for both)</option>
                                     <option value="Billing">Billing only</option>
                                     <option value="Shipping">Shipping only</option>

@@ -33,7 +33,6 @@ namespace PontelloImport.Controllers
 
         private string CurrentUser => User.Identity?.Name ?? "Admin";
 
-        // Helper: look up the dealer email for a given order
         private async Task<(string? email, string companyName)> GetDealerEmailAsync(Order order)
         {
             var dealer = await _context.Dealers
@@ -44,7 +43,6 @@ namespace PontelloImport.Controllers
             return (user?.Email, dealer.CompanyName);
         }
 
-        // Helper: create a dealer notification (fire-and-forget errors)
         private void QueueDealerNotification(int dealerId, string type, string message)
         {
             try
@@ -65,63 +63,92 @@ namespace PontelloImport.Controllers
             }
         }
 
-        // GET: /AdminOrders
         public async Task<IActionResult> Index(
-            string? status, string? search,
-            int page = 1, int pageSize = 25,
-            DateTime? dateFrom = null, DateTime? dateTo = null)
+            string? tab = "all",
+            string? search = null,
+            string? fulfillment = null,
+            string? billing = null,
+            int page = 1,
+            int pageSize = 25,
+            DateTime? dateFrom = null,
+            DateTime? dateTo = null)
         {
             search = search?.Trim();
 
-            var baseQuery = _context.Orders
+            // Tab counts — always against full dataset
+            ViewData["AllCount"]       = await _context.Orders.CountAsync();
+            ViewData["SubmittedCount"] = await _context.Orders.CountAsync(o => o.Status == "Submitted");
+            ViewData["ActionCount"]    = await _context.Orders.CountAsync(o => o.Status == "ActionRequired");
+            ViewData["ConfirmedCount"] = await _context.Orders.CountAsync(o => o.Status == "Confirmed");
+            ViewData["CancelledCount"] = await _context.Orders.CountAsync(o => o.Status == "Cancelled");
+
+            var query = _context.Orders
                 .Include(o => o.Dealer)
+                .Include(o => o.OrderLines)
                 .AsQueryable();
 
-            // Status counts (before any filters so tabs always show full counts)
-            ViewBag.AllCount            = await baseQuery.CountAsync();
-            ViewBag.SubmittedCount      = await baseQuery.CountAsync(o => o.Status == "Submitted");
-            ViewBag.ActionRequiredCount = await baseQuery.CountAsync(o => o.Status == "ActionRequired");
-            ViewBag.ConfirmedCount      = await baseQuery.CountAsync(o => o.Status == "Confirmed");
-            ViewBag.ShippedCount        = await baseQuery.CountAsync(o => o.Status == "Shipped");
-            ViewBag.InvoicedCount       = await baseQuery.CountAsync(o => o.Status == "Invoiced");
-            ViewBag.CancelledCount      = await baseQuery.CountAsync(o => o.Status == "Cancelled");
+            // Primary tab — workflow status only
+            query = tab switch
+            {
+                "submitted"      => query.Where(o => o.Status == "Submitted"),
+                "actionrequired" => query.Where(o => o.Status == "ActionRequired"),
+                "confirmed"      => query.Where(o => o.Status == "Confirmed"),
+                "cancelled"      => query.Where(o => o.Status == "Cancelled"),
+                _                => query
+            };
 
-            if (!string.IsNullOrWhiteSpace(status))
-                baseQuery = baseQuery.Where(o => o.Status == status);
+            // Secondary fulfillment filter
+            query = fulfillment switch
+            {
+                "notshipped" => query.Where(o => o.FulfillmentStatus == "NotShipped"),
+                "shipped"    => query.Where(o => o.FulfillmentStatus == "Shipped"),
+                _            => query
+            };
+
+            // Secondary billing filter
+            query = billing switch
+            {
+                "notinvoiced"         => query.Where(o => o.BillingStatus == "NotInvoiced"),
+                "invoiced"            => query.Where(o => o.BillingStatus == "Invoiced"),
+                "shipped_notinvoiced" => query.Where(o => o.FulfillmentStatus == "Shipped" && o.BillingStatus == "NotInvoiced"),
+                "invoiced_notshipped" => query.Where(o => o.BillingStatus == "Invoiced" && o.FulfillmentStatus == "NotShipped"),
+                _                     => query
+            };
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var q = search.ToLower();
-                baseQuery = baseQuery.Where(o =>
+                query = query.Where(o =>
                     o.OrderNumber.ToLower().Contains(q) ||
                     o.DealerCompanyName.ToLower().Contains(q));
             }
 
             if (dateFrom.HasValue)
-                baseQuery = baseQuery.Where(o => o.OrderDate >= dateFrom.Value);
+                query = query.Where(o => o.OrderDate >= dateFrom.Value);
             if (dateTo.HasValue)
-                baseQuery = baseQuery.Where(o => o.OrderDate <= dateTo.Value.AddDays(1));
+                query = query.Where(o => o.OrderDate <= dateTo.Value.AddDays(1));
 
-            var totalCount = await baseQuery.CountAsync();
-            var orders = await baseQuery
+            var totalCount = await query.CountAsync();
+            var orders = await query
                 .OrderByDescending(o => o.OrderDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            ViewBag.CurrentStatus = status;
-            ViewBag.CurrentSearch = search;
-            ViewData["Page"] = page;
-            ViewData["PageSize"] = pageSize;
+            ViewData["ActiveTab"]  = tab ?? "all";
+            ViewData["Fulfillment"] = fulfillment;
+            ViewData["Billing"]    = billing;
+            ViewData["Search"]     = search;
+            ViewData["Page"]       = page;
+            ViewData["PageSize"]   = pageSize;
             ViewData["TotalCount"] = totalCount;
             ViewData["TotalPages"] = (int)Math.Ceiling(totalCount / (double)pageSize);
-            ViewData["DateFrom"] = dateFrom?.ToString("yyyy-MM-dd");
-            ViewData["DateTo"] = dateTo?.ToString("yyyy-MM-dd");
+            ViewData["DateFrom"]   = dateFrom?.ToString("yyyy-MM-dd");
+            ViewData["DateTo"]     = dateTo?.ToString("yyyy-MM-dd");
 
             return View(orders);
         }
 
-        // GET: /AdminOrders/Details/5
         public async Task<IActionResult> Details(int id)
         {
             var order = await _context.Orders
@@ -132,18 +159,12 @@ namespace PontelloImport.Controllers
                 .FirstOrDefaultAsync(o => o.OrderID == id);
 
             if (order == null) return NotFound();
-
-            var hasBeenEdited = order.OrderHistories.Any(h =>
-                h.ChangeType == "EditInitiated" || h.ChangeType == "AdminModified");
-            ViewData["HasBeenEdited"] = hasBeenEdited;
-
             return View(order);
         }
 
-        // POST: /AdminOrders/Confirm/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Confirm(int id)
+        public async Task<IActionResult> ConfirmOrder(int id)
         {
             var order = await _context.Orders
                 .Include(o => o.OrderLines)
@@ -158,14 +179,6 @@ namespace PontelloImport.Controllers
 
             order.Status = "Confirmed";
             order.DealerHasViewed = false;
-            _context.OrderHistories.Add(new OrderHistory
-            {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "Confirmed",
-                ChangeDescription = "Order confirmed by Pontello",
-                ChangedBy = CurrentUser
-            });
 
             foreach (var line in order.OrderLines)
             {
@@ -175,10 +188,19 @@ namespace PontelloImport.Controllers
                     variant.InventoryQuantity = Math.Max(0, variant.InventoryQuantity - line.Quantity);
             }
 
-            _logger.LogInformation("Inventory deducted for order {OrderId}: {Count} lines", id, order.OrderLines.Count);
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID = id,
+                VersionNumber = order.VersionNumber,
+                ChangeType = "Confirmed",
+                ChangeDescription = "Order confirmed by Pontello",
+                ChangedBy = CurrentUser
+            });
+
             QueueDealerNotification(order.DealerID,
                 "OrderConfirmed",
                 $"Your order #{order.OrderNumber} has been confirmed by Pontello Imports.");
+
             await _context.SaveChangesAsync();
 
             var (email, companyName) = await GetDealerEmailAsync(order);
@@ -199,39 +221,6 @@ namespace PontelloImport.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // POST: /AdminOrders/InitiateEdit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> InitiateEdit(int id, string? adminNote)
-        {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
-
-            if (order.Status != "Submitted" && order.Status != "ActionRequired")
-            {
-                TempData["Error"] = $"Cannot initiate edit on an order with status '{order.Status}'.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
-            order.Status = "ActionRequired";
-            order.DealerHasViewed = false;
-            _context.OrderHistories.Add(new OrderHistory
-            {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "AdminModified",
-                ChangeDescription = string.IsNullOrWhiteSpace(adminNote)
-                    ? "Order opened for admin editing."
-                    : adminNote.Trim(),
-                ChangedBy = CurrentUser
-            });
-
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Order opened for editing. Use Edit Order Lines to adjust quantities.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        // POST: /AdminOrders/FlagIssue/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> FlagIssue(int id, string? reason)
@@ -261,6 +250,7 @@ namespace PontelloImport.Controllers
                 ChangeDescription = reason.Trim(),
                 ChangedBy = CurrentUser
             });
+
             QueueDealerNotification(order.DealerID,
                 "IssueFlagged",
                 $"Action required — PO #{order.OrderNumber}: {reason.Trim()}. Please contact Pontello Imports at 647-964-6833.");
@@ -292,10 +282,9 @@ namespace PontelloImport.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // POST: /AdminOrders/Cancel/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancel(int id, string? cancelNote)
+        public async Task<IActionResult> CancelOrder(int id, string? cancelNote)
         {
             var order = await _context.Orders
                 .Include(o => o.OrderLines)
@@ -311,6 +300,7 @@ namespace PontelloImport.Controllers
             var wasConfirmed = order.Status == "Confirmed";
             order.Status = "Cancelled";
             order.DealerHasViewed = false;
+
             _context.OrderHistories.Add(new OrderHistory
             {
                 OrderID = id,
@@ -341,8 +331,7 @@ namespace PontelloImport.Controllers
                 try
                 {
                     await _emailService.SendOrderStatusChangedAsync(
-                        email, companyName, order.OrderNumber, "Cancelled",
-                        cancelNote);
+                        email, companyName, order.OrderNumber, "Cancelled", cancelNote);
                 }
                 catch (Exception ex)
                 {
@@ -354,43 +343,53 @@ namespace PontelloImport.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // POST: /AdminOrders/ResolveAndConfirm/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResolveAndConfirm(int id, string? resolutionNote)
+        public async Task<IActionResult> MarkShipped(
+            int id,
+            DateTime? shipDate,
+            string? trackingNumber,
+            string? carrier,
+            decimal? shippingAmount)
         {
-            var order = await _context.Orders
-                .Include(o => o.OrderLines)
-                .FirstOrDefaultAsync(o => o.OrderID == id);
-            if (order == null) return NotFound();
-
-            if (order.Status != "ActionRequired")
+            if (!shipDate.HasValue)
             {
-                TempData["Error"] = $"Cannot resolve an order with status '{order.Status}'.";
+                TempData["Error"] = "Ship date is required to mark as shipped.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            order.Status = "Confirmed";
-            order.DealerHasViewed = false;
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
 
-            foreach (var line in order.OrderLines)
+            order.FulfillmentStatus = "Shipped";
+            order.ShipDate          = shipDate;
+            order.TrackingNumber    = trackingNumber;
+            order.Carrier           = carrier;
+
+            if (shippingAmount.HasValue)
             {
-                if (!line.ProductVariantID.HasValue) continue;
-                var variant = await _context.ProductVariants.FindAsync(line.ProductVariantID.Value);
-                if (variant != null)
-                    variant.InventoryQuantity = Math.Max(0, variant.InventoryQuantity - line.Quantity);
+                order.ShippingCost  = shippingAmount;
+                order.TotalAmount   = order.SubtotalAmount + (order.TaxAmount ?? 0) + shippingAmount.Value;
             }
+
+            var desc = $"Marked as shipped on {shipDate.Value:MMMM d, yyyy}." +
+                (!string.IsNullOrEmpty(trackingNumber) ? $" Tracking: {trackingNumber}" : "") +
+                (!string.IsNullOrEmpty(carrier) ? $" Carrier: {carrier}" : "") +
+                (shippingAmount.HasValue ? $" Shipping: ${shippingAmount:F2}" : "");
 
             _context.OrderHistories.Add(new OrderHistory
             {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "Resolved",
-                ChangeDescription = !string.IsNullOrWhiteSpace(resolutionNote)
-                    ? resolutionNote.Trim()
-                    : "Issue resolved. Order confirmed by admin.",
-                ChangedBy = CurrentUser
+                OrderID           = id,
+                VersionNumber     = order.VersionNumber,
+                ChangeType        = "Shipped",
+                ChangeDescription = desc,
+                ChangedBy         = CurrentUser
             });
+
+            QueueDealerNotification(order.DealerID,
+                "OrderShipped",
+                $"PO #{order.OrderNumber} was shipped on {shipDate.Value:MMMM d, yyyy}." +
+                (!string.IsNullOrEmpty(trackingNumber) ? $" Tracking: {trackingNumber}" : ""));
 
             await _context.SaveChangesAsync();
 
@@ -400,8 +399,8 @@ namespace PontelloImport.Controllers
                 try
                 {
                     await _emailService.SendOrderStatusChangedAsync(
-                        email, companyName, order.OrderNumber, "Confirmed",
-                        resolutionNote);
+                        email, companyName, order.OrderNumber, "Shipped",
+                        !string.IsNullOrEmpty(trackingNumber) ? $"Tracking number: {trackingNumber}" : null);
                 }
                 catch (Exception ex)
                 {
@@ -409,11 +408,181 @@ namespace PontelloImport.Controllers
                 }
             }
 
-            TempData["Success"] = "Order resolved and confirmed.";
+            TempData["Success"] = "Order marked as shipped.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // GET: /AdminOrders/EditLines/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkInvoiced(int id, string? invoiceNumber, string? invoiceNotes)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            if (order.Status != "Confirmed")
+            {
+                TempData["Error"] = $"Cannot invoice an order with status '{order.Status}'.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            order.BillingStatus  = "Invoiced";
+            order.InvoiceNumber  = !string.IsNullOrWhiteSpace(invoiceNumber)
+                ? invoiceNumber
+                : $"INV-{order.OrderNumber}";
+            order.InvoicedAt     = DateTime.UtcNow;
+            order.InvoiceNotes   = invoiceNotes;
+            order.DealerHasViewed = false;
+
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID           = id,
+                VersionNumber     = order.VersionNumber,
+                ChangeType        = "Invoiced",
+                ChangeDescription = $"Invoice {order.InvoiceNumber} issued on {DateTime.Now:MMMM d, yyyy}.",
+                ChangedBy         = CurrentUser
+            });
+
+            QueueDealerNotification(order.DealerID,
+                "OrderInvoiced",
+                $"PO #{order.OrderNumber} has been invoiced. Invoice: {order.InvoiceNumber}. Total: ${order.TotalAmount:F2}.");
+
+            await _context.SaveChangesAsync();
+
+            var (email, companyName) = await GetDealerEmailAsync(order);
+            if (email != null)
+            {
+                try
+                {
+                    await _emailService.SendOrderStatusChangedAsync(
+                        email, companyName, order.OrderNumber, "Invoiced");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
+                }
+            }
+
+            TempData["Success"] = "Order marked as invoiced.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveShipping(
+            int id,
+            DateTime? shipDate,
+            decimal? shippingAmount,
+            string? trackingNumber,
+            string? carrier)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            if (shipDate.HasValue)
+                order.ShipDate   = shipDate;
+            order.ShippingCost   = shippingAmount;
+            order.TrackingNumber = trackingNumber;
+            order.Carrier        = carrier;
+
+            if (shippingAmount.HasValue)
+                order.TotalAmount = order.SubtotalAmount + (order.TaxAmount ?? 0) + shippingAmount.Value;
+
+            bool isInvoiced = order.BillingStatus == "Invoiced";
+            if (isInvoiced)
+                order.VersionNumber = order.VersionNumber + 1;
+
+            var desc = "Shipping details updated." +
+                (shipDate.HasValue ? $" Ship date: {shipDate.Value:MMMM d, yyyy}." : "") +
+                (shippingAmount.HasValue ? $" Amount: ${shippingAmount:F2}." : "") +
+                (!string.IsNullOrEmpty(trackingNumber) ? $" Tracking: {trackingNumber}." : "") +
+                (!string.IsNullOrEmpty(carrier) ? $" Carrier: {carrier}." : "");
+
+            _context.OrderHistories.Add(new OrderHistory
+            {
+                OrderID           = id,
+                VersionNumber     = order.VersionNumber,
+                ChangeType        = "ShippingUpdated",
+                ChangeDescription = desc,
+                ChangedBy         = CurrentUser
+            });
+
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            if (isInvoiced)
+            {
+                try
+                {
+                    var fullOrder = await _context.Orders
+                        .Include(o => o.OrderLines)
+                        .Include(o => o.Dealer)
+                            .ThenInclude(d => d.BillingAddress)
+                        .Include(o => o.Dealer)
+                            .ThenInclude(d => d.ShippingAddress)
+                        .Include(o => o.PaymentTerms)
+                        .FirstOrDefaultAsync(o => o.OrderID == id);
+
+                    var revisedPo = $"{order.OrderNumber}-{order.VersionNumber}";
+                    var (email, companyName) = await GetDealerEmailAsync(fullOrder!);
+
+                    if (email != null && fullOrder != null)
+                    {
+                        var pdfBytes = _pdfService.GeneratePurchaseOrder(fullOrder, email);
+                        await _emailService.SendPurchaseOrderAsync(
+                            email,
+                            companyName,
+                            "noreply.pontelloimports@gmail.com",
+                            revisedPo,
+                            pdfBytes,
+                            isRevised: true);
+                        TempData["Success"] = $"Shipping saved. Revised PO {revisedPo} sent to dealer.";
+                    }
+                    else
+                    {
+                        TempData["Success"] = "Shipping saved.";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Revised PO email failed for order {Id}", id);
+                    TempData["Success"] = "Shipping saved.";
+                }
+            }
+            else
+            {
+                TempData["Success"] = "Shipping saved.";
+            }
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateInvoiceNotes(int id, string? invoiceNotes)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+            order.InvoiceNotes = invoiceNotes;
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Notes saved.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateTax(int id, decimal taxRate)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            order.TaxRate     = taxRate / 100m;
+            order.TaxAmount   = order.SubtotalAmount * (taxRate / 100m);
+            order.TotalAmount = order.SubtotalAmount + order.TaxAmount.Value + (order.ShippingCost ?? 0);
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         [HttpGet]
         public async Task<IActionResult> EditLines(int id)
         {
@@ -428,18 +597,17 @@ namespace PontelloImport.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            // Auto-transition Submitted → ActionRequired when admin opens for editing
             if (order.Status == "Submitted")
             {
                 order.Status = "ActionRequired";
                 order.DealerHasViewed = false;
                 _context.OrderHistories.Add(new OrderHistory
                 {
-                    OrderID = id,
-                    VersionNumber = order.VersionNumber,
-                    ChangeType = "EditInitiated",
+                    OrderID           = id,
+                    VersionNumber     = order.VersionNumber,
+                    ChangeType        = "EditInitiated",
                     ChangeDescription = "Order opened for editing by admin.",
-                    ChangedBy = CurrentUser
+                    ChangedBy         = CurrentUser
                 });
                 await _context.SaveChangesAsync();
             }
@@ -447,7 +615,6 @@ namespace PontelloImport.Controllers
             return View(order);
         }
 
-        // POST: /AdminOrders/EditLines/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditLines(int id, int[] lineIds, int[] quantities,
@@ -480,15 +647,14 @@ namespace PontelloImport.Controllers
                 }
                 else if (line.Quantity != quantities[i])
                 {
-                    line.Quantity = quantities[i];
+                    line.Quantity  = quantities[i];
                     line.LineTotal = Math.Round(line.Quantity * line.UnitPrice, 2);
                     modifiedCount++;
                 }
             }
 
-            // Process newly added product lines
             var newVariantIdStrings = Request.Form["newVariantIds[]"];
-            var newQtyStrings = Request.Form["newQuantities[]"];
+            var newQtyStrings       = Request.Form["newQuantities[]"];
             decimal newLinesSubtotal = 0m;
 
             for (int i = 0; i < newVariantIdStrings.Count; i++)
@@ -504,19 +670,21 @@ namespace PontelloImport.Controllers
                     qty = Math.Max(1, parsedQty);
 
                 var lineTotal = Math.Round(variant.Price * qty, 2);
-                var newOpts = new[] { variant.Option1Value, variant.Option2Value, variant.Option3Value, variant.Option4Value, variant.Option5Value }
+                var opts = new[] { variant.Option1Value, variant.Option2Value, variant.Option3Value,
+                                   variant.Option4Value, variant.Option5Value }
                     .Where(o => !string.IsNullOrWhiteSpace(o));
-                var newVariantTitle = newOpts.Any() ? string.Join(" / ", newOpts) : null;
+                var variantTitle = opts.Any() ? string.Join(" / ", opts) : null;
+
                 _context.OrderLines.Add(new OrderLine
                 {
-                    OrderID = id,
+                    OrderID          = id,
                     ProductVariantID = variant.VariantID,
-                    ProductTitle = variant.Product?.Title ?? "",
-                    VariantTitle = newVariantTitle,
-                    SKU = variant.SKU,
-                    Quantity = qty,
-                    UnitPrice = variant.Price,
-                    LineTotal = lineTotal
+                    ProductTitle     = variant.Product?.Title ?? "",
+                    VariantTitle     = variantTitle,
+                    SKU              = variant.SKU,
+                    Quantity         = qty,
+                    UnitPrice        = variant.Price,
+                    LineTotal        = lineTotal
                 });
                 newLinesSubtotal += lineTotal;
                 modifiedCount++;
@@ -525,44 +693,39 @@ namespace PontelloImport.Controllers
             var remaining = order.OrderLines
                 .Where(l => !removedLineIds.Contains(l.OrderLineID))
                 .ToList();
+
             order.SubtotalAmount = remaining.Sum(l => l.LineTotal) + newLinesSubtotal;
-            order.TaxAmount = order.IsTaxExempt ? null : Math.Round(order.SubtotalAmount * (order.TaxRate ?? 0.13m), 2);
-            order.TotalAmount = order.SubtotalAmount + (order.TaxAmount ?? 0m) + (order.ShippingCost ?? 0m);
+            order.TaxAmount      = order.IsTaxExempt ? null
+                : Math.Round(order.SubtotalAmount * (order.TaxRate ?? 0.13m), 2);
+            order.TotalAmount    = order.SubtotalAmount + (order.TaxAmount ?? 0m) + (order.ShippingCost ?? 0m);
 
             var fullNote = editReason != null
-                ? (editNote != null
-                    ? $"{editReason}: {editNote}"
-                    : editReason)
+                ? (editNote != null ? $"{editReason}: {editNote}" : editReason)
                 : editNote ?? $"Order lines updated. {modifiedCount} line{(modifiedCount != 1 ? "s" : "")} modified.";
 
-            // Increment version for revised PO
             order.VersionNumber = order.VersionNumber + 1;
             var revisedPo = $"{order.OrderNumber}-{order.VersionNumber}";
 
             _context.OrderHistories.Add(new OrderHistory
             {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "AdminModified",
+                OrderID           = id,
+                VersionNumber     = order.VersionNumber,
+                ChangeType        = "AdminModified",
                 ChangeDescription = fullNote,
-                ChangedBy = CurrentUser
+                ChangedBy         = CurrentUser
             });
 
             await _context.SaveChangesAsync();
 
-            // Notify dealer about the modification
             QueueDealerNotification(order.DealerID,
                 "OrderModified",
                 $"Pontello Imports updated your order PO #{revisedPo}. {fullNote}");
             await _context.SaveChangesAsync();
 
-            // Send revised PO email with PDF
             try
             {
                 var fullOrder = await _context.Orders
                     .Include(o => o.OrderLines)
-                    .Include(o => o.Dealer)
-                        .ThenInclude(d => d!.ApplicationUser)
                     .Include(o => o.Dealer)
                         .ThenInclude(d => d!.BillingAddress)
                     .Include(o => o.Dealer)
@@ -572,9 +735,7 @@ namespace PontelloImport.Controllers
 
                 if (fullOrder != null)
                 {
-                    var dealerEmail = fullOrder.Dealer?.ApplicationUser?.Email;
-                    var companyName = fullOrder.Dealer?.CompanyName ?? fullOrder.DealerCompanyName;
-
+                    var (dealerEmail, companyName) = await GetDealerEmailAsync(fullOrder);
                     if (dealerEmail != null)
                     {
                         var pdfBytes = _pdfService.GeneratePurchaseOrder(fullOrder, dealerEmail);
@@ -597,93 +758,6 @@ namespace PontelloImport.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // POST: /AdminOrders/SaveTracking/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveTracking(int id, string? TrackingNumber)
-        {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
-
-            if (order.Status != "Confirmed")
-            {
-                TempData["Error"] = $"Cannot save tracking on an order with status '{order.Status}'.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
-            order.TrackingNumber = TrackingNumber;
-            _context.OrderHistories.Add(new OrderHistory
-            {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "TrackingAdded",
-                ChangeDescription = $"Tracking number added: {TrackingNumber}",
-                ChangedBy = CurrentUser
-            });
-
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Tracking number saved. Click Mark as Shipped when ready to ship.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        // POST: /AdminOrders/MarkShipped/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> MarkShipped(int id)
-        {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
-
-            if (order.Status != "Confirmed")
-            {
-                TempData["Error"] = $"Cannot mark shipped an order with status '{order.Status}'.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
-            order.Status = "Shipped";
-            order.DealerHasViewed = false;
-            _context.OrderHistories.Add(new OrderHistory
-            {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "Shipped",
-                ChangeDescription = string.IsNullOrEmpty(order.TrackingNumber)
-                    ? "Order marked as shipped"
-                    : $"Shipped. Tracking: {order.TrackingNumber}",
-                ChangedBy = CurrentUser
-            });
-            QueueDealerNotification(order.DealerID,
-                "OrderShipped",
-                string.IsNullOrEmpty(order.TrackingNumber)
-                    ? $"Order #{order.OrderNumber} has been shipped!"
-                    : $"Order #{order.OrderNumber} has been shipped! Tracking: {order.TrackingNumber}");
-
-            await _context.SaveChangesAsync();
-
-            var trackingNote = !string.IsNullOrEmpty(order.TrackingNumber)
-                ? $"Tracking number: {order.TrackingNumber}"
-                : null;
-
-            var (email, companyName) = await GetDealerEmailAsync(order);
-            if (email != null)
-            {
-                try
-                {
-                    await _emailService.SendOrderStatusChangedAsync(
-                        email, companyName, order.OrderNumber, "Shipped",
-                        trackingNote);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
-                }
-            }
-
-            TempData["Success"] = "Order marked as shipped.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        // GET: /AdminOrders/SearchProducts
         [HttpGet]
         public async Task<IActionResult> SearchProducts(string? q)
         {
@@ -699,7 +773,8 @@ namespace PontelloImport.Controllers
 
             var results = variants.Select(v =>
             {
-                var opts = new[] { v.Option1Value, v.Option2Value, v.Option3Value, v.Option4Value, v.Option5Value }
+                var opts = new[] { v.Option1Value, v.Option2Value, v.Option3Value,
+                                   v.Option4Value, v.Option5Value }
                     .Where(o => !string.IsNullOrWhiteSpace(o));
                 return new {
                     v.VariantID,
@@ -714,54 +789,6 @@ namespace PontelloImport.Controllers
             return Json(results);
         }
 
-        // GET: /AdminOrders/EditShipping/5
-        [HttpGet]
-        public async Task<IActionResult> EditShipping(int id)
-        {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
-
-            if (order.Status != "Confirmed" && order.Status != "Shipped")
-            {
-                TempData["Error"] = "Shipping can only be edited for Confirmed or Shipped orders.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
-            return View(order);
-        }
-
-        // POST: /AdminOrders/EditShipping/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditShipping(int id, decimal shippingAmount)
-        {
-            if (shippingAmount < 0)
-            {
-                TempData["Error"] = "Shipping amount cannot be negative.";
-                return RedirectToAction(nameof(EditShipping), new { id });
-            }
-
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
-
-            order.ShippingCost = shippingAmount;
-            order.TotalAmount = order.SubtotalAmount + (order.TaxAmount ?? 0) + shippingAmount;
-
-            _context.OrderHistories.Add(new OrderHistory
-            {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "ShippingUpdated",
-                ChangeDescription = $"Shipping updated to ${shippingAmount:F2}",
-                ChangedBy = CurrentUser
-            });
-
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Shipping amount updated.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        // GET: /AdminOrders/ExportCsv
         [HttpGet]
         public async Task<IActionResult> ExportCsv(
             string? statusFilter = null,
@@ -801,7 +828,7 @@ namespace PontelloImport.Controllers
             }
 
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("Order #,Date,Dealer,Company,Status,Subtotal,Tax,Shipping,Total,Items,Payment Terms");
+            sb.AppendLine("Order #,Date,Dealer,Status,FulfillmentStatus,BillingStatus,Subtotal,Tax,Shipping,Total,Items,Payment Terms");
 
             foreach (var order in orders)
             {
@@ -809,8 +836,9 @@ namespace PontelloImport.Controllers
                     CsvField(order.PONumber),
                     order.OrderDate.ToString("yyyy-MM-dd"),
                     CsvField(order.DealerCompanyName),
-                    CsvField(order.DealerCompanyName),
                     CsvField(order.Status),
+                    CsvField(order.FulfillmentStatus),
+                    CsvField(order.BillingStatus),
                     order.SubtotalAmount.ToString("0.00"),
                     (order.TaxAmount ?? 0m).ToString("0.00"),
                     (order.ShippingCost ?? 0m).ToString("0.00"),
@@ -821,196 +849,6 @@ namespace PontelloImport.Controllers
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
             return File(bytes, "text/csv", $"orders-{DateTime.Now:yyyy-MM-dd}.csv");
-        }
-
-        // POST: /AdminOrders/UpdateTax
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateTax(int id, decimal taxRate)
-        {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
-
-            // taxRate comes in as percentage (e.g. 13), store as fraction
-            order.TaxRate = taxRate / 100m;
-            order.TaxAmount = order.SubtotalAmount * (taxRate / 100m);
-            order.TotalAmount = order.SubtotalAmount
-                + order.TaxAmount.Value
-                + (order.ShippingCost ?? 0);
-
-            await _context.SaveChangesAsync();
-            return Ok();
-        }
-
-        // POST: /AdminOrders/MarkInvoicedDirect/5 — invoice without requiring Shipped status
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> MarkInvoicedDirect(int id)
-        {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
-
-            if (order.Status != "Confirmed" && order.Status != "Shipped")
-            {
-                TempData["Error"] = $"Cannot invoice an order with status '{order.Status}'.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
-            order.Status = "Invoiced";
-            order.DealerHasViewed = false;
-            _context.OrderHistories.Add(new OrderHistory
-            {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "Invoiced",
-                ChangeDescription = "Order invoiced directly (without shipping)",
-                ChangedBy = CurrentUser
-            });
-            QueueDealerNotification(order.DealerID,
-                "OrderInvoiced",
-                $"Invoice ready for order #{order.OrderNumber}. Please review your order history.");
-
-            await _context.SaveChangesAsync();
-
-            var (email, companyName) = await GetDealerEmailAsync(order);
-            if (email != null)
-            {
-                try
-                {
-                    await _emailService.SendOrderStatusChangedAsync(
-                        email, companyName, order.OrderNumber, "Invoiced");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
-                }
-            }
-
-            TempData["Success"] = "Order marked as invoiced.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        // POST: /AdminOrders/MarkInvoiced/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> MarkInvoiced(int id)
-        {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
-
-            if (order.Status != "Shipped")
-            {
-                TempData["Error"] = $"Cannot invoice an order with status '{order.Status}'.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
-            order.Status = "Invoiced";
-            order.DealerHasViewed = false;
-            _context.OrderHistories.Add(new OrderHistory
-            {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "Invoiced",
-                ChangeDescription = "Order invoiced",
-                ChangedBy = CurrentUser
-            });
-            QueueDealerNotification(order.DealerID,
-                "OrderInvoiced",
-                $"Invoice ready for order #{order.OrderNumber}. Please review your order history.");
-
-            await _context.SaveChangesAsync();
-
-            var (email, companyName) = await GetDealerEmailAsync(order);
-            if (email != null)
-            {
-                try
-                {
-                    await _emailService.SendOrderStatusChangedAsync(
-                        email, companyName, order.OrderNumber, "Invoiced");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Email failed for order {Po}", order.OrderNumber);
-                }
-            }
-
-            TempData["Success"] = "Order marked as invoiced.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        // POST: /AdminOrders/UpdateInvoicedShipping/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateInvoicedShipping(
-            int id,
-            decimal? shippingAmount,
-            string? trackingNumber)
-        {
-            var order = await _context.Orders
-                .Include(o => o.OrderLines)
-                .Include(o => o.Dealer)
-                    .ThenInclude(d => d!.ApplicationUser)
-                .Include(o => o.Dealer)
-                    .ThenInclude(d => d!.BillingAddress)
-                .Include(o => o.Dealer)
-                    .ThenInclude(d => d!.ShippingAddress)
-                .Include(o => o.PaymentTerms)
-                .FirstOrDefaultAsync(o => o.OrderID == id);
-
-            if (order == null) return NotFound();
-
-            if (order.Status != "Invoiced")
-                return RedirectToAction(nameof(Details), new { id });
-
-            order.ShippingCost = shippingAmount;
-            order.TrackingNumber = trackingNumber;
-
-            if (shippingAmount.HasValue)
-                order.TotalAmount = order.SubtotalAmount
-                    + (order.TaxAmount ?? 0m)
-                    + shippingAmount.Value;
-
-            order.VersionNumber = order.VersionNumber + 1;
-            var revisedPo = $"{order.OrderNumber}-{order.VersionNumber}";
-
-            _context.OrderHistories.Add(new OrderHistory
-            {
-                OrderID = id,
-                VersionNumber = order.VersionNumber,
-                ChangeType = "ShippingUpdated",
-                ChangeDescription =
-                    $"Shipping updated after invoicing. " +
-                    $"Amount: ${shippingAmount:F2}. Revised PO: {revisedPo}",
-                ChangedBy = CurrentUser
-            });
-
-            await _context.SaveChangesAsync();
-
-            var dealerEmail = order.Dealer?.ApplicationUser?.Email;
-            var companyName = order.Dealer?.CompanyName ?? order.DealerCompanyName;
-
-            if (dealerEmail != null)
-            {
-                try
-                {
-                    var pdfBytes = _pdfService.GeneratePurchaseOrder(order, dealerEmail);
-                    await _emailService.SendPurchaseOrderAsync(
-                        dealerEmail,
-                        companyName,
-                        "noreply.pontelloimports@gmail.com",
-                        revisedPo,
-                        pdfBytes,
-                        isRevised: true);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Revised PO email failed for order {Id}", id);
-                }
-            }
-
-            TempData["Success"] =
-                $"Shipping updated. Revised PO {revisedPo} emailed to dealer.";
-            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

@@ -11,94 +11,173 @@ namespace PontelloImport.Controllers
         public ReportsController(PontelloDbContext context) : base(context) { }
 
         [HttpGet]
-        public async Task<IActionResult> Index(int year = 0)
+        public async Task<IActionResult> Index(
+            int year = 0,
+            int? dealerId = null)
         {
             if (year == 0) year = DateTime.Now.Year;
 
-            // Sales by month for selected year
-            var salesByMonth = await _context.Orders
-                .Where(o => o.CreatedDate.Year == year && o.Status != "Cancelled")
+            var yearStart = new DateTime(year, 1, 1);
+            var yearEnd = new DateTime(year, 12, 31, 23, 59, 59);
+
+            // Base query scoped to selected year
+            var yearOrders = _context.Orders
+                .Where(o => o.CreatedDate >= yearStart
+                         && o.CreatedDate <= yearEnd
+                         && o.Status != "Cancelled");
+
+            // Optional dealer filter
+            if (dealerId.HasValue)
+                yearOrders = yearOrders.Where(o =>
+                    o.DealerID == dealerId.Value);
+
+            var totalOrders = await yearOrders
+                .CountAsync();
+
+            var orderValue = await yearOrders
+                .SumAsync(o => (decimal?)o.SubtotalAmount)
+                ?? 0;
+
+            var avgOrderValue = totalOrders > 0
+                ? orderValue / totalOrders : 0;
+
+            var monthlyRaw = await yearOrders
                 .GroupBy(o => o.CreatedDate.Month)
-                .Select(g => new
-                {
+                .Select(g => new {
                     Month = g.Key,
                     OrderCount = g.Count(),
                     Revenue = g.Sum(o => o.SubtotalAmount)
                 })
-                .OrderBy(x => x.Month)
                 .ToListAsync();
 
-            // Top dealers by revenue (all time) — pull to memory first, then sort client-side
-            // (SQLite does not support ORDER BY on decimal expressions)
-            var topDealers = await _context.Orders
-                .Where(o => o.Status != "Cancelled")
-                .GroupBy(o => new { o.DealerID, o.DealerCompanyName })
-                .Select(g => new
-                {
-                    g.Key.DealerID,
+            var monthlyData = Enumerable.Range(1, 12)
+                .Select(m => {
+                    var found = monthlyRaw
+                        .FirstOrDefault(x => x.Month == m);
+                    return new {
+                        Month = m,
+                        MonthName = new DateTime(year, m, 1)
+                            .ToString("MMM"),
+                        OrderCount = found?.OrderCount ?? 0,
+                        Revenue = found?.Revenue ?? 0m
+                    };
+                }).ToList();
+
+            var maxRevenue = monthlyData.Any()
+                ? monthlyData.Max(m => m.Revenue) : 1m;
+
+            var topDealersRaw = await yearOrders
+                .GroupBy(o => new {
+                    o.DealerID,
+                    o.DealerCompanyName
+                })
+                .Select(g => new {
                     CompanyName = g.Key.DealerCompanyName,
                     OrderCount = g.Count(),
                     Revenue = g.Sum(o => o.SubtotalAmount)
                 })
                 .ToListAsync();
 
-            topDealers = topDealers
+            var topDealers = topDealersRaw
                 .OrderByDescending(x => x.Revenue)
-                .Take(10)
+                .Take(8)
                 .ToList();
 
-            // Order status breakdown
-            var statusBreakdown = await _context.Orders
+            var maxDealerRevenue = topDealers.Any()
+                ? topDealers.Max(d => d.Revenue) : 1m;
+
+            var statusRaw = await _context.Orders
+                .Where(o => o.CreatedDate >= yearStart
+                         && o.CreatedDate <= yearEnd)
                 .GroupBy(o => o.Status)
-                .Select(g => new
-                {
+                .Select(g => new {
                     Status = g.Key,
                     Count = g.Count(),
                     Revenue = g.Sum(o => o.SubtotalAmount)
                 })
-                .OrderByDescending(g => g.Count)
                 .ToListAsync();
 
-            // Available years
             var years = await _context.Orders
                 .Select(o => o.CreatedDate.Year)
                 .Distinct()
-                .OrderByDescending(y => y)
                 .ToListAsync();
-            if (!years.Contains(year)) years.Add(year);
-            years = years.OrderByDescending(y => y).ToList();
+            years = years.OrderByDescending(y => y)
+                .ToList();
+            if (!years.Contains(year)) years.Insert(0, year);
 
-            // Monthly totals for bar display (all 12 months)
-            var monthData = Enumerable.Range(1, 12).Select(m =>
-            {
-                var found = salesByMonth.FirstOrDefault(x => x.Month == m);
-                return new
-                {
-                    Month = m,
-                    MonthName = new DateTime(year, m, 1).ToString("MMM"),
-                    OrderCount = found?.OrderCount ?? 0,
-                    Revenue = found?.Revenue ?? 0m
-                };
-            }).ToList();
+            var dealers = await _context.Dealers
+                .OrderBy(d => d.CompanyName)
+                .Select(d => new {
+                    d.DealerID,
+                    d.CompanyName
+                })
+                .ToListAsync();
 
-            var maxRevenue = monthData.Max(m => m.Revenue);
-            if (maxRevenue == 0) maxRevenue = 1; // avoid division by zero
-
-            var totalRevenue = salesByMonth.Sum(m => m.Revenue);
-            var totalOrders = salesByMonth.Sum(m => m.OrderCount);
-            var avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0m;
-
-            ViewData["Year"] = year;
-            ViewData["Years"] = years;
-            ViewData["SalesByMonth"] = monthData;
-            ViewData["MaxRevenue"] = maxRevenue;
-            ViewData["TopDealers"] = topDealers;
-            ViewData["StatusBreakdown"] = statusBreakdown;
-            ViewData["TotalRevenue"] = totalRevenue;
-            ViewData["TotalOrders"] = totalOrders;
-            ViewData["AvgOrder"] = avgOrder;
+            ViewData["Year"]             = year;
+            ViewData["Years"]            = years;
+            ViewData["DealerID"]         = dealerId;
+            ViewData["Dealers"]          = dealers;
+            ViewData["TotalOrders"]      = totalOrders;
+            ViewData["OrderValue"]       = orderValue;
+            ViewData["AvgOrderValue"]    = avgOrderValue;
+            ViewData["MonthlyData"]      = monthlyData;
+            ViewData["MaxRevenue"]       = maxRevenue;
+            ViewData["TopDealers"]       = topDealers;
+            ViewData["MaxDealerRevenue"] = maxDealerRevenue;
+            ViewData["StatusBreakdown"]  = statusRaw;
 
             return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportCsv(
+            int year = 0,
+            int? dealerId = null)
+        {
+            if (year == 0) year = DateTime.Now.Year;
+
+            var yearStart = new DateTime(year, 1, 1);
+            var yearEnd = new DateTime(year, 12, 31, 23, 59, 59);
+
+            var query = _context.Orders
+                .Include(o => o.Dealer)
+                .Where(o => o.CreatedDate >= yearStart
+                         && o.CreatedDate <= yearEnd);
+
+            if (dealerId.HasValue)
+                query = query.Where(o =>
+                    o.DealerID == dealerId.Value);
+
+            var orders = await query
+                .OrderByDescending(o => o.CreatedDate)
+                .ToListAsync();
+
+            var csv = new System.Text.StringBuilder();
+            csv.AppendLine(
+                "PO Number,Dealer,Date,Status," +
+                "Fulfillment,Billing," +
+                "Subtotal,Tax,Shipping,Total");
+
+            foreach (var o in orders)
+            {
+                csv.AppendLine(
+                    $"{o.OrderNumber}," +
+                    $"{o.Dealer?.CompanyName}," +
+                    $"{o.CreatedDate:yyyy-MM-dd}," +
+                    $"{o.Status}," +
+                    $"{o.FulfillmentStatus}," +
+                    $"{o.BillingStatus}," +
+                    $"{o.SubtotalAmount:F2}," +
+                    $"{o.TaxAmount:F2}," +
+                    $"{o.ShippingCost ?? 0:F2}," +
+                    $"{o.TotalAmount:F2}");
+            }
+
+            return File(
+                System.Text.Encoding.UTF8
+                    .GetBytes(csv.ToString()),
+                "text/csv",
+                $"report-{year}.csv");
         }
     }
 }

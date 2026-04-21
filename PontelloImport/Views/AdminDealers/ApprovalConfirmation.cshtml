@@ -39,7 +39,7 @@
                         Application Reference
                     </p>
                     <span style="font-family:monospace; font-size:1rem; font-weight:700;
-                                 color:#028090; background:#E0F7F7; padding:0.25rem 0.8rem;
+                                 color:var(--pi-primary-dk); background:var(--pi-cool-blue); padding:0.25rem 0.8rem;
                                  border-radius:8px; letter-spacing:0.04em;">
                         @refId
                     </span>
@@ -53,7 +53,7 @@
                         @if (!emailSent)
                         {
                             <span class="badge ms-2 text-dark" style="background:#FEF3C7; font-size:0.7rem;">
-                                ⚠ Email not sent — relay manually
+                                Email not sent — relay manually
                             </span>
                         }
                         else
@@ -69,7 +69,7 @@
                                 Login Email
                             </label>
                             <div class="d-flex align-items-center gap-2 mt-1">
-                                <code style="background:#E0F7F7; color:#028090; padding:0.3rem 0.75rem;
+                                <code style="background:var(--pi-cool-blue); color:var(--pi-primary-dk); padding:0.3rem 0.75rem;
                                              border-radius:6px; font-size:0.9rem; flex:1;">
                                     @email
                                 </code>
@@ -107,7 +107,7 @@
                     <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:8px;">
                         Back to Applications
                     </a>
-                    <a asp-action="Dealers" class="btn btn-primary" style="border-radius:8px; background:#0D3D38; border-color:#0D3D38;">
+                    <a asp-action="Dealers" class="pi-btn pi-btn-blue">
                         View All Dealers
                     </a>
                 </div>

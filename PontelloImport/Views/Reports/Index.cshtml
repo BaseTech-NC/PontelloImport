@@ -1,237 +1,534 @@
 @{
     Layout = "~/Views/Admin/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Reports";
-
     var year = (int)(ViewData["Year"] ?? DateTime.Now.Year);
-    var years = ViewData["Years"] as List<int> ?? new List<int> { year };
-    var maxRevenue = (decimal)(ViewData["MaxRevenue"] ?? 1m);
-    var totalRevenue = (decimal)(ViewData["TotalRevenue"] ?? 0m);
-    var totalOrders = (int)(ViewData["TotalOrders"] ?? 0);
-    var avgOrder = (decimal)(ViewData["AvgOrder"] ?? 0m);
+    var years = ViewData["Years"] as List<int> ?? new List<int>();
+    var dealers = ViewData["Dealers"] as dynamic ?? new List<dynamic>();
+    var selectedDealer = (int?)ViewData["DealerID"];
 
-    // Dynamic typed access for anonymous type lists
-    var monthDataRaw = ViewData["SalesByMonth"];
-    var topDealersRaw = ViewData["TopDealers"];
-    var statusBreakdownRaw = ViewData["StatusBreakdown"];
+    var totalOrders  = (int)(ViewData["TotalOrders"] ?? 0);
+    var orderValue   = (decimal)(ViewData["OrderValue"] ?? 0m);
+    var avgOrder     = (decimal)(ViewData["AvgOrderValue"] ?? 0m);
+    var maxRevenue   = (decimal)(ViewData["MaxRevenue"] ?? 1m);
+    var maxDealerRev = (decimal)(ViewData["MaxDealerRevenue"] ?? 1m);
+
+    var monthlyData  = ViewData["MonthlyData"] as dynamic ?? new List<dynamic>();
+    var topDealers   = ViewData["TopDealers"] as dynamic ?? new List<dynamic>();
+    var statusData   = ViewData["StatusBreakdown"] as dynamic ?? new List<dynamic>();
 }
 
-@functions {
-    string GetStatusBadgeClass(string status) => status switch
-    {
-        "Submitted"     => "pi-badge pi-badge-submitted",
-        "Confirmed"     => "pi-badge pi-badge-confirmed",
-        "Shipped"       => "pi-badge pi-badge-shipped",
-        "Invoiced"      => "pi-badge pi-badge-invoiced",
-        "Cancelled"     => "pi-badge pi-badge-cancelled",
-        "ActionRequired"=> "pi-badge pi-badge-action",
-        "FlaggedIssue"  => "pi-badge pi-badge-action",
-        _               => "pi-badge"
-    };
+<!-- Print-only header — hidden on screen via @@media screen rule below -->
+<div class="print-header">
+    <img src="/images/pontello-Imports-Logo.png"
+         alt="Pontello Imports"
+         style="height:36px;width:auto;">
+    <div class="print-header-text">
+        <h2>Pontello Imports — Reports</h2>
+        <p>
+            All data scoped to @year
+            · Generated @DateTime.Now.ToString("MMMM d, yyyy")
+        </p>
+    </div>
+</div>
+
+<!-- ── HEADER (screen only) ─────────────── -->
+<div class="screen-heading"
+     style="display:flex;justify-content:space-between;align-items:center;
+            margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+
+    <div>
+        <h1 style="font-family:var(--pi-font-head);font-size:26px;font-weight:700;margin:0;">
+            Reports
+        </h1>
+        <p style="color:var(--pi-text-2);font-size:13px;margin:4px 0 0;">
+            All data scoped to @year
+            @if (selectedDealer != null)
+            {
+                <span>— filtered by dealer</span>
+            }
+        </p>
+    </div>
+
+    <!-- Filter bar -->
+    <form method="get"
+          style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <label for="yearSelect" class="visually-hidden">Select year</label>
+        <select id="yearSelect" name="year"
+                class="form-select form-select-sm"
+                onchange="this.form.submit()"
+                style="font-family:var(--pi-font-body);font-size:13px;width:auto;">
+            @foreach (var y in years)
+            {
+                <option value="@y" selected="@(y == year ? "selected" : null)">@y</option>
+            }
+        </select>
+
+        <label for="dealerSelect" class="visually-hidden">Filter by dealer</label>
+        <select id="dealerSelect" name="dealerId"
+                class="form-select form-select-sm"
+                onchange="this.form.submit()"
+                style="font-family:var(--pi-font-body);font-size:13px;width:auto;min-width:160px;">
+            <option value="">All dealers</option>
+            @foreach (var d in dealers)
+            {
+                <option value="@d.DealerID" selected="@(selectedDealer == (int)d.DealerID ? "selected" : null)">
+                    @d.CompanyName
+                </option>
+            }
+        </select>
+
+        <a href="/Reports"
+           class="pi-btn pi-btn-ghost pi-btn-sm">
+            Reset
+        </a>
+
+        <button type="button"
+                class="pi-btn pi-btn-blue pi-btn-sm"
+                onclick="window.print()">
+            Print
+        </button>
+
+        <a asp-action="ExportCsv"
+           asp-route-year="@year"
+           asp-route-dealerId="@selectedDealer"
+           class="pi-btn pi-btn-ghost pi-btn-sm">
+            Export CSV
+        </a>
+    </form>
+</div>
+
+@if (totalOrders == 0)
+{
+    <!-- Empty state -->
+    <div style="text-align:center;padding:64px 20px;background:var(--pi-bg-card);
+                border:1px solid var(--pi-border);border-radius:var(--pi-radius);">
+        <div style="font-family:var(--pi-font-head);font-size:20px;font-weight:700;
+                    color:var(--pi-text-1);margin-bottom:8px;">
+            No orders found for @year
+        </div>
+        <div style="color:var(--pi-text-2);font-size:13px;">
+            Try selecting a different year or dealer
+        </div>
+    </div>
 }
+else
+{
+    <!-- ── ROW 1: Stat cards ─────────────────── -->
+    <div class="print-stats-row"
+         style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
 
-<div class="container-fluid mt-4" id="reports-content">
+        <div class="pi-stat">
+            <div class="pi-stat-label">Total Orders</div>
+            <div class="pi-stat-value">@totalOrders</div>
+            <div class="pi-stat-sub">Non-cancelled orders in @year</div>
+        </div>
 
-    <!-- Header row -->
-    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
-        <h1 class="mb-0 h4">Reports</h1>
-        <div class="d-flex align-items-center gap-3">
-            <form method="get" class="d-flex align-items-center gap-2">
-                <label class="form-label mb-0" style="font-size:13px;white-space:nowrap;">Year:</label>
-                <select name="year" class="form-select form-select-sm"
-                        onchange="this.form.submit()" style="width:auto;">
-                    @foreach (var y in years)
-                    {
-                        <option value="@y" selected="@(y == year ? "selected" : null)">@y</option>
-                    }
-                </select>
-            </form>
-            <button onclick="window.print()" class="pi-btn pi-btn-ghost pi-btn-sm no-print">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 6 2 18 2 18 9"/>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                    <rect x="6" y="14" width="12" height="8"/>
-                </svg>
-                Print
-            </button>
+        <div class="pi-stat pi-stat-emerald">
+            <div class="pi-stat-label">Order Value</div>
+            <div class="pi-stat-value">$@orderValue.ToString("N0")</div>
+            <div class="pi-stat-sub">Subtotal revenue — @year</div>
+        </div>
+
+        <div class="pi-stat">
+            <div class="pi-stat-label">Avg Order Value</div>
+            <div class="pi-stat-value">$@avgOrder.ToString("N0")</div>
+            <div class="pi-stat-sub">Per non-cancelled order</div>
         </div>
     </div>
 
-    <!-- Row 1: Stat cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="pi-card">
-                <div class="pi-section-label">Total Revenue (@year)</div>
-                <div style="font-size:1.75rem;font-weight:700;color:var(--pi-primary);">
-                    $@totalRevenue.ToString("N2")
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="pi-card">
-                <div class="pi-section-label">Total Orders (@year)</div>
-                <div style="font-size:1.75rem;font-weight:700;color:var(--pi-text-1);">
-                    @totalOrders
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="pi-card">
-                <div class="pi-section-label">Avg Order Value</div>
-                <div style="font-size:1.75rem;font-weight:700;color:var(--pi-text-1);">
-                    $@avgOrder.ToString("N2")
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- ── ROW 2: Monthly chart ──────────────── -->
+    <div class="pi-card" style="margin-bottom:24px;">
+        <div class="pi-card-header">Monthly Order Value — @year</div>
 
-    <!-- Row 2: Monthly bar chart -->
-    <div class="pi-card mb-4">
-        <div class="pi-section-label">Monthly Sales — @year</div>
-        @if (monthDataRaw != null)
+        @{
+            bool hasMonthlyData = false;
+            foreach (var m in monthlyData) { if ((int)m.OrderCount > 0) { hasMonthlyData = true; break; } }
+        }
+
+        @if (!hasMonthlyData)
         {
-            var months = (dynamic)monthDataRaw;
-            <div style="display:flex;align-items:flex-end;gap:4px;height:160px;padding:0 8px;">
-                @foreach (var m in months)
+            <div style="text-align:center;padding:40px;color:var(--pi-text-2);font-size:13px;">
+                No order data for @year
+            </div>
+        }
+        else
+        {
+            <div class="chart-container"
+                 style="display:flex;align-items:flex-end;gap:4px;height:160px;padding:0 2px;">
+                @foreach (var m in monthlyData)
                 {
-                    decimal rev = m.Revenue;
-                    int cnt = m.OrderCount;
-                    double pct = maxRevenue > 0 ? (double)rev / (double)maxRevenue * 100.0 : 0;
-                    string pctStr = pct.ToString("F0");
-                    string minH = rev > 0 ? "4px" : "0";
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;">
-                        @if (rev > 0)
+                    double pct = maxRevenue > 0 ? (double)m.Revenue / (double)maxRevenue : 0;
+                    int barPx = (int)(pct * 120);
+                    if ((int)m.OrderCount > 0 && barPx < 4) barPx = 4;
+                    <div class="chart-bar-wrap"
+                         style="flex:1;display:flex;flex-direction:column;align-items:center;
+                                justify-content:flex-end;gap:2px;height:160px;">
+                        @if ((int)m.OrderCount > 0)
                         {
-                            <div style="font-size:10px;color:var(--pi-text-2);">
-                                $@((rev / 1000m).ToString("F1"))k
+                            <div style="font-size:9px;color:var(--pi-text-2);text-align:center;line-height:1.2;">
+                                $@(((decimal)m.Revenue / 1000m).ToString("F1"))k
                             </div>
                         }
-                        <div style="width:100%;background:var(--pi-primary);border-radius:4px 4px 0 0;
-                                    height:@(pctStr)%;min-height:@minH;
-                                    transition:height 0.3s ease;opacity:0.85;">
+                        <div class="chart-bar"
+                             style="width:100%;
+                                    height:@(barPx)px;
+                                    background:@((int)m.OrderCount > 0 ? "var(--pi-nitro-blue)" : "var(--pi-border)");
+                                    border-radius:3px 3px 0 0;
+                                    opacity:@((int)m.OrderCount > 0 ? "0.85" : "0.4");">
                         </div>
-                        <div style="font-size:10px;color:var(--pi-text-2);white-space:nowrap;">
+                        <div style="font-size:9px;color:var(--pi-text-2);text-align:center;white-space:nowrap;">
                             @m.MonthName
                         </div>
-                        @if (cnt > 0)
+                        @if ((int)m.OrderCount > 0)
                         {
-                            <div style="font-size:9px;color:var(--pi-text-3);">@cnt orders</div>
+                            <div style="font-size:9px;color:var(--pi-text-2);text-align:center;">
+                                @m.OrderCount
+                            </div>
                         }
                     </div>
                 }
             </div>
+            <div style="font-size:10px;color:var(--pi-text-3);text-align:center;margin-top:8px;">
+                Bar height = order value · Number below = order count · Grey = no orders that month
+            </div>
         }
     </div>
 
-    <!-- Row 3: Two columns -->
-    <div class="row g-4">
+    <!-- ── ROW 3: Two panels ─────────────────── -->
+    <div class="print-panels-row"
+         style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
 
-        <!-- Top Dealers -->
-        <div class="col-lg-7">
-            <div class="pi-card">
-                <div class="pi-section-label">Top Dealers by Revenue (All Time)</div>
-                @if (topDealersRaw != null)
-                {
-                    var dealers = (dynamic)topDealersRaw;
-                    decimal topRevenue = 1m;
-                    foreach (var d in dealers) { topRevenue = d.Revenue; break; }
-                    if (topRevenue <= 0) topRevenue = 1m;
+        <!-- Top Dealers — same year scope -->
+        <div class="print-panel pi-card">
+            <div class="pi-card-header">Top Dealers — @year</div>
 
-                    <table class="pi-table w-100">
-                        <thead>
+            @{
+                bool hasTopDealers = false;
+                foreach (var _ in topDealers) { hasTopDealers = true; break; }
+            }
+
+            @if (!hasTopDealers)
+            {
+                <div style="color:var(--pi-text-2);font-size:13px;padding:16px 0;">
+                    No dealer data for @year
+                </div>
+            }
+            else
+            {
+                <table class="pi-table">
+                    <thead>
+                        <tr>
+                            <th style="width:28px;">#</th>
+                            <th>Dealer</th>
+                            <th style="width:60px;text-align:center;">Orders</th>
+                            <th style="width:120px;text-align:right;">Order Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{int rank = 1;}
+                        @foreach (var d in topDealers)
+                        {
+                            double dealerPct = maxDealerRev > 0
+                                ? (double)d.Revenue / (double)maxDealerRev * 100
+                                : 0;
                             <tr>
-                                <th style="width:30px;">#</th>
-                                <th>Dealer</th>
-                                <th class="text-center">Orders</th>
-                                <th>Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{int rank = 1;}
-                            @foreach (var d in dealers)
-                            {
-                                decimal rev = d.Revenue;
-                                double barPct = (double)rev / (double)topRevenue * 100.0;
-                                <tr>
-                                    <td style="color:var(--pi-text-3);font-size:12px;">@rank</td>
-                                    <td style="font-weight:500;">@d.CompanyName</td>
-                                    <td class="text-center" style="color:var(--pi-text-2);">@d.OrderCount</td>
-                                    <td>
-                                        <div style="display:flex;align-items:center;gap:8px;">
-                                            <span>$@rev.ToString("N0")</span>
-                                            <div style="flex:1;height:4px;background:var(--pi-border);border-radius:2px;max-width:80px;">
-                                                <div style="height:100%;background:var(--pi-primary);border-radius:2px;width:@(barPct.ToString("F0"))%;"></div>
-                                            </div>
+                                <td style="color:var(--pi-text-2);font-size:12px;">@rank</td>
+                                <td>
+                                    <div style="font-size:13px;font-weight:500;">@d.CompanyName</div>
+                                    <div class="dealer-bar-bg"
+                                         style="height:3px;background:var(--pi-border);border-radius:2px;
+                                                margin-top:4px;max-width:120px;">
+                                        <div class="dealer-bar-fill"
+                                             style="height:100%;background:var(--pi-nitro-blue);
+                                                    border-radius:2px;width:@($"{dealerPct:F0}")%;">
                                         </div>
-                                    </td>
-                                </tr>
-                                rank++;
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <p class="text-muted" style="font-size:13px;">No order data available.</p>
-                }
-            </div>
+                                    </div>
+                                </td>
+                                <td style="text-align:center;color:var(--pi-text-2);font-size:13px;">
+                                    @d.OrderCount
+                                </td>
+                                <td style="text-align:right;font-weight:600;font-size:13px;">
+                                    $@(((decimal)d.Revenue).ToString("N0"))
+                                </td>
+                            </tr>
+                            rank++;
+                        }
+                    </tbody>
+                </table>
+            }
         </div>
 
-        <!-- Status Breakdown -->
-        <div class="col-lg-5">
-            <div class="pi-card">
-                <div class="pi-section-label">Order Status Breakdown</div>
-                @if (statusBreakdownRaw != null)
-                {
-                    var statuses = (dynamic)statusBreakdownRaw;
-                    int totalCount = 0;
-                    decimal totalRev = 0m;
-                    foreach (var s in statuses) { totalCount += s.Count; totalRev += s.Revenue; }
+        <!-- Order Status Breakdown — same year -->
+        <div class="print-panel pi-card">
+            <div class="pi-card-header">Order Status — @year</div>
 
-                    <table class="pi-table w-100">
-                        <thead>
+            @{
+                bool hasStatusData = false;
+                int totalForPct = 0;
+                foreach (var s in statusData) { hasStatusData = true; totalForPct += (int)s.Count; }
+            }
+
+            @if (!hasStatusData)
+            {
+                <div style="color:var(--pi-text-2);font-size:13px;padding:16px 0;">
+                    No data for @year
+                </div>
+            }
+            else
+            {
+                <table class="pi-table">
+                    <thead>
+                        <tr>
+                            <th style="width:140px;">Status</th>
+                            <th style="width:60px;text-align:center;">Count</th>
+                            <th style="text-align:right;width:100px;">Order Value</th>
+                            <th style="width:80px;text-align:right;">Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in statusData)
+                        {
+                            var badgeClass = (string)s.Status switch {
+                                "Submitted"      => "pi-badge-submitted",
+                                "ActionRequired" => "pi-badge-action",
+                                "Confirmed"      => "pi-badge-confirmed",
+                                "Cancelled"      => "pi-badge-cancelled",
+                                _ => "pi-badge-submitted"
+                            };
+                            var statusLabel = (string)s.Status == "ActionRequired"
+                                ? "Action Required"
+                                : (string)s.Status;
+                            double share = totalForPct > 0
+                                ? (double)(int)s.Count / totalForPct * 100 : 0;
                             <tr>
-                                <th>Status</th>
-                                <th class="text-center">Count</th>
-                                <th class="text-end">Revenue</th>
+                                <td>
+                                    <span class="pi-badge @badgeClass">@statusLabel</span>
+                                </td>
+                                <td style="text-align:center;font-size:13px;">@s.Count</td>
+                                <td style="text-align:right;font-size:13px;font-weight:500;">
+                                    $@(((decimal)s.Revenue).ToString("N0"))
+                                </td>
+                                <td style="text-align:right;font-size:12px;color:var(--pi-text-2);">
+                                    @share.ToString("F0")%
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var s in statuses)
-                            {
-                                <tr>
-                                    <td><span class="@GetStatusBadgeClass(s.Status)">@s.Status</span></td>
-                                    <td class="text-center">@s.Count</td>
-                                    <td class="text-end">$@(((decimal)s.Revenue).ToString("N0"))</td>
-                                </tr>
-                            }
-                        </tbody>
-                        <tfoot>
-                            <tr style="border-top:2px solid var(--pi-border);">
-                                <td><strong>Total</strong></td>
-                                <td class="text-center"><strong>@totalCount</strong></td>
-                                <td class="text-end"><strong>$@(totalRev.ToString("N0"))</strong></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                }
-                else
-                {
-                    <p class="text-muted" style="font-size:13px;">No data available.</p>
-                }
-            </div>
+                        }
+                        <!-- Total row -->
+                        @{
+                            decimal totalRevForStatus = 0m;
+                            foreach (var s in statusData) { totalRevForStatus += (decimal)s.Revenue; }
+                        }
+                        <tr style="border-top:2px solid var(--pi-border);font-weight:700;">
+                            <td>Total</td>
+                            <td style="text-align:center;">@totalForPct</td>
+                            <td style="text-align:right;">$@totalRevForStatus.ToString("N0")</td>
+                            <td style="text-align:right;color:var(--pi-text-2);font-size:12px;">100%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            }
         </div>
-
     </div>
-</div>
-
-@section Scripts {
-    <style>
-    @@media print {
-        .no-print, .sidebar-wrapper, nav, .admin-topnav { display: none !important; }
-        .admin-content-area { margin: 0 !important; padding: 0 !important; }
-        #reports-content { padding: 20px; }
-        .pi-card { border: 1px solid #ddd !important; box-shadow: none !important; }
-    }
-    </style>
 }
+
+<style>
+@@media screen {
+    .print-header { display: none; }
+}
+
+@@media print {
+    /* ── Hide UI chrome ────────────────────── */
+    nav, .navbar, header,
+    form, button, a.pi-btn,
+    .nav-icon-btn, .sidebar,
+    .dropdown, .dropdown-menu,
+    [class*="dropdown"],
+    .print-hide,
+    .alert {
+        display: none !important;
+    }
+
+    /* ── Page setup ────────────────────────── */
+    @@page {
+        size: A4 portrait;
+        margin: 12mm 14mm;
+    }
+
+    html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: white !important;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 11px;
+        color: #111827;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* ── Print header ──────────────────────── */
+    .print-header {
+        display: flex !important;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 10px;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #332F29;
+    }
+    .print-header img {
+        height: 32px !important;
+        width: auto !important;
+    }
+    .print-header-text h2 {
+        font-size: 15px;
+        font-weight: 700;
+        margin: 0;
+        color: #332F29;
+    }
+    .print-header-text p {
+        font-size: 10px;
+        color: #6B7280;
+        margin: 2px 0 0;
+    }
+
+    /* ── Hide screen heading ───────────────── */
+    .screen-heading {
+        display: none !important;
+    }
+
+    /* ── Main content ──────────────────────── */
+    .container,
+    .container-fluid,
+    main,
+    [role="main"],
+    .main-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* ── Stat cards row ────────────────────── */
+    .print-stats-row {
+        display: flex !important;
+        gap: 10px !important;
+        margin-bottom: 16px !important;
+    }
+    .pi-stat {
+        flex: 1 !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 6px !important;
+        padding: 10px !important;
+        break-inside: avoid !important;
+    }
+    .pi-stat-label {
+        font-size: 9px !important;
+        color: #6B7280 !important;
+    }
+    .pi-stat-value {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+    }
+    .pi-stat-sub {
+        font-size: 9px !important;
+        color: #6B7280 !important;
+    }
+
+    /* ── Chart card ────────────────────────── */
+    .pi-card {
+        border: 1px solid #E5E7EB !important;
+        border-radius: 6px !important;
+        box-shadow: none !important;
+        padding: 12px !important;
+        margin-bottom: 14px !important;
+        break-inside: avoid !important;
+    }
+    .pi-card-header {
+        font-size: 9px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px !important;
+        color: #6B7280 !important;
+        margin-bottom: 10px !important;
+        padding-bottom: 6px !important;
+        border-bottom: 1px solid #E5E7EB !important;
+    }
+
+    /* ── Bar chart: pixel heights ──────────── */
+    .chart-container {
+        display: flex !important;
+        align-items: flex-end !important;
+        gap: 4px !important;
+        height: 120px !important;
+        padding: 0 2px !important;
+    }
+    .chart-bar-wrap {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 2px !important;
+        height: 120px !important;
+    }
+    .chart-bar {
+        width: 100% !important;
+        border-radius: 3px 3px 0 0 !important;
+    }
+
+    /* ── Bottom two panels ─────────────────── */
+    .print-panels-row {
+        display: flex !important;
+        gap: 12px !important;
+        break-before: avoid !important;
+    }
+    .print-panel {
+        flex: 1 !important;
+        break-inside: avoid !important;
+    }
+
+    /* ── Tables ────────────────────────────── */
+    .pi-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 10px !important;
+    }
+    .pi-table thead th {
+        background: #F3F4F6 !important;
+        color: #374151 !important;
+        padding: 6px 8px !important;
+        font-size: 9px !important;
+        border-bottom: 1px solid #E5E7EB !important;
+    }
+    .pi-table tbody td {
+        padding: 6px 8px !important;
+        border-bottom: 1px solid #F3F4F6 !important;
+        font-size: 10px !important;
+    }
+    .pi-table tbody tr:last-child td {
+        border-bottom: none !important;
+    }
+
+    /* ── Badges in print ───────────────────── */
+    .pi-badge {
+        border: 1px solid #E5E7EB !important;
+        border-radius: 10px !important;
+        padding: 1px 6px !important;
+        font-size: 9px !important;
+        font-weight: 600 !important;
+    }
+
+    /* ── Inline bar (dealer table) ─────────── */
+    .dealer-bar-bg {
+        height: 3px !important;
+        background: #E5E7EB !important;
+        border-radius: 2px !important;
+        margin-top: 2px !important;
+    }
+    .dealer-bar-fill {
+        height: 100% !important;
+        background: #59B7FF !important;
+        border-radius: 2px !important;
+    }
+}
+</style>

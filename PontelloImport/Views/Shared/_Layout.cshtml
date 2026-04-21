@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Pontello Imports</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,700;1,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/PontelloImport.styles.css" asp-append-version="true" />
     <style>
-        *, *::before, *::after { font-family: Inter, system-ui, sans-serif; }
-        body { background-color: #F8FAFC; color: #111827; }
         .navbar-site { background-color: var(--pi-nav-bg) !important; }
     </style>
 </head>
@@ -24,8 +24,7 @@
             <div class="container-fluid px-4">
 
                 <a class="navbar-brand p-0 me-4" asp-controller="Home" asp-action="Index">
-                    <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports"
-                         style="height:38px; width:auto;" />
+                    <img src="~/images/pontello-Imports-Logo.png" alt="Pontello Imports" />
                 </a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -44,7 +43,7 @@
                         </ul>
                         <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-outline-primary">Sign Out</button>
+                            <button type="submit" class="pi-btn pi-btn-ghost pi-btn-sm">Sign Out</button>
                         </form>
                     }
                     else if (User.IsInRole("Dealer"))
@@ -55,6 +54,7 @@
                         var dealerNotifs     = ViewData["DealerNotifications"] as List<PontelloImport.Models.Notification>
                                               ?? new List<PontelloImport.Models.Notification>();
                         var dealerUnread     = (int)(ViewData["DealerUnreadCount"] ?? 0);
+                        var cartCount        = (int)(ViewData["CartCount"] ?? 0);
                         <ul class="navbar-nav flex-grow-1">
                             <li class="nav-item"><a class="nav-link" asp-controller="Shop" asp-action="Index">Shop</a></li>
                             <li class="nav-item">
@@ -69,6 +69,32 @@
                             </li>
                         </ul>
 
+                        @* Dealer cart icon *@
+                        <a asp-controller="Shop"
+                           asp-action="Cart"
+                           class="nav-icon-btn position-relative me-1"
+                           aria-label="Shopping cart"
+                           style="text-decoration:none;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="9" cy="21" r="1"/>
+                                <circle cx="20" cy="21" r="1"/>
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                            </svg>
+                            @if (cartCount > 0)
+                            {
+                                <span style="position:absolute;top:-4px;right:-6px;
+                                             background:var(--pi-emerald);color:#000000;
+                                             border-radius:50%;width:17px;height:17px;
+                                             font-size:10px;font-weight:700;
+                                             display:flex;align-items:center;justify-content:center;
+                                             font-family:var(--pi-font-body);line-height:1;">
+                                    @(cartCount > 9 ? "9+" : cartCount.ToString())
+                                </span>
+                            }
+                        </a>
+
                         @* Dealer notification bell *@
                         <div class="dropdown me-2" id="notifDropdown">
                             <button class="nav-icon-btn position-relative"
@@ -79,7 +105,7 @@
                                     <path d="M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/>
                                 </svg>
                                 <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
-                                      style="background:#028090; font-size:0.6rem; min-width:16px; padding:2px 4px;
+                                      style="background:var(--pi-nitro-blue); font-size:0.6rem; min-width:16px; padding:2px 4px;
                                              transform: translate(-70%, 0%) !important;
                                              @(dealerUnread == 0 ? "display:none;" : "")">
                                     @(dealerUnread > 9 ? "9+" : dealerUnread.ToString())
@@ -90,13 +116,26 @@
                                 <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between"
                                      style="position:sticky;top:0;background:#fff;z-index:1;">
                                     <span class="fw-semibold text-dark">Notifications</span>
-                                    <button type="button" id="markAllReadBtn"
-                                            class="btn btn-link p-0"
-                                            style="font-size:0.75rem; color:#028090; text-decoration:none;
-                                                   @(dealerUnread == 0 ? "display:none;" : "")"
-                                            onclick="dealerMarkAllRead()">
-                                        Mark all read
-                                    </button>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <button type="button" id="markAllReadBtn"
+                                                class="btn btn-link p-0"
+                                                style="font-size:0.75rem; color:var(--pi-nitro-blue); text-decoration:none;
+                                                       @(dealerUnread == 0 ? "display:none;" : "")"
+                                                onclick="dealerMarkAllRead()">
+                                            Mark all read
+                                        </button>
+                                        @if (dealerNotifs.Any())
+                                        {
+                                            <button type="button"
+                                                    id="dealerClearAllBtn"
+                                                    onclick="dealerClearAll(event)"
+                                                    style="font-size:0.75rem;color:var(--pi-danger);
+                                                           background:none;border:none;cursor:pointer;
+                                                           font-family:var(--pi-font-body);padding:0;">
+                                                Clear all
+                                            </button>
+                                        }
+                                    </div>
                                 </div>
                                 <div id="notifList">
                                     @if (!dealerNotifs.Any())
@@ -140,7 +179,7 @@
                                                     }
                                                     <button type="button" class="pi-notif-btn pi-notif-dismiss"
                                                             title="Dismiss"
-                                                            onclick="dealerDismiss(@dn.NotificationID, this)">✕</button>
+                                                            onclick="dealerDismiss(@dn.NotificationID, this)"></button>
                                                 </div>
                                             </div>
                                         }
@@ -163,7 +202,7 @@
                                 @dealerFirstName
                                 @if (!string.IsNullOrWhiteSpace(dealerCompany))
                                 {
-                                    <span class="fw-normal" style="color:var(--pi-text-3);"> — @dealerCompany</span>
+                                    <span class="fw-normal" style="color:var(--pi-text-2);"> — @dealerCompany</span>
                                 }
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow" style="font-size:0.875rem;">
@@ -187,10 +226,27 @@
                     {
                         <ul class="navbar-nav flex-grow-1"></ul>
                         <div class="d-flex gap-2">
-                            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-sm btn-outline-secondary">Sign In</a>
+                            <a asp-area="Identity" asp-page="/Account/Login"
+                               style="background:#C7EEFF; color:#000000; border:none;
+                                      font-family:var(--pi-font-body); font-weight:600;
+                                      letter-spacing:1.5px; text-transform:uppercase;
+                                      font-size:12px; padding:10px 22px;
+                                      border-radius:5px; text-decoration:none;
+                                      display:inline-flex; align-items:center;
+                                      cursor:pointer; transition:opacity 0.15s;"
+                               onmouseover="this.style.opacity='0.85'"
+                               onmouseout="this.style.opacity='1'">Sign In</a>
                             <a asp-controller="Home" asp-action="Apply"
-                               class="btn btn-sm fw-semibold" style="background:#02C39A; color:#111827; border:none;">
-                                Become a Dealer
+                               style="background:#55DA7D; color:#000000; border:none;
+                                      font-family:var(--pi-font-body); font-weight:600;
+                                      letter-spacing:1.5px; text-transform:uppercase;
+                                      font-size:12px; padding:10px 22px;
+                                      border-radius:5px; text-decoration:none;
+                                      display:inline-flex; align-items:center;
+                                      cursor:pointer; transition:opacity 0.15s;"
+                               onmouseover="this.style.opacity='0.85'"
+                               onmouseout="this.style.opacity='1'">
+                                Open a Dealer Account
                             </a>
                         </div>
                     }
@@ -334,6 +390,28 @@
             var id = item.dataset.id;
             dealerMarkRead(id, item.querySelector('.pi-notif-read'));
         });
+    }
+    async function dealerClearAll(e) {
+        e.stopPropagation();
+        var unread = document.querySelectorAll('#notifList .pi-notif.unread').length;
+        if (unread > 0) {
+            if (!confirm('You have ' + unread + ' unread notification' + (unread > 1 ? 's' : '') + '. Clear everything?'))
+                return;
+        }
+        await fetch('/Shop/DealerClearAllNotificationsJson', {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': piCsrf() }
+        });
+        document.querySelectorAll('#notifList .pi-notif').forEach(function(n) { n.remove(); });
+        var badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+        var clearBtn = document.getElementById('dealerClearAllBtn');
+        if (clearBtn) clearBtn.style.display = 'none';
+        var markAllBtn = document.getElementById('markAllReadBtn');
+        if (markAllBtn) markAllBtn.style.display = 'none';
+        var list = document.getElementById('notifList');
+        if (list && list.querySelectorAll('.pi-notif').length === 0)
+            list.innerHTML = '<div class="px-3 py-4 text-center text-muted"><small>No notifications</small></div>';
     }
     </script>
     @await RenderSectionAsync("Scripts", required: false)

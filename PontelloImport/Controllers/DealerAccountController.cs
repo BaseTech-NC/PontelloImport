@@ -47,17 +47,45 @@ namespace PontelloImport.Controllers
             var user = await _userManager.FindByIdAsync(dealer.ApplicationUserID!);
             ViewBag.User = user;
 
-            // All addresses belonging to this dealer
+            var dealerId = dealer.DealerID;
+
+            // Primary query — all addresses with DealerID set correctly
             var addresses = await _context.Addresses
-                .Where(a => a.DealerID == dealer.DealerID)
+                .Where(a => a.DealerID == dealerId)
                 .OrderByDescending(a => a.IsDefault)
+                .ThenBy(a => a.AddressID)
                 .ToListAsync();
 
-            // Ensure billing address is in the list
-            if (dealer.BillingAddress != null &&
+            // Fallback for BillingAddress — self-heals any legacy NULL DealerID row
+            if (dealer.BillingAddressID != 0 &&
                 !addresses.Any(a => a.AddressID == dealer.BillingAddressID))
             {
-                addresses.Insert(0, dealer.BillingAddress);
+                var billing = await _context.Addresses.FindAsync(dealer.BillingAddressID);
+                if (billing != null)
+                {
+                    billing.DealerID  = dealerId;
+                    billing.IsDefault = !addresses.Any(a => a.IsDefault);
+                    if (string.IsNullOrEmpty(billing.AddressType))
+                        billing.AddressType = "Both";
+                    await _context.SaveChangesAsync();
+                    addresses.Insert(0, billing);
+                }
+            }
+
+            // Fallback for ShippingAddress — self-heals if it differs from billing
+            if (dealer.ShippingAddressID.HasValue &&
+                dealer.ShippingAddressID != dealer.BillingAddressID &&
+                !addresses.Any(a => a.AddressID == dealer.ShippingAddressID))
+            {
+                var shipping = await _context.Addresses.FindAsync(dealer.ShippingAddressID.Value);
+                if (shipping != null)
+                {
+                    shipping.DealerID = dealerId;
+                    if (string.IsNullOrEmpty(shipping.AddressType))
+                        shipping.AddressType = "Shipping";
+                    await _context.SaveChangesAsync();
+                    addresses.Add(shipping);
+                }
             }
 
             ViewBag.Addresses = addresses;
@@ -91,6 +119,19 @@ namespace PontelloImport.Controllers
             var dealer = await GetCurrentDealerAsync();
             if (dealer == null) return NotFound();
 
+            // Heal any legacy billing address with NULL DealerID before we count
+            if (dealer.BillingAddressID != 0)
+            {
+                var billing = await _context.Addresses.FindAsync(dealer.BillingAddressID);
+                if (billing != null && billing.DealerID == null)
+                {
+                    billing.DealerID = dealer.DealerID;
+                    if (string.IsNullOrEmpty(billing.AddressType))
+                        billing.AddressType = "Both";
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             var existingCount = await _context.Addresses
                 .CountAsync(a => a.DealerID == dealer.DealerID);
             bool isFirst = existingCount == 0;
@@ -106,12 +147,12 @@ namespace PontelloImport.Controllers
 
             var address = new Address
             {
-                DealerID = dealer.DealerID,
-                Street = street,
-                City = city,
-                Province = provinceState,
+                DealerID  = dealer.DealerID,
+                Street    = street,
+                City      = city,
+                Province  = provinceState,
                 PostalCode = postalZipCode,
-                Country = string.IsNullOrWhiteSpace(country) ? "Canada" : country,
+                Country   = string.IsNullOrWhiteSpace(country) ? "Canada" : country,
                 AddressType = string.IsNullOrWhiteSpace(addressType) ? "Both" : addressType,
                 IsDefault = setAsDefault
             };
@@ -124,6 +165,9 @@ namespace PontelloImport.Controllers
                 dealer.ModifiedDate = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
             }
+
+            // Clear EF tracking so ManageAccount GET reads fresh state from DB
+            _context.ChangeTracker.Clear();
 
             TempData["Success"] = "Address added.";
             return RedirectToAction(nameof(ManageAccount));
@@ -250,6 +294,55 @@ namespace PontelloImport.Controllers
             return RedirectToAction(nameof(ManageAccount));
         }
 
+        // POST: /DealerAccount/AddAddressJson  (AJAX — inline checkout form)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Dealer")]
+        public async Task<IActionResult> AddAddressJson([FromBody] AddAddressJsonModel model)
+        {
+            var dealer = await GetCurrentDealerAsync();
+            if (dealer == null)
+                return Json(new { success = false, message = "Dealer not found" });
+
+            var dealerId = dealer.DealerID;
+            var allAddresses = await _context.Addresses
+                .Where(a => a.DealerID == dealerId)
+                .ToListAsync();
+
+            bool isFirst     = !allAddresses.Any();
+            bool setAsDefault = model.IsDefault || isFirst;
+
+            if (setAsDefault)
+            {
+                foreach (var a in allAddresses)
+                {
+                    bool clear = model.AddressType switch {
+                        "Billing"  => a.AddressType == "Billing"  || a.AddressType == "Both",
+                        "Shipping" => a.AddressType == "Shipping" || a.AddressType == "Both",
+                        _          => true
+                    };
+                    if (clear) a.IsDefault = false;
+                }
+            }
+
+            var address = new Address
+            {
+                DealerID    = dealerId,
+                Street      = model.Street,
+                City        = model.City,
+                Province    = model.ProvinceState,
+                PostalCode  = model.PostalZipCode,
+                Country     = string.IsNullOrWhiteSpace(model.Country) ? "Canada" : model.Country,
+                AddressType = model.AddressType,
+                IsDefault   = setAsDefault
+            };
+
+            _context.Addresses.Add(address);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, addressId = address.AddressID, message = "Address saved" });
+        }
+
         // POST: /DealerAccount/ChangePassword
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -285,5 +378,16 @@ namespace PontelloImport.Controllers
 
             return RedirectToAction(nameof(ManageAccount));
         }
+    }
+
+    public class AddAddressJsonModel
+    {
+        public string Street        { get; set; } = "";
+        public string City          { get; set; } = "";
+        public string ProvinceState { get; set; } = "";
+        public string PostalZipCode { get; set; } = "";
+        public string Country       { get; set; } = "Canada";
+        public string AddressType   { get; set; } = "Both";
+        public bool   IsDefault     { get; set; }
     }
 }
